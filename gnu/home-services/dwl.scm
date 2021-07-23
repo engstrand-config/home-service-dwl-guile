@@ -538,10 +538,6 @@
 (define (home-dwl-profile-service config)
   (list (specification->package "dwl")))
 
-; TODO: How should we install the C bindings?
-(define (home-dwl-environment-variables config)
-  `(("LTDL_LIBRARY_PATH" . "/home/fredrik/development/guile-config-c/build")))
-
 ; TODO: Update command to restart dwl rather than printing the config
 (define (home-dwl-on-change-service config)
   `(("files/config/dwl/config.scm"
@@ -566,9 +562,6 @@
         (service-extension
           home-profile-service-type
           home-dwl-profile-service)
-        (service-extension
-          home-environment-variables-service-type
-          home-dwl-environment-variables)
         (service-extension
           home-files-service-type
           home-dwl-files-service)
