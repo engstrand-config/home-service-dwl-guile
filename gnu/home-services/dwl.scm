@@ -547,12 +547,11 @@
   `(("config/dwl/config.scm"
      ,(scheme-file
         "dwl-config.scm"
-        #~(
-           #$@(transform-config
-                #:transform-value transform-config-value
-                #:type <home-dwl-configuration>
-                #:config config
-                #:original-config config))))))
+        #~(define config '(#$@(transform-config
+                     #:transform-value transform-config-value
+                     #:type <home-dwl-configuration>
+                     #:config config
+                     #:original-config config)))))))
 
 (define home-dwl-service-type
   (service-type
