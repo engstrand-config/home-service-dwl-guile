@@ -313,7 +313,7 @@
          (#f
           (raise-exception
             (make-exception-with-message
-              (string-append value " is not a valid layout id"))))
+              (string-append "dwl: '" value "' is not a valid layout id"))))
          (_ index))))
     (_ value)))
 
@@ -340,7 +340,7 @@
        value
        (raise-exception
          (make-exception-with-message
-           (string-append value " is not a valid XKB key")))))
+           (string-append "dwl: '" value "' is not a valid XKB key")))))
     (_ value)))
 
 (define (transform-rule field value original)
@@ -355,9 +355,9 @@
          (raise-exception
            (make-exception-with-message
              (string-append
-               "specified tag ("
+               "dwl: specified tag '"
                (number->string value)
-               ") is out of bounds, there are only "
+               "' is out of bounds, there are only "
                (number->string tags)
                " available tags"))))))
     (_ value)))
@@ -424,9 +424,9 @@
               (raise-exception
                 (make-exception-with-message
                   (string-append
-                    "specified target tag ("
+                    "dwl: specified target tag '"
                     (number->string tag)
-                    ") in tag key is out of bounds, there are only "
+                    "' in tag key is out of bounds, there are only "
                     (number->string tags)
                     " available tags"))))))
         '()
@@ -460,7 +460,7 @@
        (transform-tag-keys value original)
        (raise-exception
          (make-exception-with-message
-           "too few tag keys, not all tags can be accessed"))))
+           "dwl: too few tag keys, not all tags can be accessed"))))
     ('buttons
      (map
        (lambda
