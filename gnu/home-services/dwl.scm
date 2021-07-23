@@ -321,7 +321,7 @@
   (if
     (not proc)
     proc
-    (gexp->approximate-sexp #~(lambda () #$proc))))
+    (gexp->approximate-sexp #~(. ,(lambda () #$proc)))))
 
 (define (transform-layout field value original)
   (match
@@ -547,11 +547,12 @@
   `(("config/dwl/config.scm"
      ,(scheme-file
         "dwl-config.scm"
-        #~(define config '(#$@(transform-config
-                     #:transform-value transform-config-value
-                     #:type <home-dwl-configuration>
-                     #:config config
-                     #:original-config config)))))))
+        #~(define config
+            `(#$@(transform-config
+                   #:transform-value transform-config-value
+                   #:type <home-dwl-configuration>
+                   #:config config
+                   #:original-config config)))))))
 
 (define home-dwl-service-type
   (service-type
