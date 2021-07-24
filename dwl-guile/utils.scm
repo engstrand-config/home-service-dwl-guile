@@ -1,5 +1,5 @@
 ; Contains helper procedures and syntax macros
-(define-module (dwl utils)
+(define-module (dwl-guile utils)
                #:use-module (guix gexp)
                #:use-module (srfi srfi-1)
                #:export (
@@ -8,7 +8,6 @@
                          maybe-procedure?
                          modifier?
                          rgb-color?
-
                          list-of-strings?
                          list-of-modifiers?
                          list-of-tag-key-pairs?))
@@ -29,6 +28,8 @@
 (define (maybe-procedure? val) (or (procedure? val) (not val)))
 (define (maybe-gexp? val) (or (gexp? val) (not val)))
 (define (modifier? val) (member val %modifiers))
+(define (list-of-strings? lst) (every string? lst))
+(define (list-of-modifiers? lst) (every modifier? lst))
 
 ; Validates the format of an RGBA list, e.g.
 ; '(0.2 0.5 0.6 1.0). Only values between 0-1 are allowed
@@ -40,8 +41,6 @@
       (lambda (v) (and (number? v) (and (>= v 0) (<= v 1))))
       lst)))
 
-(define (list-of-strings? lst) (every string? lst))
-(define (list-of-modifiers? lst) (every modifier? lst))
 
 ; Defining tag keys requires you to specify a target tag
 ; for each respective key. For example, you might want to
