@@ -2,7 +2,6 @@
 (define-module (dwl utils)
                #:use-module (guix gexp)
                #:use-module (srfi srfi-1)
-               #:use-module (dwl bindings)
                #:export (
                          maybe-gexp?
                          maybe-string?
@@ -13,6 +12,17 @@
                          list-of-strings?
                          list-of-modifiers?
                          list-of-tag-key-pairs?))
+
+; List of available key modifiers
+(define %modifiers
+  '(SHIFT
+     CAPS
+     CTRL
+     ALT
+     MOD2
+     MOD3
+     SUPER
+     MOD5))
 
 ; General predicates
 (define (maybe-string? val) (or (string? val) (not val)))
@@ -43,5 +53,5 @@
   (every
     (lambda
       (pair)
-      (and (xkb-key? (car pair)) (number? (cdr pair))))
+      (and (string? (car pair)) (number? (cdr pair))))
     lst))

@@ -1,4 +1,3 @@
 #!/bin/sh
 
-export LTDL_LIBRARY_PATH="/home/$USER/development/guile-config-c/build"
 export GUILE_LOAD_PATH="$GUILE_LOAD_PATH:$(pwd)"

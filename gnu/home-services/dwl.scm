@@ -5,7 +5,6 @@
                #:use-module (guix gexp)
                #:use-module (guix packages)
                #:use-module (dwl utils)
-               #:use-module (dwl bindings)
                #:use-module (srfi srfi-1)
                #:use-module (ice-9 match)
                #:use-module (ice-9 format)
@@ -128,7 +127,7 @@
     (string "default")
     "default layout (id) to use for monitor")
   (transform
-    (number NORMAL)
+    (symbol 'TRANSFORM-NORMAL)
     "output transformations, e.g. rotation, reflect")
   (x
     (number 0)
@@ -163,7 +162,7 @@
 (define-configuration
   dwl-key
   (modifiers
-    (list-of-modifiers (list MODKEY))
+    (list-of-modifiers '(SUPER))
     "list of modifiers to use for the keybinding")
   (key
     (string)
@@ -177,10 +176,10 @@
 (define-configuration
   dwl-button
   (modifiers
-    (list-of-modifiers (list MODKEY))
+    (list-of-modifiers '(SUPER))
     "list of modifiers to use for the button")
   (button
-    (number)
+    (symbol)
     "mouse button to use")
   (action
     (maybe-gexp #f)
@@ -191,16 +190,16 @@
 (define-configuration
   dwl-tag-keys
   (view-modifiers
-    (list-of-modifiers (list SUPER))
+    (list-of-modifiers '(SUPER))
     "modifier(s) that should be used to view a tag")
   (tag-modifiers
-    (list-of-modifiers (list SUPER SHIFT))
+    (list-of-modifiers '(SUPER SHIFT))
     "modifier(s) that should be used to move windows to a tag")
   (toggle-view-modifiers
-    (list-of-modifiers (list SUPER CTRL))
+    (list-of-modifiers '(SUPER CTRL))
     "modifier(s) that should be used to toggle the visibilty of a tag")
   (toggle-tag-modifiers
-    (list-of-modifiers (list SUPER SHIFT CTRL))
+    (list-of-modifiers '(SUPER SHIFT CTRL))
     "modifier(s) that should be used to toggle a tag for a window")
   (keys
     (list-of-tag-key-pairs
@@ -234,16 +233,16 @@
 (define %base-buttons
   (list
     (dwl-button
-      (modifiers (list SUPER))
-      (button MOUSE-LEFT)
+      (modifiers '(SUPER))
+      (button 'MOUSE-LEFT)
       (action #f)) ; move window
     (dwl-button
-      (modifiers (list SUPER))
-      (button MOUSE-MIDDLE)
+      (modifiers '(SUPER))
+      (button 'MOUSE-MIDDLE)
       (action #f)) ; toggle floating
     (dwl-button
-      (modifiers (list SUPER))
-      (button MOUSE-RIGHT)
+      (modifiers '(SUPER))
+      (button 'MOUSE-RIGHT)
       (action #f)))) ; resize window
 
 ; dwl configuration
@@ -347,13 +346,6 @@
     field
     ('modifiers (delete-duplicates value))
     ('action (transform-procedure value))
-    ('key
-     (if
-       (xkb-key? value)
-       value
-       (raise-exception
-         (make-exception-with-message
-           (string-append "dwl: '" value "' is not a valid XKB key")))))
     (_ value)))
 
 (define (transform-rule field value original)

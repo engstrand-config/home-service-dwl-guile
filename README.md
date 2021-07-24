@@ -17,10 +17,14 @@ and you should now be able to use the dwl service in your home environment:
 
 ```guile
 ; import the service
-(use-modules (dwl bindings)
-             (gnu home-services dwl))
+(use-modules (gnu home-services dwl))
 
 ; enable the service and optionally pass in a configuration
 (service home-dwl-service-type
-  (home-dwl-configuration ...))
+  (home-dwl-configuration
+    (config
+      (dwl-config ...))))
+
+; or use the default configuration
+(service home-dwl-service-type)
 ```
