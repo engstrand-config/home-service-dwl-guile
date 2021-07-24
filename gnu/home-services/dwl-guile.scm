@@ -10,6 +10,7 @@
                #:use-module (gnu home-services)
                #:use-module (gnu services configuration)
                #:use-module (dwl-guile utils)
+               #:use-module (dwl-guile package)
                #:use-module (dwl-guile defaults)
                #:use-module (dwl-guile transforms)
                #:use-module (dwl-guile configuration)
@@ -44,13 +45,21 @@
   (package
     (package dwl)
     "dwl package to use")
+  (desktop-entry?
+    (boolean #t)
+    "if a desktop entry in 'share/wayland-sessions' should be created for dwl")
   (config
     (dwl-config (dwl-config))
     "dwl configuration")
   (no-serialization))
 
 (define (home-dwl-guile-profile-service config)
-  (list (home-dwl-guile-configuration-package config)))
+  (list
+    (make-dwl-package
+      #:dwl-package
+      (home-dwl-guile-configuration-package config)
+      #:desktop-entry?
+      (home-dwl-guile-configuration-desktop-entry? config))))
 
 ; TODO: Update command to restart dwl rather than printing the config
 (define (home-dwl-guile-on-change-service config)
