@@ -46,8 +46,8 @@
     (package dwl)
     "dwl package to use")
   (desktop-entry?
-    (boolean #t)
-    "if a desktop entry in 'share/wayland-sessions' should be created for dwl")
+    (boolean #f)
+    "if a desktop entry in 'share/wayland-sessions' should be created. defaults to #f")
   (config
     (dwl-config (dwl-config))
     "dwl configuration")

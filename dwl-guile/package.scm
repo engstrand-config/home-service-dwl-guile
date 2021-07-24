@@ -14,7 +14,7 @@
   (make-dwl-package
     #:key
     (dwl-package #f)
-    (desktop-entry? #t))
+    (desktop-entry? #f))
   (package
     (inherit dwl-package)
     (name "dwl-guile")
