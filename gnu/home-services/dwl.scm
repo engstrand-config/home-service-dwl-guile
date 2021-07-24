@@ -3,6 +3,7 @@
 ; into a format that can easily be parsed in C.
 (define-module (gnu home-services dwl)
                #:use-module (guix gexp)
+               #:use-module (guix packages)
                #:use-module (dwl utils)
                #:use-module (dwl bindings)
                #:use-module (srfi srfi-1)
@@ -10,7 +11,7 @@
                #:use-module (ice-9 format)
                #:use-module (ice-9 pretty-print)
                #:use-module (ice-9 exceptions)
-               #:use-module (gnu packages)
+               #:use-module (gnu packages wm)
                #:use-module (gnu home-services)
                #:use-module (gnu services configuration)
                #:export (
@@ -22,6 +23,7 @@
                          dwl-xkb-rule
                          dwl-tag-keys
                          dwl-monitor-rule
+                         dwl-config
 
                          %layout-default
                          %layout-monocle
@@ -246,7 +248,7 @@
 
 ; dwl configuration
 (define-configuration
-  home-dwl-configuration
+  dwl-config
   (sloppy-focus
     (number 1)
     "focus follows mouse")
@@ -301,12 +303,23 @@
     "list of mouse button keybindings, e.g. resizing or moving windows")
   (no-serialization))
 
+; dwl service type configuration
+(define-configuration
+  home-dwl-configuration
+  (package
+    (package dwl)
+    "dwl package to use")
+  (config
+    (dwl-config (dwl-config))
+    "dwl configuration")
+  (no-serialization))
+
 ; Value transforms
 (define (transform-monitor-rule field value original)
   (match
     field
     ('layout
-     (let* ((layouts (home-dwl-configuration-layouts original))
+     (let* ((layouts (dwl-config-layouts original))
             (index (list-index (lambda (l) (equal? (dwl-layout-id l) value)) layouts)))
        (match
          index
@@ -347,7 +360,7 @@
   (match
     field
     ('tag
-     (let ((tags (length (home-dwl-configuration-tags original)))
+     (let ((tags (length (dwl-config-tags original)))
            (tag (- value 1)))
        (if
          (< tag tags)
@@ -400,7 +413,7 @@
           (let
             ((key (car pair))
              (tag (cdr pair)) ; currently unused until we add the actions
-             (tags (length (home-dwl-configuration-tags original))))
+             (tags (length (dwl-config-tags original))))
             (if
               (<= tag tags)
               (cons*
@@ -455,7 +468,7 @@
     ('tag-keys
      (if
        (<=
-         (length (home-dwl-configuration-tags original))
+         (length (dwl-config-tags original))
          (length (dwl-tag-keys-keys value)))
        (transform-tag-keys value original)
        (raise-exception
@@ -533,16 +546,16 @@
       '()
       (record-type-fields type))))
 
-; TODO: Allow the user to specify a custom dwl package in the home-dwl-configuration.
-;       Modify the package definition dynamically to apply the guile patch?
+; TODO: Add wlroots and libxkbcommon?
 (define (home-dwl-profile-service config)
-  (list (specification->package "dwl")))
+  (list (home-dwl-configuration-package config)))
 
 ; TODO: Update command to restart dwl rather than printing the config
 (define (home-dwl-on-change-service config)
   `(("files/config/dwl/config.scm"
      ,#~(system* "cat" "/home/fredrik/.config/dwl/config.scm"))))
 
+; TODO: Respect XDG configuration
 (define (home-dwl-files-service config)
   `(("config/dwl/config.scm"
      ,(scheme-file
@@ -550,9 +563,9 @@
         #~(define config
             `(#$@(transform-config
                    #:transform-value transform-config-value
-                   #:type <home-dwl-configuration>
-                   #:config config
-                   #:original-config config)))))))
+                   #:type <dwl-config>
+                   #:config (home-dwl-configuration-config config)
+                   #:original-config (home-dwl-configuration-config config))))))))
 
 (define home-dwl-service-type
   (service-type
@@ -573,8 +586,8 @@
     (description "Configure and install dwl")))
 
 ; Custom dwl config
-; (define dwl-config
-;   (home-dwl-configuration
+; (define config
+;   (dwl-config
 ;     (border-px 2)
 ;     (tags
 ;       (list "1" "2" "3" "4" "5"))
