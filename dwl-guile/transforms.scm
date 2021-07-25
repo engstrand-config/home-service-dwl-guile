@@ -6,20 +6,26 @@
                #:use-module (dwl-guile utils)
                #:use-module (dwl-guile configuration)
                #:export (
-                         action->exp
+                         arrange->exp
+                         binding->exp
                          dwl-config->alist
                          configuration->alist))
 
-; Converts an action gexp into a scheme expression.
-; This is used to convert callbacks in dwl bindings into
-; callable procedures in C.
-(define (action->exp proc)
+; Converts an arrange procedure into a scheme expression.
+(define (arrange->exp proc)
+  (if
+    (not proc)
+    proc
+    (gexp->approximate-sexp #~(. ,(lambda (monitor) #$proc)))))
+
+; Converts a binding procedure into a scheme expression.
+(define (binding->exp proc)
   (if
     (not proc)
     proc
     (gexp->approximate-sexp #~(. ,(lambda () #$proc)))))
 
-; Transforms a configuration into alist to allow the values to easily be
+; Converts a configuration into alist to allow the values to easily be
 ; fetched in C using `scm_assoc_ref(alist, key)`.
 (define*
   (configuration->alist
@@ -65,14 +71,14 @@
 (define (transform-layout field value source)
   (match
     field
-    ('arrange (action->exp value))
+    ('arrange (arrange->exp value))
     (_ value)))
 
 (define (transform-binding field value source)
   (match
     field
     ('modifiers (delete-duplicates value))
-    ('action (action->exp value))
+    ('action (binding->exp value))
     (_ value)))
 
 (define (transform-xkb-rule field value source)

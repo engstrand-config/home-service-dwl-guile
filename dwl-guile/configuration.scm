@@ -92,6 +92,7 @@
   (title
     (maybe-string #f)
     "title of application")
+  ; TODO: Allow multiple tags?
   (tag
     (number 1)
     "tag to place application on. 1 corresponds to the first tag in the 'tags' list")
@@ -235,7 +236,7 @@
 (define-configuration
   dwl-config
   (sloppy-focus
-    (number 1)
+    (boolean #t)
     "focus follows mouse")
   (border-px
     (number 1)
@@ -247,20 +248,19 @@
     (number 300)
     "keyboard repeat start delay")
   (tap-to-click
-    (number 1)
+    (boolean #t)
     "trackpad click on tap")
   (natural-scrolling
-    (number 0)
+    (boolean #f)
     "trackpad natural scrolling")
   (terminal
-    (string "st")
+    (list-of-strings '("st"))
     "terminal application to use")
   (menu
-    (string "bemenu")
+    (list-of-strings '("bemenu"))
     "menu application to use")
   (tags
-    (list-of-strings
-      (list "1" "2" "3" "4" "5" "6" "7" "8" "9"))
+    (list-of-strings '("1" "2" "3" "4" "5" "6" "7" "8" "9"))
     "list of tag names")
   (colors
     (dwl-colors (dwl-colors))
