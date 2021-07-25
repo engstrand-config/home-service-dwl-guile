@@ -278,7 +278,7 @@
     (maybe-xkb-rule #f)
     "xkb rules and options")
   (keys
-    (list-of-keys '())
+    (list-of-keys %base-keys)
     "list of keybindings")
   (tag-keys
     (dwl-tag-keys (dwl-tag-keys))
