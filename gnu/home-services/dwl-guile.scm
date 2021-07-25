@@ -8,6 +8,9 @@
                #:use-module (ice-9 match)
                #:use-module (gnu packages wm)
                #:use-module (gnu home-services)
+               #:use-module (gnu packages admin) ; shepherd
+               #:use-module (gnu home-services shells)
+               #:use-module (gnu home-services shepherd)
                #:use-module (gnu services configuration)
                #:use-module (dwl-guile utils)
                #:use-module (dwl-guile package)
@@ -44,29 +47,42 @@
   home-dwl-guile-configuration
   (package
     (package dwl)
-    "dwl package to use")
-  (desktop-entry?
-    (boolean #f)
-    "if a desktop entry in 'share/wayland-sessions' should be created. defaults to #f")
+    "The dwl package to use")
+  (tty-number
+    (number 2)
+    "Launch dwl on specified tty upon user login. Defaults to 2")
   (config
     (dwl-config (dwl-config))
-    "dwl configuration")
+    "Custom dwl configuration. Replaces config.h")
   (no-serialization))
 
 (define (home-dwl-guile-profile-service config)
   (list
     (make-dwl-package
-      #:dwl-package
-      (home-dwl-guile-configuration-package config)
-      #:desktop-entry?
-      (home-dwl-guile-configuration-desktop-entry? config))))
+      (home-dwl-guile-configuration-package config))))
 
-; TODO: Update command to restart dwl rather than printing the config
+(define (home-dwl-guile-shepherd-service config)
+  "Return a <shepherd-service> for the dwl service"
+  (let ((dwl-guile (make-dwl-package
+                     (home-dwl-guile-configuration-package config))))
+    (list
+      (shepherd-service
+        (documentation "Run dwl.")
+        (provision '(dwl-guile))
+        (start #~(make-forkexec-constructor
+                   (list #$(file-append dwl-guile "/bin/dwl"))))
+        (stop #~(make-kill-destructor))))))
+
+(define (home-dwl-guile-run-on-tty-service config)
+  (list
+    (format #f "[ $(tty) = /dev/tty~a ] && herd start dwl-guile"
+            (home-dwl-guile-configuration-tty-number config))))
+
 (define (home-dwl-guile-on-change-service config)
   `(("files/config/dwl/config.scm"
-     ,#~(system* "cat" "/home/fredrik/.config/dwl/config.scm"))))
+     ,#~(system* #$(file-append shepherd "/bin/herd") "restart" "dwl-guile"))))
 
-; TODO: Respect XDG configuration
+; TODO: Respect XDG configuration?
 (define (home-dwl-guile-files-service config)
   `(("config/dwl/config.scm"
      ,(scheme-file
@@ -85,6 +101,12 @@
         (service-extension
           home-files-service-type
           home-dwl-guile-files-service)
+        (service-extension
+          home-shepherd-service-type
+          home-dwl-guile-shepherd-service)
+        (service-extension
+          home-shell-profile-service-type
+          home-dwl-guile-run-on-tty-service)
         (service-extension
           home-run-on-change-service-type
           home-dwl-guile-on-change-service)))
