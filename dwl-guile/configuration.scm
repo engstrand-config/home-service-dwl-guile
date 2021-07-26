@@ -164,8 +164,8 @@
     (string)
     "regular key that triggers the keybinding")
   (action
-    (maybe-gexp %base-key-action)
-    "gexp to call when triggered")
+    (maybe-exp %base-key-action)
+    "expression to call when triggered")
   (no-serialization))
 
 ; Mouse button configuration
@@ -178,8 +178,8 @@
     (symbol)
     "mouse button to use")
   (action
-    (maybe-gexp %base-button-action)
-    "gexp to call when triggered")
+    (maybe-exp %base-button-action)
+    "expression to call when triggered")
   (no-serialization))
 
 ; Tag keybindings configuration
@@ -214,8 +214,8 @@
     (string)
     "symbol that should be shown when layout is active")
   (arrange
-    (maybe-gexp %base-layout-arrange)
-    "gexp to call when selected")
+    (maybe-exp %base-layout-arrange)
+    "expression to call when selected")
   (no-serialization))
 
 (define (list-of-keys? lst) (every dwl-key? lst))

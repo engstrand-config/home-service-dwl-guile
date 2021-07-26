@@ -16,14 +16,14 @@
   (if
     (not proc)
     proc
-    (gexp->approximate-sexp #~(. ,(lambda (monitor) #$proc)))))
+    `(. (lambda (monitor) ,proc))))
 
 ; Converts a binding procedure into a scheme expression.
 (define (binding->exp proc)
   (if
     (not proc)
     proc
-    (gexp->approximate-sexp #~(. ,(lambda () #$proc)))))
+    `(. (lambda () ,proc))))
 
 ; Converts a configuration into alist to allow the values to easily be
 ; fetched in C using `scm_assoc_ref(alist, key)`.
@@ -186,19 +186,19 @@
                (dwl-key
                  (modifiers view-modifiers)
                  (key key)
-                 (action #f))
+                 (action `(view ,key)))
                (dwl-key
                  (modifiers tag-modifiers)
                  (key key)
-                 (action #f))
+                 (action `(tag ,key)))
                (dwl-key
                  (modifiers toggle-view-modifiers)
                  (key key)
-                 (action #f))
+                 (action `(toggle-view ,key)))
                (dwl-key
                  (modifiers toggle-tag-modifiers)
                  (key key)
-                 (action #f))
+                 (action `(toggle-tag ,key)))
                acc)))
         '()
         keys))))

@@ -147,13 +147,13 @@
   (dwl-layout
     (id "default")
     (symbol "[]=")
-    (arrange #~(tile monitor))))
+    (arrange '(dwl:tile monitor))))
 
 (define %layout-monocle
   (dwl-layout
     (id "monocle")
     (symbol "[M]")
-    (arrange #~(monocle monitor))))
+    (arrange '(dwl:monocle monitor))))
 
 (define %layout-floating
   (dwl-layout
@@ -168,55 +168,13 @@
         %layout-floating))
 
 (define %base-tty-keys
-  (list
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_1")
-      (action #~(chvt 1)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_2")
-      (action #~(chvt 2)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_3")
-      (action #~(chvt 3)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_4")
-      (action #~(chvt 4)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_5")
-      (action #~(chvt 5)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_6")
-      (action #~(chvt 6)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_7")
-      (action #~(chvt 7)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_8")
-      (action #~(chvt 8)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_9")
-      (action #~(chvt 9)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_10")
-      (action #~(chvt 10)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_11")
-      (action #~(chvt 11)))
-    (dwl-key
-      (modifiers '(CTRL ALT))
-      (key "XF86Switch_VT_12")
-      (action #~(chvt 12)))))
+  (map
+    (lambda (v)
+      (dwl-key
+        (modifiers '(CTRL ALT))
+        (key (string-append "XF86Switch_VT_" (number->string v)))
+        (action `(dwl:chvt ,v))))
+    (iota 12 1 1)))
 
 (define %base-config-keys
   (append
@@ -228,11 +186,11 @@
       (dwl-key
         (modifiers '(SUPER))
         (key "Return")
-        (action #~(spawn-terminal))) ;; spawn .v=termcmd
+        (action '(dwl:spawn-terminal))) ;; spawn .v=termcmd
       (dwl-key
         (modifiers '(SUPER SHIFT))
         (key "Return")
-        (action #f)) ;; SHCMD("samedir") ;; not implemented... how does it work in Wayland?
+        (action '(dwl:shcmd "samedir")))
       (dwl-key
         (modifiers '(SUPER))
         (key "j")
@@ -263,8 +221,8 @@
         (action #f)) ;; view 0
       (dwl-key
         (modifiers '(SUPER))
-        (key "q") ;; killclient 0
-        (action #f))
+        (key "q")
+        (action '(dwl:killclient)))
       (dwl-key
         (modifiers '(SUPER))
         (key "t") ;; setlayout .v=&layouts[0]
@@ -303,8 +261,8 @@
         (action #f))
       (dwl-key
         (modifiers '(SUPER SHIFT))
-        (key "Escape") ;; quit 0
-        (action #f))
+        (key "Escape")
+        (action '(dwl:quit)))
       (dwl-key
         (modifiers '())
         (key "Print") ;; primary print screen command?
@@ -315,20 +273,20 @@
         (action #f))
       (dwl-key
         (modifiers '(SUPER SHIFT))
-        (key "w") ;; open browser
-        (action #f))
+        (key "w")
+        (action '(dwl:shcmd "$BROWSER")))
       (dwl-key
         (modifiers '())
-        (key "XF86WWW") ;; open browser
-        (action #f))
+        (key "XF86WWW")
+        (action '(dwl:shcmd "$BROWSER")))
       (dwl-key
         (modifiers '())
         (key "Print") ;; print screen command?
         (action #f))
       (dwl-key
         (modifiers '())
-        (key "XF86PowerOff") ;; quit ;; or loginctl poweroff?
-        (action #f))
+        (key "XF86PowerOff")
+        (action '(dwl:quit)))
       (dwl-key
         (modifiers '())
         (key "XF86MonBrightnessDown") ;; monitor brightness down?
