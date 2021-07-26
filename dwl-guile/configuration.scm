@@ -4,6 +4,7 @@
                #:use-module (ice-9 exceptions)
                #:use-module (gnu services configuration)
                #:use-module (dwl-guile utils)
+               #:use-module (dwl-guile defaults)
                #:export (
                          dwl-config
                          dwl-config?
@@ -254,7 +255,7 @@
     (boolean #f)
     "trackpad natural scrolling")
   (terminal
-    (list-of-strings '("st"))
+    (list-of-strings '("alacritty"))
     "terminal application to use")
   (menu
     (list-of-strings '("bemenu"))
