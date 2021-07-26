@@ -38,9 +38,14 @@
                             %layout-monocle
                             %layout-floating
 
-                            %base-buttons
-                            %base-layouts
-                            %base-monitor-rules))
+                            %base-config-keys
+                            %base-config-colors
+                            %base-config-buttons
+                            %base-config-layouts
+                            %base-config-tag-keys
+                            %base-config-rules
+                            %base-config-xkb-rules
+                            %base-config-monitor-rules))
 
 ; dwl service type configuration
 (define-configuration

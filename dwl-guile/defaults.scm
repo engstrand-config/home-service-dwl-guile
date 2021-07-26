@@ -6,11 +6,6 @@
                          %layout-monocle
                          %layout-floating
 
-                         %base-buttons
-                         %base-keys
-                         %base-layouts
-                         %base-monitor-rules
-
                          %base-root-color
                          %base-border-color
                          %base-focus-color
@@ -63,11 +58,115 @@
                          %base-config-rules
                          %base-config-xkb-rules
                          %base-config-tag-keys
+                         %base-config-buttons
+                         %base-config-keys
+                         %base-config-layouts
+                         %base-config-monitor-rules
                          ; do not need to write "%base-" before each variable?
                          ; can load the variables in the configuration with
                          ; #:prefix %base-
                          ; ?
                          ))
+
+; Default colors
+(define %base-root-color '(0.3 0.3 0.3 1.0))
+(define %base-border-color '(0.5 0.5 0.5 1.0))
+(define %base-focus-color '(1.0 0.0 0.0 1.0))
+
+; Default application rules
+(define %base-rule-id #f)
+(define %base-title-id #f)
+(define %base-tag-number 1)
+(define %base-floating-boolean #f)
+(define %base-monitor-number 1) ;; can be confused with %base-monitor-* below?
+
+; Default XKB rules
+(define %base-xkb-rules "")
+(define %base-xkb-model "")
+(define %base-xkb-layouts '())
+(define %base-xkb-variants '())
+(define %base-xkb-options '())
+
+; Default layout values
+(define %base-layout-arrange #f)
+
+; Default monitor rules
+(define %base-monitor-name #f)
+(define %base-monitor-master-factor 0.55)
+(define %base-monitor-number-of-masters 1)
+(define %base-monitor-scale 1)
+(define %base-monitor-layout "default")
+(define %base-monitor-transform 'TRANSFORM-NORMAL)
+(define %base-monitor-x 0)
+(define %base-monitor-y 0)
+
+; Default keybinding values
+(define %base-key-modifiers '(SUPER))
+(define %base-key-action #f)
+
+; Default mouse button values
+(define %base-button-modifiers '(SUPER))
+(define %base-button-action #f)
+
+; Default tag keybindings
+(define %base-tag-view-modifiers '(SUPER))
+(define %base-tag-tag-modifiers '(SUPER SHIFT))
+(define %base-tag-toggle-view-modifiers '(SUPER CTRL))
+(define %base-tag-toggle-tag-modifiers '(SUPER SHIFT CTRL))
+(define %base-tag-keys '(("1" . 1)
+                         ("2" . 2)
+                         ("3" . 3)
+                         ("4" . 4)
+                         ("5" . 5)
+                         ("6" . 6)
+                         ("7" . 7)
+                         ("8" . 8)
+                         ("9" . 9)))
+
+; Default base configuration values
+(define %base-config-sloppy-focus #t)
+(define %base-config-border-px 1)
+(define %base-config-repeat-rate 50)
+(define %base-config-repeat-delay 300)
+(define %base-config-tap-to-click #t)
+(define %base-config-natural-scrolling #f)
+(define %base-config-terminal '("alacritty"))
+(define %base-config-menu '("bemenu"))
+(define %base-config-tags '("1" "2" "3" "4" "5" "6" "7" "8" "9"))
+(define %base-config-colors (dwl-colors))
+(define %base-config-rules '())
+(define %base-config-xkb-rules #f)
+(define %base-config-tag-keys (dwl-tag-keys))
+
+; Default monitor rules
+(define %base-config-monitor-rules
+  (list (dwl-monitor-rule)))
+
+; Basic layouts
+(define %layout-default
+  (dwl-layout
+    (id "default")
+    (symbol "[]=")
+    (arrange #~(tile monitor))))
+
+(define %layout-monocle
+  (dwl-layout
+    (id "monocle")
+    (symbol "[M]")
+    (arrange #~(monocle monitor))))
+
+(define %layout-floating
+  (dwl-layout
+    (id "floating")
+    (symbol "><>")
+    (arrange #f)))
+
+; Default layouts
+(define %base-config-layouts
+  (list %layout-default
+        %layout-monocle
+        %layout-floating))
+
 (define %base-tty-keys
   (list
     (dwl-key
@@ -119,7 +218,7 @@
       (key "XF86Switch_VT_12")
       (action #~(chvt 12)))))
 
-(define %base-keys
+(define %base-config-keys
   (append
     (list
       (dwl-key
@@ -257,7 +356,7 @@
     %base-tty-keys))
 
 ; Default mouse button bindings
-(define %base-buttons
+(define %base-config-buttons
   (list
     (dwl-button
       (modifiers '(SUPER))
@@ -271,102 +370,3 @@
       (modifiers '(SUPER))
       (button 'MOUSE-RIGHT)
       (action #f)))) ; resize window
-
-; Default monitor rules
-(define %base-monitor-rules
-  (list (dwl-monitor-rule)))
-
-; Basic layouts
-(define %layout-default
-  (dwl-layout
-    (id "default")
-    (symbol "[]=")
-    (arrange #~(tile monitor))))
-
-(define %layout-monocle
-  (dwl-layout
-    (id "monocle")
-    (symbol "[M]")
-    (arrange #~(monocle monitor))))
-
-(define %layout-floating
-  (dwl-layout
-    (id "floating")
-    (symbol "><>")
-    (arrange #f)))
-
-; Default layouts
-(define %base-layouts
-  (list %layout-default
-        %layout-monocle
-        %layout-floating))
-
-; Default colors
-(define %base-root-color '(0.3 0.3 0.3 1.0))
-(define %base-border-color '(0.5 0.5 0.5 1.0))
-(define %base-focus-color '(1.0 0.0 0.0 1.0))
-
-; Default application rules
-(define %base-rule-id #f)
-(define %base-title-id #f)
-(define %base-tag-number 1)
-(define %base-floating-boolean #f)
-(define %base-monitor-number 1) ;; can be confused with %base-monitor-* below?
-
-; Default XKB rules
-(define %base-xkb-rules "")
-(define %base-xkb-model "")
-(define %base-xkb-layouts '())
-(define %base-xkb-variants '())
-(define %base-xkb-options '())
-
-; Default monitor rules
-(define %base-monitor-name #f)
-(define %base-monitor-master-factor 0.55)
-(define %base-monitor-number-of-masters 1)
-(define %base-monitor-scale 1)
-(define %base-monitor-layout "default")
-(define %base-monitor-transform 'TRANSFORM-NORMAL)
-(define %base-monitor-x 0)
-(define %base-monitor-y 0)
-
-; Default keybindings
-(define %base-key-modifiers '(SUPER))
-(define %base-key-action #f)
-
-; Default mouse button bindings
-(define %base-button-modifiers '(SUPER))
-(define %base-button-action #f)
-
-; Default tag keybindings
-(define %base-tag-view-modifiers '(SUPER))
-(define %base-tag-tag-modifiers '(SUPER SHIFT))
-(define %base-tag-toggle-view-modifiers '(SUPER CTRL))
-(define %base-tag-toggle-tag-modifiers '(SUPER SHIFT CTRL))
-(define %base-tag-keys '(("1" . 1)
-                         ("2" . 2)
-                         ("3" . 3)
-                         ("4" . 4)
-                         ("5" . 5)
-                         ("6" . 6)
-                         ("7" . 7)
-                         ("8" . 8)
-                         ("9" . 9)))
-
-; Default layout configuration
-(define %base-layout-arrange #f)
-
-; Default base configuration
-(define %base-config-sloppy-focus #t)
-(define %base-config-border-px 1)
-(define %base-config-repeat-rate 50)
-(define %base-config-repeat-delay 300)
-(define %base-config-tap-to-click #t)
-(define %base-config-natural-scrolling #f)
-(define %base-config-terminal '("alacritty"))
-(define %base-config-menu '("bemenu"))
-(define %base-config-tags '("1" "2" "3" "4" "5" "6" "7" "8" "9"))
-(define %base-config-colors (dwl-colors))
-(define %base-config-rules '())
-(define %base-config-xkb-rules #f)
-(define %base-config-tag-keys (dwl-tag-keys))

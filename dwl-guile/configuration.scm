@@ -6,20 +6,6 @@
                #:use-module (dwl-guile utils)
                #:use-module (dwl-guile defaults)
                #:export (
-                         dwl-config
-                         dwl-config?
-                         <dwl-config>
-
-                         dwl-config-keys
-                         dwl-config-tags
-                         dwl-config-colors
-                         dwl-config-rules
-                         dwl-config-layouts
-                         dwl-config-buttons
-                         dwl-config-tag-keys
-                         dwl-config-xkb-rules
-                         dwl-config-monitor-rules
-
                          dwl-monitor-rule
                          dwl-monitor-rule?
                          <dwl-monitor-rule>
@@ -68,7 +54,21 @@
 
                          dwl-rule
                          dwl-rule?
-                         <dwl-rule>))
+                         <dwl-rule>
+
+                         dwl-config
+                         dwl-config?
+                         <dwl-config>
+
+                         dwl-config-keys
+                         dwl-config-tags
+                         dwl-config-colors
+                         dwl-config-rules
+                         dwl-config-layouts
+                         dwl-config-buttons
+                         dwl-config-tag-keys
+                         dwl-config-xkb-rules
+                         dwl-config-monitor-rules))
 
 ; Color configuration
 (define-configuration
@@ -259,24 +259,24 @@
     (dwl-colors %base-config-colors)
     "root, border and focus colors in RGBA format, 0-255 for RGB and 0-1 for alpha")
   (layouts
-    (list-of-layouts %base-layouts)
+    (list-of-layouts %base-config-layouts)
     "list of layouts to use")
   (rules
     (list-of-rules %base-config-rules)
     "list of application rules")
   (monitor-rules
-    (list-of-monitor-rules %base-monitor-rules)
+    (list-of-monitor-rules %base-config-monitor-rules)
     "list of monitor rules")
   (xkb-rules
-    (maybe-xkb-rule %base-xkb-rules)
+    (maybe-xkb-rule %base-config-xkb-rules)
     "xkb rules and options")
   (keys
-    (list-of-keys %base-keys)
+    (list-of-keys %base-config-keys)
     "list of keybindings")
   (tag-keys
     (dwl-tag-keys %base-config-tag-keys)
     "tag keys configuration")
   (buttons
-    (list-of-buttons %base-buttons)
+    (list-of-buttons %base-config-buttons)
     "list of mouse button keybindings, e.g. resizing or moving windows")
   (no-serialization))
