@@ -27,9 +27,8 @@ and you should now be able to use the dwl service in your home environment:
     ; support configuration using guile.
     (package my-custom-dwl)
 
-    ; update dwl package definition to generate a desktop
-    ; entry in `.guix-home/profile/share/wayland-sessions`.
-    (desktop-entry? #t)
+    ; tty to auto-start dwl on
+    (tty-number 2)
 
     ; create a custom configuration (similar to config.h).
     ; the syntax is mostly the same as the one in config.h
