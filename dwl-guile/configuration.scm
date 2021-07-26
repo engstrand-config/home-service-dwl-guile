@@ -161,7 +161,7 @@
     (list-of-modifiers %base-key-modifiers)
     "list of modifiers to use for the keybinding")
   (key
-    (%base-key-key)
+    (string)
     "regular key that triggers the keybinding")
   (action
     (maybe-gexp %base-key-action)
@@ -175,7 +175,7 @@
     (list-of-modifiers %base-button-modifiers)
     "list of modifiers to use for the button")
   (button
-    (%base-button-button)
+    (symbol)
     "mouse button to use")
   (action
     (maybe-gexp %base-button-action)
@@ -208,10 +208,10 @@
 (define-configuration
   dwl-layout
   (id
-    %base-layout-id
+    (string)
     "id that can be used to reference a layout, e.g. in a monitor rule")
   (symbol
-    %base-layout-symbol
+    (string)
     "symbol that should be shown when layout is active")
   (arrange
     (maybe-gexp %base-layout-arrange)

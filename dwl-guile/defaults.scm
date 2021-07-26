@@ -37,11 +37,9 @@
                          %base-monitor-y
 
                          %base-key-modifiers
-                         %base-key-key
                          %base-key-action
 
                          %base-button-modifiers
-                         %base-button-button
                          %base-button-action
 
                          %base-tag-view-modifiers
@@ -50,8 +48,6 @@
                          %base-tag-toggle-tag-modifiers
                          %base-tag-keys-list-of-tag-to-key-pairs
 
-                         %base-layout-id
-                         %base-layout-symbol
                          %base-layout-arrange
 
                          %base-config-sloppy-focus
@@ -336,12 +332,10 @@
 
 ; Default keybindings
 (define %base-key-modifiers '(SUPER))
-(define %base-key-key string)
 (define %base-key-action #f)
 
 ; Default mouse button bindings
 (define %base-button-modifiers '(SUPER))
-(define %base-button-button symbol)
 (define %base-button-action #f)
 
 ; Default tag keybindings
@@ -360,8 +354,6 @@
                          ("9" . 9)))
 
 ; Default layout configuration
-(define %base-layout-id string)
-(define %base-layout-symbol string)
 (define %base-layout-arrange #f)
 
 ; Default base configuration
