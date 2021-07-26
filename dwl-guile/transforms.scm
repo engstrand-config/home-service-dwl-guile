@@ -181,24 +181,24 @@
           (pair acc)
           (let
             ((key (car pair))
-             (tag (cdr pair))) ; currently unused until we add the actions
+             (tag (cdr pair)))
              (cons*
                (dwl-key
                  (modifiers view-modifiers)
                  (key key)
-                 (action `(view ,key)))
+                 (action `(dwl:view ,key)))
                (dwl-key
                  (modifiers tag-modifiers)
                  (key key)
-                 (action `(tag ,key)))
+                 (action `(dwl:tag ,key)))
                (dwl-key
                  (modifiers toggle-view-modifiers)
                  (key key)
-                 (action `(toggle-view ,key)))
+                 (action `(dwl:toggle-view ,key)))
                (dwl-key
                  (modifiers toggle-tag-modifiers)
                  (key key)
-                 (action `(toggle-tag ,key)))
+                 (action `(dwl:toggle-tag ,key)))
                acc)))
         '()
         keys))))
