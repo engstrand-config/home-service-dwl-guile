@@ -3,7 +3,7 @@
                #:use-module (guix gexp)
                #:use-module (srfi srfi-1)
                #:export (
-                         maybe-gexp?
+                         maybe-exp?
                          maybe-string?
                          maybe-procedure?
                          modifier?
@@ -24,7 +24,7 @@
      MOD5))
 
 ; General predicates
-(define (maybe-exp val) #t) ; not sure how to check if val is an expression
+(define (maybe-exp? val) #t) ; not sure how to check if val is an expression
 (define (maybe-string? val) (or (string? val) (not val)))
 (define (maybe-procedure? val) (or (procedure? val) (not val)))
 (define (modifier? val) (member val %modifiers))
