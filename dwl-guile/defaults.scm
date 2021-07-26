@@ -9,8 +9,69 @@
                          %base-buttons
                          %base-keys
                          %base-layouts
-                         %base-monitor-rules))
+                         %base-monitor-rules
 
+                         %base-root-color
+                         %base-border-color
+                         %base-focus-color
+
+                         %base-rule-id
+                         %base-title-id
+                         %base-tag-number
+                         %base-floating-boolean
+                         %base-monitor-number
+
+                         %base-xkb-rules
+                         %base-xkb-model
+                         %base-xkb-layouts
+                         %base-xkb-variants
+                         %base-xkb-options
+
+                         %base-monitor-name
+                         %base-monitor-master-factor
+                         %base-monitor-number-of-masters
+                         %base-monitor-scale
+                         %base-monitor-layout
+                         %base-monitor-transform
+                         %base-monitor-x
+                         %base-monitor-y
+
+                         %base-key-modifiers
+                         %base-key-key
+                         %base-key-action
+
+                         %base-button-modifiers
+                         %base-button-button
+                         %base-button-action
+
+                         %base-tag-view-modifiers
+                         %base-tag-tag-modifiers
+                         %base-tag-toggle-view-modifiers
+                         %base-tag-toggle-tag-modifiers
+                         %base-tag-keys-list-of-tag-to-key-pairs
+
+                         %base-layout-id
+                         %base-layout-symbol
+                         %base-layout-arrange
+
+                         %base-config-sloppy-focus
+                         %base-config-border-px
+                         %base-config-repeat-rate
+                         %base-config-repeat-delay
+                         %base-config-tap-to-click
+                         %base-config-natural-scrolling
+                         %base-config-terminal
+                         %base-config-menu
+                         %base-config-tags
+                         %base-config-colors
+                         %base-config-rules
+                         %base-config-xkb-rules
+                         %base-config-tag-keys
+                         ; do not need to write "%base-" before each variable?
+                         ; can load the variables in the configuration with
+                         ; #:prefix %base-
+                         ; ?
+                         ))
 (define %base-tty-keys
   (list
     (dwl-key
@@ -243,3 +304,77 @@
   (list %layout-default
         %layout-monocle
         %layout-floating))
+
+; Default colors
+(define %base-root-color '(0.3 0.3 0.3 1.0))
+(define %base-border-color '(0.5 0.5 0.5 1.0))
+(define %base-focus-color '(1.0 0.0 0.0 1.0))
+
+; Default application rules
+(define %base-rule-id #f)
+(define %base-title-id #f)
+(define %base-tag-number 1)
+(define %base-floating-boolean #f)
+(define %base-monitor-number 1) ;; can be confused with %base-monitor-* below?
+
+; Default XKB rules
+(define %base-xkb-rules "")
+(define %base-xkb-model "")
+(define %base-xkb-layouts '())
+(define %base-xkb-variants '())
+(define %base-xkb-options '())
+
+; Default monitor rules
+(define %base-monitor-name #f)
+(define %base-monitor-master-factor 0.55)
+(define %base-monitor-number-of-masters 1)
+(define %base-monitor-scale 1)
+(define %base-monitor-layout "default")
+(define %base-monitor-transform 'TRANSFORM-NORMAL)
+(define %base-monitor-x 0)
+(define %base-monitor-y 0)
+
+; Default keybindings
+(define %base-key-modifiers '(SUPER))
+(define %base-key-key string)
+(define %base-key-action #f)
+
+; Default mouse button bindings
+(define %base-button-modifiers '(SUPER))
+(define %base-button-button symbol)
+(define %base-button-action #f)
+
+; Default tag keybindings
+(define %base-tag-view-modifiers '(SUPER))
+(define %base-tag-tag-modifiers '(SUPER SHIFT))
+(define %base-tag-toggle-view-modifiers '(SUPER CTRL))
+(define %base-tag-toggle-tag-modifiers '(SUPER SHIFT CTRL))
+(define %base-tag-keys '(("1" . 1)
+                         ("2" . 2)
+                         ("3" . 3)
+                         ("4" . 4)
+                         ("5" . 5)
+                         ("6" . 6)
+                         ("7" . 7)
+                         ("8" . 8)
+                         ("9" . 9)))
+
+; Default layout configuration
+(define %base-layout-id string)
+(define %base-layout-symbol string)
+(define %base-layout-arrange #f)
+
+; Default base configuration
+(define %base-config-sloppy-focus #t)
+(define %base-config-border-px 1)
+(define %base-config-repeat-rate 50)
+(define %base-config-repeat-delay 300)
+(define %base-config-tap-to-click #t)
+(define %base-config-natural-scrolling #f)
+(define %base-config-terminal '("alacritty"))
+(define %base-config-menu '("bemenu"))
+(define %base-config-tags '("1" "2" "3" "4" "5" "6" "7" "8" "9"))
+(define %base-config-colors (dwl-colors))
+(define %base-config-rules '())
+(define %base-config-xkb-rules #f)
+(define %base-config-tag-keys (dwl-tag-keys))
