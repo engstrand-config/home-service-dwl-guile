@@ -118,10 +118,10 @@
     ('xkb-rules (if (not value) value (dwl-xkb-rule->alist value source)))
     ('tag-keys
      (if (<= (length (dwl-config-tags source)) (length (dwl-tag-keys-keys value)))
-       (dwl-tag-keys->alist value source)
-       (raise-exception
-         (make-exception-with-message
-           "dwl: too few tag keys, not all tags can be accessed"))))
+         (dwl-tag-keys->alist value source)
+         (raise-exception
+           (make-exception-with-message
+             "dwl: too few tag keys, not all tags can be accessed"))))
     (_ value)))
 
 (define (dwl-colors->alist colors source)
@@ -182,24 +182,24 @@
           (let
             ((key (car pair))
              (tag (cdr pair)))
-             (cons*
-               (dwl-key
-                 (modifiers view-modifiers)
-                 (key key)
-                 (action `(dwl:view ,key)))
-               (dwl-key
-                 (modifiers tag-modifiers)
-                 (key key)
-                 (action `(dwl:tag ,key)))
-               (dwl-key
-                 (modifiers toggle-view-modifiers)
-                 (key key)
-                 (action `(dwl:toggle-view ,key)))
-               (dwl-key
-                 (modifiers toggle-tag-modifiers)
-                 (key key)
-                 (action `(dwl:toggle-tag ,key)))
-               acc)))
+            (cons*
+              (dwl-key
+                (modifiers view-modifiers)
+                (key key)
+                (action `(dwl:view ,tag)))
+              (dwl-key
+                (modifiers tag-modifiers)
+                (key key)
+                (action `(dwl:tag ,tag)))
+              (dwl-key
+                (modifiers toggle-view-modifiers)
+                (key key)
+                (action `(dwl:toggle-view ,tag)))
+              (dwl-key
+                (modifiers toggle-tag-modifiers)
+                (key key)
+                (action `(dwl:toggle-tag ,tag)))
+              acc)))
         '()
         keys))))
 
@@ -218,8 +218,16 @@
     #:source source))
 
 (define (dwl-config->alist config)
-  (configuration->alist
-    #:type <dwl-config>
-    #:transform-value transform-config
-    #:config config
-    #:source config))
+  (let*
+    ((transformed-config (configuration->alist
+               #:type <dwl-config>
+               #:transform-value transform-config
+               #:config config
+               #:source config)))
+     ; this will dangerously mutate the original, but it does
+     ; not matter in this case, since the config will be written
+     ; directly to an output file with no further modifications.
+     (assoc-set! transformed-config "keys"
+                 (append (assoc-ref transformed-config "keys")
+                         (assoc-ref transformed-config "tag-keys")))))
+
