@@ -1,6 +1,7 @@
 (define-module (dwl-guile package)
-               #:use-module (guix utils)
+               #:use-module (guix gexp)
                #:use-module (guix packages)
+               #:use-module (gnu packages guile)
                #:export (make-dwl-package))
 
 ; Create a new package definition based on `dwl-package`.
@@ -9,4 +10,14 @@
 (define* (make-dwl-package dwl-package)
          (package
            (inherit dwl-package)
-           (name "dwl-guile")))
+           (name "dwl-guile")
+           (inputs
+             (append
+                (package-inputs dwl-package)
+                `(("guile-3.0" ,guile-3.0))))
+           (source
+             (origin
+               (inherit (package-source dwl-package))
+               (patches
+                 (list
+                   (local-file "../patches/dwl-guile.patch")))))))

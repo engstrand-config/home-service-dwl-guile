@@ -75,7 +75,10 @@
         (documentation "Run dwl.")
         (provision '(dwl-guile))
         (start #~(make-forkexec-constructor
-                   (list #$(file-append dwl-guile "/bin/dwl"))))
+                   (list #$(file-append dwl-guile "/bin/dwl")
+                         "-c"
+                         (string-append (getenv "HOME")
+                                        "/.config/dwl/config.scm"))))
         (stop #~(make-kill-destructor))))))
 
 (define (home-dwl-guile-run-on-tty-service config)

@@ -1,0 +1,1095 @@
+diff --git a/.gitignore b/.gitignore
+index 0dde90e..c63275b 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -4,3 +4,5 @@ dwl
+ *-protocol.h
+ .ccls-cache
+ config.h
++config.scm
++dwl.log
+diff --git a/Makefile b/Makefile
+index a0d1cc3..5bdb7a8 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,12 +1,12 @@
+ include config.mk
+ 
+-CFLAGS += -I. -DWLR_USE_UNSTABLE -std=c99
++CFLAGS += -I. -DWLR_USE_UNSTABLE -std=c99 -Wno-declaration-after-statement
+ 
+ WAYLAND_PROTOCOLS=$(shell pkg-config --variable=pkgdatadir wayland-protocols)
+ WAYLAND_SCANNER=$(shell pkg-config --variable=wayland_scanner wayland-scanner)
+ 
+-PKGS = wlroots wayland-server xcb xkbcommon libinput
+-CFLAGS += $(foreach p,$(PKGS),$(shell pkg-config --cflags $(p)))
++PKGS = wlroots wayland-server xcb xkbcommon libinput guile-3.0
++CFLAGS += $(foreach p,$(PKGS),$(shell pkg-config --cflags $(p))) -DWLR_USE_UNSTABLE
+ LDLIBS += $(foreach p,$(PKGS),$(shell pkg-config --libs $(p)))
+ 
+ all: dwl
+@@ -44,10 +44,7 @@ idle-protocol.c:
+ 
+ idle-protocol.o: idle-protocol.h
+ 
+-config.h: | config.def.h
+-	cp config.def.h $@
+-
+-dwl.o: config.h client.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h idle-protocol.h
++dwl.o: guile-config.h client.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h idle-protocol.h
+ 
+ dwl: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o idle-protocol.o
+ 
+diff --git a/config.def.h b/config.def.h
+deleted file mode 100644
+index 4aefa2b..0000000
+--- a/config.def.h
++++ /dev/null
+@@ -1,112 +0,0 @@
+-/* appearance */
+-static const int sloppyfocus        = 1;  /* focus follows mouse */
+-static const unsigned int borderpx  = 1;  /* border pixel of windows */
+-static const float rootcolor[]      = {0.3, 0.3, 0.3, 1.0};
+-static const float bordercolor[]    = {0.5, 0.5, 0.5, 1.0};
+-static const float focuscolor[]     = {1.0, 0.0, 0.0, 1.0};
+-
+-/* tagging */
+-static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+-
+-static const Rule rules[] = {
+-	/* app_id     title       tags mask     isfloating   monitor */
+-	/* examples:
+-	{ "Gimp",     NULL,       0,            1,           -1 },
+-	{ "firefox",  NULL,       1 << 8,       0,           -1 },
+-	*/
+-};
+-
+-/* layout(s) */
+-static const Layout layouts[] = {
+-	/* symbol     arrange function */
+-	{ "[]=",      tile },
+-	{ "><>",      NULL },    /* no layout function means floating behavior */
+-	{ "[M]",      monocle },
+-};
+-
+-/* monitors
+- * The order in which monitors are defined determines their position.
+- * Non-configured monitors are always added to the left. */
+-static const MonitorRule monrules[] = {
+-	/* name       mfact nmaster scale layout       rotate/reflect x y */
+-	/* example of a HiDPI laptop monitor:
+-	{ "eDP-1",    0.5,  1,      2,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0, 0 },
+-	*/
+-	/* defaults */
+-	{ NULL,       0.55, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0, 0 },
+-};
+-
+-/* keyboard */
+-static const struct xkb_rule_names xkb_rules = {
+-	/* can specify fields: rules, model, layout, variant, options */
+-	/* example:
+-	.options = "ctrl:nocaps",
+-	*/
+-};
+-
+-static const int repeat_rate = 25;
+-static const int repeat_delay = 600;
+-
+-/* Trackpad */
+-static const int tap_to_click = 1;
+-static const int natural_scrolling = 1;
+-
+-#define MODKEY WLR_MODIFIER_ALT
+-#define TAGKEYS(KEY,SKEY,TAG) \
+-	{ MODKEY,                    KEY,            view,            {.ui = 1 << TAG} }, \
+-	{ MODKEY|WLR_MODIFIER_CTRL,  KEY,            toggleview,      {.ui = 1 << TAG} }, \
+-	{ MODKEY|WLR_MODIFIER_SHIFT, SKEY,           tag,             {.ui = 1 << TAG} }, \
+-	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT,SKEY,toggletag, {.ui = 1 << TAG} }
+-
+-/* helper for spawning shell commands in the pre dwm-5.0 fashion */
+-#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+-
+-/* commands */
+-static const char *termcmd[]  = { "alacritty", NULL };
+-
+-static const Key keys[] = {
+-	/* Note that Shift changes certain key codes: c -> C, 2 -> at, etc. */
+-	/* modifier                  key                 function        argument */
+-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Return,     spawn,          {.v = termcmd} },
+-	{ MODKEY,                    XKB_KEY_j,          focusstack,     {.i = +1} },
+-	{ MODKEY,                    XKB_KEY_k,          focusstack,     {.i = -1} },
+-	{ MODKEY,                    XKB_KEY_i,          incnmaster,     {.i = +1} },
+-	{ MODKEY,                    XKB_KEY_d,          incnmaster,     {.i = -1} },
+-	{ MODKEY,                    XKB_KEY_h,          setmfact,       {.f = -0.05} },
+-	{ MODKEY,                    XKB_KEY_l,          setmfact,       {.f = +0.05} },
+-	{ MODKEY,                    XKB_KEY_Return,     zoom,           {0} },
+-	{ MODKEY,                    XKB_KEY_Tab,        view,           {0} },
+-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_C,          killclient,     {0} },
+-	{ MODKEY,                    XKB_KEY_t,          setlayout,      {.v = &layouts[0]} },
+-	{ MODKEY,                    XKB_KEY_f,          setlayout,      {.v = &layouts[1]} },
+-	{ MODKEY,                    XKB_KEY_m,          setlayout,      {.v = &layouts[2]} },
+-	{ MODKEY,                    XKB_KEY_space,      setlayout,      {0} },
+-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_space,      togglefloating, {0} },
+-	{ MODKEY, 					 XKB_KEY_e,    		togglefullscreen, {0} },
+-	{ MODKEY,                    XKB_KEY_0,          view,           {.ui = ~0} },
+-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_parenright, tag,            {.ui = ~0} },
+-	{ MODKEY,                    XKB_KEY_comma,      focusmon,       {.i = WLR_DIRECTION_LEFT} },
+-	{ MODKEY,                    XKB_KEY_period,     focusmon,       {.i = WLR_DIRECTION_RIGHT} },
+-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_less,       tagmon,         {.i = WLR_DIRECTION_LEFT} },
+-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_greater,    tagmon,         {.i = WLR_DIRECTION_RIGHT} },
+-	TAGKEYS(          XKB_KEY_1, XKB_KEY_exclam,                     0),
+-	TAGKEYS(          XKB_KEY_2, XKB_KEY_at,                         1),
+-	TAGKEYS(          XKB_KEY_3, XKB_KEY_numbersign,                 2),
+-	TAGKEYS(          XKB_KEY_4, XKB_KEY_dollar,                     3),
+-	TAGKEYS(          XKB_KEY_5, XKB_KEY_percent,                    4),
+-	TAGKEYS(          XKB_KEY_6, XKB_KEY_caret,                      5),
+-	TAGKEYS(          XKB_KEY_7, XKB_KEY_ampersand,                  6),
+-	TAGKEYS(          XKB_KEY_8, XKB_KEY_asterisk,                   7),
+-	TAGKEYS(          XKB_KEY_9, XKB_KEY_parenleft,                  8),
+-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Q,          quit,           {0} },
+-	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_Terminate_Server, quit, {0} },
+-#define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = (n)} }
+-	CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
+-	CHVT(7), CHVT(8), CHVT(9), CHVT(10), CHVT(11), CHVT(12),
+-};
+-
+-static const Button buttons[] = {
+-	{ MODKEY, BTN_LEFT,   moveresize,     {.ui = CurMove} },
+-	{ MODKEY, BTN_MIDDLE, togglefloating, {0} },
+-	{ MODKEY, BTN_RIGHT,  moveresize,     {.ui = CurResize} },
+-};
+diff --git a/dwl.c b/dwl.c
+index 4098f86..be83e15 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -42,6 +42,7 @@
+ #include <wlr/backend/libinput.h>
+ #include <wlr/util/log.h>
+ #include <xkbcommon/xkbcommon.h>
++#include <libguile.h>
+ #ifdef XWAYLAND
+ #include <X11/Xlib.h>
+ #include <wlr/xwayland.h>
+@@ -55,8 +56,6 @@
+ #define CLEANMASK(mask)         (mask & ~WLR_MODIFIER_CAPS)
+ #define VISIBLEON(C, M)         ((C)->mon == (M) && ((C)->tags & (M)->tagset[(M)->seltags]))
+ #define LENGTH(X)               (sizeof X / sizeof X[0])
+-#define END(A)                  ((A) + LENGTH(A))
+-#define TAGMASK                 ((1 << LENGTH(tags)) - 1)
+ #define ROUND(X)                ((int)((X)+0.5))
+ #define LISTEN(E, L, H)         wl_signal_add((E), ((L)->notify = (H), (L)))
+ 
+@@ -72,14 +71,13 @@ typedef union {
+ 	int i;
+ 	unsigned int ui;
+ 	float f;
+-	const void *v;
++	void *v;
+ } Arg;
+ 
+ typedef struct {
+ 	unsigned int mod;
+ 	unsigned int button;
+-	void (*func)(const Arg *);
+-	const Arg arg;
++        scm_t_bits *func;
+ } Button;
+ 
+ typedef struct Monitor Monitor;
+@@ -121,9 +119,8 @@ typedef struct {
+ 
+ typedef struct {
+ 	uint32_t mod;
+-	xkb_keysym_t keysym;
+-	void (*func)(const Arg *);
+-	const Arg arg;
++	xkb_keycode_t keycode;
++        scm_t_bits *func;
+ } Key;
+ 
+ typedef struct {
+@@ -157,8 +154,9 @@ typedef struct {
+ } Edge;
+ 
+ typedef struct {
+-	const char *symbol;
+-	void (*arrange)(Monitor *);
++	char *symbol;
++        scm_t_bits *arrange;
++        char *id;
+ } Layout;
+ 
+ struct Monitor {
+@@ -179,7 +177,7 @@ struct Monitor {
+ };
+ 
+ typedef struct {
+-	const char *name;
++	char *name;
+ 	float mfact;
+ 	int nmaster;
+ 	float scale;
+@@ -190,8 +188,8 @@ typedef struct {
+ } MonitorRule;
+ 
+ typedef struct {
+-	const char *id;
+-	const char *title;
++	char *id;
++	char *title;
+ 	unsigned int tags;
+ 	int isfloating;
+ 	int monitor;
+@@ -243,7 +241,7 @@ static Client *focustop(Monitor *m);
+ static void getxdecomode(struct wl_listener *listener, void *data);
+ static void incnmaster(const Arg *arg);
+ static void inputdevice(struct wl_listener *listener, void *data);
+-static int keybinding(uint32_t mods, xkb_keysym_t sym);
++static int keybinding(uint32_t mods, xkb_keycode_t keycode);
+ static void keypress(struct wl_listener *listener, void *data);
+ static void keypressmod(struct wl_listener *listener, void *data);
+ static void killclient(const Arg *arg);
+@@ -368,12 +366,14 @@ static struct wlr_xwayland *xwayland;
+ static Atom netatom[NetLast];
+ #endif
+ 
+-/* configuration, allows nested code to access above variables */
+-#include "config.h"
+-
+ /* attempt to encapsulate suck into one file */
+ #include "client.h"
+ 
++/* include guile config and bindings */
++#include "guile-utils.h"
++#include "guile-config.h"
++#include "guile-bindings.h"
++
+ /* compile-time check if all tags fit into an unsigned int bit array. */
+ struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
+ 
+@@ -465,7 +465,7 @@ applyrules(Client *c)
+ 	if (!(title = client_get_title(c)))
+ 		title = broken;
+ 
+-	for (r = rules; r < END(rules); r++) {
++	for (r = rules; r < (rules + (numrules * sizeof(Rule))); r++) {
+ 		if ((!r->title || strstr(title, r->title))
+ 				&& (!r->id || strstr(appid, r->id))) {
+ 			c->isfloating = r->isfloating;
+@@ -482,9 +482,9 @@ applyrules(Client *c)
+ void
+ arrange(Monitor *m)
+ {
+-	if (m->lt[m->sellt]->arrange)
+-		m->lt[m->sellt]->arrange(m);
+-	else if (m->fullscreenclient)
++        if (m->lt[m->sellt]->arrange)
++                guile_call(GUILE_PROC_ARRANGE, m->lt[m->sellt]->arrange, m);
++        else if (m->fullscreenclient)
+ 		maximizeclient(m->fullscreenclient);
+ 	/* TODO recheck pointer focus here... or in resize()? */
+ }
+@@ -492,7 +492,7 @@ arrange(Monitor *m)
+ void
+ arrangelayer(Monitor *m, struct wl_list *list, struct wlr_box *usable_area, int exclusive)
+ {
+-	LayerSurface *layersurface;
++        LayerSurface *layersurface;
+ 	struct wlr_box full_area = m->m;
+ 
+ 	wl_list_for_each(layersurface, list, link) {
+@@ -650,10 +650,10 @@ buttonpress(struct wl_listener *listener, void *data)
+ 
+ 		keyboard = wlr_seat_get_keyboard(seat);
+ 		mods = wlr_keyboard_get_modifiers(keyboard);
+-		for (b = buttons; b < END(buttons); b++) {
++		for (b = buttons; b < (buttons + (numbuttons * sizeof(Button))); b++) {
+ 			if (CLEANMASK(mods) == CLEANMASK(b->mod) &&
+ 					event->button == b->button && b->func) {
+-				b->func(&b->arg);
++                                guile_call(GUILE_PROC_ACTION, b->func, NULL);
+ 				return;
+ 			}
+ 		}
+@@ -791,7 +791,7 @@ createkeyboard(struct wlr_input_device *device)
+ 
+ 	/* Prepare an XKB keymap and assign it to the keyboard. */
+ 	context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+-	keymap = xkb_map_new_from_names(context, &xkb_rules,
++	keymap = xkb_map_new_from_names(context, xkb_rules,
+ 		XKB_KEYMAP_COMPILE_NO_FLAGS);
+ 
+ 	wlr_keyboard_set_keymap(device->keyboard, keymap);
+@@ -824,7 +824,7 @@ createmon(struct wl_listener *listener, void *data)
+ 	for (size_t i = 0; i < LENGTH(m->layers); i++)
+ 		wl_list_init(&m->layers[i]);
+ 	m->tagset[0] = m->tagset[1] = 1;
+-	for (r = monrules; r < END(monrules); r++) {
++	for (r = monrules; r < (monrules + (nummonrules * sizeof(MonitorRule))); r++) {
+ 		if (!r->name || strstr(wlr_output->name, r->name)) {
+ 			m->mfact = r->mfact;
+ 			m->nmaster = r->nmaster;
+@@ -1244,7 +1244,7 @@ inputdevice(struct wl_listener *listener, void *data)
+ }
+ 
+ int
+-keybinding(uint32_t mods, xkb_keysym_t sym)
++keybinding(uint32_t mods, xkb_keycode_t keycode)
+ {
+ 	/*
+ 	 * Here we handle compositor keybindings. This is when the compositor is
+@@ -1253,10 +1253,10 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
+ 	 */
+ 	int handled = 0;
+ 	const Key *k;
+-	for (k = keys; k < END(keys); k++) {
++	for (k = keys; k < (keys + (numkeys * sizeof(Key))); k++) {
+ 		if (CLEANMASK(mods) == CLEANMASK(k->mod) &&
+-				sym == k->keysym && k->func) {
+-			k->func(&k->arg);
++                                keycode == k->keycode && k->func) {
++			guile_call(GUILE_PROC_ACTION, k->func, NULL);
+ 			handled = 1;
+ 		}
+ 	}
+@@ -1266,18 +1266,12 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
+ void
+ keypress(struct wl_listener *listener, void *data)
+ {
+-	int i;
+ 	/* This event is raised when a key is pressed or released. */
+ 	Keyboard *kb = wl_container_of(listener, kb, key);
+ 	struct wlr_event_keyboard_key *event = data;
+ 
+ 	/* Translate libinput keycode -> xkbcommon */
+ 	uint32_t keycode = event->keycode + 8;
+-	/* Get a list of keysyms based on the keymap for this keyboard */
+-	const xkb_keysym_t *syms;
+-	int nsyms = xkb_state_key_get_syms(
+-			kb->device->keyboard->xkb_state, keycode, &syms);
+-
+ 	int handled = 0;
+ 	uint32_t mods = wlr_keyboard_get_modifiers(kb->device->keyboard);
+ 
+@@ -1285,8 +1279,7 @@ keypress(struct wl_listener *listener, void *data)
+ 
+ 	/* On _press_, attempt to process a compositor keybinding. */
+ 	if (event->state == WLR_KEY_PRESSED)
+-		for (i = 0; i < nsyms; i++)
+-			handled = keybinding(mods, syms[i]) || handled;
++                handled = keybinding(mods, keycode) || handled;
+ 
+ 	if (!handled) {
+ 		/* Pass unhandled keycodes along to the client. */
+@@ -2551,11 +2544,14 @@ int
+ main(int argc, char *argv[])
+ {
+ 	char *startup_cmd = NULL;
++	char *config_file = NULL;
+ 	int c;
+ 
+-	while ((c = getopt(argc, argv, "s:h")) != -1) {
++	while ((c = getopt(argc, argv, "s:c:h")) != -1) {
+ 		if (c == 's')
+ 			startup_cmd = optarg;
++                else if (c == 'c')
++                        config_file = optarg;
+ 		else
+ 			goto usage;
+ 	}
+@@ -2566,11 +2562,17 @@ main(int argc, char *argv[])
+ 	// socket
+ 	if (!getenv("XDG_RUNTIME_DIR"))
+ 		BARF("XDG_RUNTIME_DIR must be set");
++        if (!config_file)
++                BARF("error: config path must be set using '-c'");
++        scm_init_guile();
++        guile_register_constants();
++        guile_register_procedures();
++        guile_parse_config(config_file);
+ 	setup();
+ 	run(startup_cmd);
++        guile_cleanup();
+ 	cleanup();
+ 	return EXIT_SUCCESS;
+-
+ usage:
+-	BARF("Usage: %s [-s startup command]", argv[0]);
++	BARF("Usage: %s [-c path to config.scm] [-s startup command]", argv[0]);
+ }
+diff --git a/guile-bindings.h b/guile-bindings.h
+new file mode 100644
+index 0000000..84c32fc
+--- /dev/null
++++ b/guile-bindings.h
+@@ -0,0 +1,290 @@
++static inline SCM
++guile_proc_monocle(SCM monitor)
++{
++        Monitor *m = (Monitor*)scm_to_pointer(monitor);
++        monocle(m);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_tile(SCM monitor)
++{
++        Monitor *m = (Monitor*)scm_to_pointer(monitor);
++        tile(m);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_spawn(SCM args)
++{
++        if (scm_is_null(args))
++                return SCM_BOOL_F;
++        unsigned int i = 0, length = get_list_length(args);
++        char *cmd_args[length + 1];
++        for (; i < length; i++) {
++                SCM arg_exp = get_list_item(args, i);
++                char *arg = scm_to_locale_string(arg_exp);
++                cmd_args[i] = arg;
++                scm_dynwind_free(arg);
++        }
++        cmd_args[i] = NULL;
++        Arg a = {.v = cmd_args};
++        spawn(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_shcmd(SCM args)
++{
++        SCM extended = scm_list_3(scm_from_locale_string("/bin/sh"),
++                scm_from_locale_string("-c"), args);
++        return guile_proc_spawn(extended);
++}
++
++static inline SCM
++guile_proc_spawn_menu()
++{
++        Arg a = {.v = menucmd};
++        spawn(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_spawn_terminal()
++{
++        Arg a = {.v = termcmd};
++        spawn(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_focusstack(SCM value)
++{
++        Arg a = {.i = scm_to_int(value)};
++        focusstack(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_setmfact(SCM value)
++{
++        Arg a = {.f = scm_to_double(value)};
++        setmfact(&a);
++        return SCM_BOOL_T;
++}
++
++/* static inline SCM */
++/* guile_proc_togglegaps() */
++/* { */
++/*         togglegaps(NULL); */
++/*         return SCM_BOOL_T; */
++/* } */
++
++static inline SCM
++guile_proc_togglefloating()
++{
++        togglefloating(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_zoom()
++{
++        zoom(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_setlayout(SCM value)
++{
++        char *id = scm_to_locale_string(value);
++
++        Layout *layout = NULL;
++        for (int i = 0; i < numlayouts; i++) {
++            if (strcmp(layouts[i].id, id) == 0)
++                layout = &layouts[i];
++        }
++        if (layout == NULL)
++            return SCM_BOOL_F;
++        Arg a = {.v = layout};
++
++        setlayout(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_togglefullscreen()
++{
++        togglefullscreen(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_focusmon(SCM value)
++{
++        SCM eval = scm_primitive_eval(value);
++        Arg a = {.i = scm_to_int(eval)};
++        focusmon(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_tagmon(SCM value)
++{
++        SCM eval = scm_primitive_eval(value);
++        Arg a = {.i = scm_to_int(eval)};
++        tagmon(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_chvt(SCM tty)
++{
++        if (!scm_is_number(tty))
++                return SCM_BOOL_F;
++        int target_tty = scm_to_int(tty);
++        if (target_tty <= 0 || target_tty > 12)
++                return SCM_BOOL_F;
++        Arg a = {.ui = (unsigned int)target_tty};
++        chvt(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_view(SCM value)
++{
++        Arg a = {.ui = get_value_tag(value, numtags)};
++        view(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_toggleview(SCM value)
++{
++        Arg a = {.ui = get_value_tag(value, numtags)};
++        toggleview(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_tag(SCM value)
++{
++        Arg a = {.ui = get_value_tag(value, numtags)};
++        tag(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_incnmaster(SCM value)
++{
++        Arg a = {.i = scm_to_int(value)};
++        incnmaster(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_toggletag(SCM value)
++{
++        Arg a = {.ui = get_value_tag(value, numtags)};
++        toggletag(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_moveresize(SCM cursor)
++{
++        Arg a = {.ui = scm_to_unsigned_integer(cursor, 0, CurResize)};
++        moveresize(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_killclient()
++{
++        killclient(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++guile_proc_quit()
++{
++        quit(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline void
++guile_register_constants()
++{
++        scm_c_define("SHIFT", scm_from_int(WLR_MODIFIER_SHIFT));
++        scm_c_define("CAPS", scm_from_int(WLR_MODIFIER_CAPS));
++        scm_c_define("CTRL", scm_from_int(WLR_MODIFIER_CTRL));
++        scm_c_define("ALT", scm_from_int(WLR_MODIFIER_ALT));
++        scm_c_define("MOD2", scm_from_int(WLR_MODIFIER_MOD2));
++        scm_c_define("MOD3", scm_from_int(WLR_MODIFIER_MOD3));
++        scm_c_define("SUPER", scm_from_int(WLR_MODIFIER_LOGO));
++        scm_c_define("MOD5", scm_from_int(WLR_MODIFIER_MOD5));
++        /* TODO: add bindings for other mouse buttons */
++        scm_c_define("DIRECTION-LEFT", scm_from_int(WLR_DIRECTION_LEFT));
++        scm_c_define("DIRECTION-RIGHT", scm_from_int(WLR_DIRECTION_RIGHT));
++        scm_c_define("MOUSE-LEFT", scm_from_int(BTN_LEFT));
++        scm_c_define("MOUSE-MIDDLE", scm_from_int(BTN_MIDDLE));
++        scm_c_define("MOUSE-RIGHT", scm_from_int(BTN_RIGHT));
++        scm_c_define("CURSOR-NORMAL", scm_from_int(CurNormal));
++        scm_c_define("CURSOR-MOVE", scm_from_int(CurMove));
++        scm_c_define("CURSOR-RESIZE", scm_from_int(CurResize));
++        scm_c_define("TRANSFORM-NORMAL",
++                scm_from_int(WL_OUTPUT_TRANSFORM_NORMAL));
++        scm_c_define("TRANSFORM-ROTATE-90",
++                scm_from_int(WL_OUTPUT_TRANSFORM_90));
++        scm_c_define("TRANSFORM-ROTATE-180",
++                scm_from_int(WL_OUTPUT_TRANSFORM_180));
++        scm_c_define("TRANSFORM-ROTATE-270",
++                scm_from_int(WL_OUTPUT_TRANSFORM_270));
++        scm_c_define("TRANSFORM-FLIPPED",
++                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED));
++        scm_c_define("TRANSFORM-FLIPPED-90",
++                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_90));
++        scm_c_define("TRANSFORM-FLIPPED-180",
++                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_180));
++        scm_c_define("TRANSFORM-FLIPPED-270",
++                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_270));
++}
++
++static inline void
++guile_register_procedures()
++{
++        /* The following bindings are a one-to-one translation
++           of the user-callable functions in dwl. Each scheme function
++           has the same name as the corresponding dwl function, but
++           with a dash ('-') between words. Instead of accepting a
++           `Arg` struct as argument, each scheme function takes
++           in each parameter separately. */
++        scm_c_define_gsubr("dwl:chvt", 1, 0, 0, &guile_proc_chvt);
++        scm_c_define_gsubr("dwl:quit", 0, 0, 0, &guile_proc_quit);
++        scm_c_define_gsubr("dwl:killclient", 0, 0, 0, &guile_proc_killclient);
++        scm_c_define_gsubr("dwl:tile", 1, 0, 0, &guile_proc_tile);
++        scm_c_define_gsubr("dwl:monocle", 1, 0, 0, &guile_proc_monocle);
++        scm_c_define_gsubr("dwl:spawn", 1, 0, 0, &guile_proc_spawn);
++        scm_c_define_gsubr("dwl:view", 1, 0, 0, &guile_proc_view);
++        scm_c_define_gsubr("dwl:toggle-view", 1, 0, 0, &guile_proc_toggleview);
++        scm_c_define_gsubr("dwl:tag", 1, 0, 0, &guile_proc_tag);
++        scm_c_define_gsubr("dwl:toggle-tag", 1, 0, 0, &guile_proc_toggletag);
++        scm_c_define_gsubr("dwl:focus-stack", 1, 0, 0, &guile_proc_focusstack);
++        scm_c_define_gsubr("dwl:set-master-factor", 1, 0, 0, &guile_proc_setmfact);
++        scm_c_define_gsubr("dwl:zoom", 0, 0, 0, &guile_proc_zoom);
++        scm_c_define_gsubr("dwl:set-layout", 1, 0, 0, &guile_proc_setlayout);
++        scm_c_define_gsubr("dwl:toggle-fullscreen", 0, 0, 0, &guile_proc_togglefullscreen);
++        scm_c_define_gsubr("dwl:toggle-floating", 0, 0, 0, &guile_proc_togglefloating);
++        scm_c_define_gsubr("dwl:focus-monitor", 1, 0, 0, &guile_proc_focusmon);
++        scm_c_define_gsubr("dwl:tag-monitor", 1, 0, 0, &guile_proc_tagmon);
++        scm_c_define_gsubr("dwl:move-resize", 1, 0, 0, &guile_proc_moveresize);
++        scm_c_define_gsubr("dwl:set-masters", 1, 0, 0, &guile_proc_incnmaster);
++
++        /* Custom helper bindings. These bindings corresponds to functions
++           that are not present in dwl by default. They serve as utilites
++           for making certain actions simpler, e.g. spawning your terminal
++           or spawing a generic shell command. */
++        scm_c_define_gsubr("dwl:shcmd", 1, 0, 0, &guile_proc_shcmd);
++        scm_c_define_gsubr("dwl:spawn-menu", 0, 0, 0, &guile_proc_spawn_menu);
++        scm_c_define_gsubr("dwl:spawn-terminal", 0, 0, 0, &guile_proc_spawn_terminal);
++}
+diff --git a/guile-config.h b/guile-config.h
+new file mode 100644
+index 0000000..729091e
+--- /dev/null
++++ b/guile-config.h
+@@ -0,0 +1,197 @@
++#pragma once
++
++/* Config variable definitions. */
++/* These will be automatically set from the guile config. */
++static int repeat_rate          = 25;
++static int repeat_delay         = 600;
++static int sloppyfocus          = 1;
++static int tap_to_click         = 1;
++static int natural_scrolling    = 1;
++static unsigned int borderpx    = 1;
++static float *rootcolor         = NULL;
++static float *bordercolor       = NULL;
++static float *focuscolor        = NULL;
++static char **tags              = NULL;
++static char **termcmd           = NULL;
++static char **menucmd           = NULL;
++static Layout *layouts          = NULL;
++static MonitorRule *monrules    = NULL;
++static Rule *rules              = NULL;
++static Key *keys                = NULL;
++static Button *buttons          = NULL;
++static struct xkb_rule_names *xkb_rules = NULL;
++
++static unsigned int numtags     = 0;
++static unsigned int numkeys     = 0;
++static unsigned int numrules    = 0;
++static unsigned int numlayouts  = 0;
++static unsigned int nummonrules = 0;
++static unsigned int numbuttons  = 0;
++static unsigned int TAGMASK     = 0;
++
++static inline void
++guile_parse_color(unsigned int index, SCM value, void *data)
++{
++        ((float*)data)[index] = (float)scm_to_double(value);
++}
++
++static inline void
++guile_parse_string(unsigned int index, SCM str, void *data)
++{
++        ((char**)data)[index] = scm_to_locale_string(str);
++}
++
++static inline void
++guile_parse_layout(unsigned int index, SCM layout, void *data)
++{
++        ((Layout*)data)[index] = (Layout){
++                .id = get_value_string(layout, "id"),
++                .symbol = get_value_string(layout, "symbol"),
++                .arrange = get_value_proc_pointer(layout, "arrange")
++        };
++}
++
++static inline void
++guile_parse_monitor_rule(unsigned int index, SCM rule, void *data)
++{
++        SCM transform = get_value(rule, "transform");
++        SCM eval = scm_primitive_eval(transform);
++        ((MonitorRule*)data)[index] = (MonitorRule){
++                .name = get_value_string(rule, "name"),
++                .mfact = get_value_float(rule, "master-factor"),
++                .nmaster = get_value_int(rule, "masters"),
++                .scale = get_value_float(rule, "scale"),
++                .lt = &layouts[get_value_int(rule, "layout")],
++                .rr = (enum wl_output_transform)scm_to_int(eval),
++                .x = get_value_int(rule, "x"),
++                .y = get_value_int(rule, "y"),
++        };
++}
++
++static inline void
++guile_parse_rule(unsigned int index, SCM rule, void *data)
++{
++         ((Rule*)data)[index] = (Rule){
++                .id = get_value_string(rule, "id"),
++                .title = get_value_string(rule, "title"),
++                .tags = get_value_unsigned_int(rule, "tag", GUILE_MAX_TAGS),
++                .isfloating = get_value_int(rule, "floating"),
++                .monitor = get_value_int(rule, "monitor")
++         };
++}
++
++static inline void
++guile_parse_key(unsigned int index, SCM key, void *data)
++{
++        xkb_keycode_t keycode = get_value_unsigned_int(key, "key", -1);
++        /* Should we use `xkb_keycode_is_legal_x11`? */
++        if (!xkb_keycode_is_legal_x11(keycode)
++                || !xkb_keycode_is_legal_ext(keycode))
++                BARF("guile: keycode '%d' is not a legal keycode\n", keycode);
++        ((Key*)data)[index] = (Key){
++                .mod = get_value_modifiers(key, "modifiers"),
++                .keycode = keycode,
++                .func = get_value_proc_pointer(key, "action")
++        };
++}
++
++static inline void
++guile_parse_button(unsigned int index, SCM button, void *data)
++{
++        SCM symbol = get_value(button, "button");
++        SCM eval = scm_primitive_eval(symbol);
++        ((Button*)data)[index] = (Button){
++                .mod = (unsigned int)get_value_modifiers(button, "modifiers"),
++                .button = scm_to_unsigned_integer(eval, 0, -1),
++                .func = get_value_proc_pointer(button, "action")
++        };
++}
++
++static inline struct xkb_rule_names *
++guile_parse_xkb_rules(SCM config)
++{
++        SCM xkb = get_value(config, "xkb-rules");
++        struct xkb_rule_names *dest = calloc(1, sizeof(struct xkb_rule_names));
++        *dest = (struct xkb_rule_names){
++                .rules = get_value_string(xkb, "rules"),
++                .model = get_value_string(xkb, "model"),
++                .layout = get_value_string(xkb, "layouts"),
++                .variant = get_value_string(xkb, "variants"),
++                .options = get_value_string(xkb, "options"),
++        };
++        return dest;
++}
++
++static inline void
++guile_parse_config(char *config_file)
++{
++        scm_c_primitive_load(config_file);
++        SCM config = get_variable("config");
++
++        sloppyfocus = get_value_int(config, "sloppy-focus");
++        tap_to_click = get_value_int(config, "tap-to-click");
++        natural_scrolling = get_value_int(config, "natural-scrolling");
++        borderpx = get_value_unsigned_int(config, "border-px", 25);
++        repeat_rate = get_value_unsigned_int(config, "repeat-rate", 5000);
++        repeat_delay = get_value_unsigned_int(config, "repeat-delay", 5000);
++
++        SCM colors = get_value(config, "colors");
++        rootcolor = guile_iterate_list(get_value(colors, "root"),
++                sizeof(float), 0, &guile_parse_color, NULL);
++        bordercolor = guile_iterate_list(get_value(colors, "border"),
++                sizeof(float), 0, &guile_parse_color, NULL);
++        focuscolor = guile_iterate_list(get_value(colors, "focus"),
++                sizeof(float), 0, &guile_parse_color, NULL);
++        tags = guile_iterate_list(get_value(config, "tags"),
++                sizeof(char*), 0, &guile_parse_string, &numtags);
++        termcmd = guile_iterate_list(get_value(config, "terminal"),
++                sizeof(char*), 1, &guile_parse_string, NULL);
++        menucmd = guile_iterate_list(get_value(config, "menu"),
++                sizeof(char*), 1, &guile_parse_string, NULL);
++        layouts = guile_iterate_list(get_value(config, "layouts"),
++                sizeof(Layout), 0, &guile_parse_layout, &numlayouts);
++        rules = guile_iterate_list(get_value(config, "rules"),
++                sizeof(Rule), 0, &guile_parse_rule, &numrules);
++        monrules = guile_iterate_list(get_value(config, "monitor-rules"),
++                sizeof(MonitorRule), 0, &guile_parse_monitor_rule, &nummonrules);
++        keys = guile_iterate_list(get_value(config, "keys"),
++                sizeof(Key), 0, &guile_parse_key, &numkeys);
++        buttons = guile_iterate_list(get_value(config, "buttons"),
++                sizeof(Button), 0, &guile_parse_button, &numbuttons);
++        xkb_rules = guile_parse_xkb_rules(config);
++        TAGMASK = ((1 << numtags) - 1);
++}
++
++static inline void
++guile_cleanup()
++{
++        fprintf(stdout, "guile: starting cleanup\n");
++        int i;
++        char **str;
++        for (i = 0; i < numtags; i++) free(tags[i]);
++        for (str = termcmd; *str != NULL; str++) free(*str);
++        for (str = menucmd; *str != NULL; str++) free(*str);
++        for (i = 0; i < numlayouts; i++) free(layouts[i].symbol);
++        for (i = 0; i < nummonrules; i++) free(monrules[i].name);
++        for (i = 0; i < numrules; i++) {
++                Rule r = rules[i];
++                free(r.id);
++                free(r.title);
++        }
++        free(layouts);
++        free(monrules);
++        /* TODO: iterate keys and call scm_gc_unprotect_object()
++           on the packed scm_t_bits? */
++        free(keys);
++        free(buttons);
++        free(rootcolor);
++        free(bordercolor);
++        free(focuscolor);
++        free((char*)xkb_rules->rules);
++        free((char*)xkb_rules->model);
++        free((char*)xkb_rules->layout);
++        free((char*)xkb_rules->variant);
++        free((char*)xkb_rules->options);
++        free(xkb_rules);
++        /* TODO: run scm_gc()? */
++}
+diff --git a/guile-utils.h b/guile-utils.h
+new file mode 100644
+index 0000000..6de0811
+--- /dev/null
++++ b/guile-utils.h
+@@ -0,0 +1,163 @@
++#pragma once
++
++#define GUILE_RGB_COLOR_LENGTH  4
++#define GUILE_MAX_LIST_LENGTH   500
++#define GUILE_MAX_TAGS          100
++
++typedef enum { GUILE_PROC_ARRANGE, GUILE_PROC_ACTION } GuileProcType;
++typedef struct {
++        SCM proc;
++        void *args;
++} GuileProcData;
++
++static inline SCM
++get_value(SCM alist, const char* key)
++{
++        return scm_assoc_ref(alist, scm_from_locale_string(key));
++}
++
++static inline char*
++get_value_string(SCM alist, const char* key)
++{
++        SCM value = get_value(alist, key);
++        if (scm_is_string(value))
++                return scm_to_locale_string(value);
++        return NULL;
++}
++
++static inline int
++get_value_int(SCM alist, const char* key)
++{
++        SCM value = get_value(alist, key);
++        if (scm_is_bool(value))
++                return scm_is_true(value) ? 1 : 0;
++        return scm_to_int(value);
++}
++
++static inline unsigned int
++get_value_unsigned_int(SCM alist, const char* key, int max)
++{
++        return scm_to_unsigned_integer(get_value(alist, key), 0, max);
++}
++
++static inline float
++get_value_float(SCM alist, const char* key)
++{
++        SCM value = get_value(alist, key);
++        if (scm_is_bool(value))
++                return scm_is_true(value) ? 1 : 0;
++        return (float)scm_to_double(value);
++}
++
++
++static inline scm_t_bits *
++get_value_proc_pointer(SCM alist, const char *key)
++{
++        scm_t_bits *proc = NULL;
++        SCM value = get_value(alist, key);
++        if (scm_is_false(value))
++                return proc;
++        SCM eval = scm_primitive_eval(value);
++        /* SCM_UNPACK_POINTER is only allowed on expressions where SCM_IMP is 0 */
++        if (SCM_IMP(eval) == 1)
++                BARF("guile: invalid callback procedure. SCM_IMP(proc) = 1");
++        if (scm_procedure_p(eval) == SCM_BOOL_T) {
++                proc = SCM_UNPACK_POINTER(eval);
++                scm_gc_protect_object(eval);
++        }
++        return proc;
++}
++
++static inline SCM
++get_variable(const char *name)
++{
++        return scm_variable_ref(scm_c_lookup(name));
++}
++
++static inline unsigned int
++get_list_length(SCM list)
++{
++        return scm_to_unsigned_integer(scm_length(list), 0, GUILE_MAX_LIST_LENGTH);
++}
++
++static inline SCM
++get_list_item(SCM list, unsigned int index)
++{
++        return scm_list_ref(list, scm_from_unsigned_integer(index));
++}
++
++static inline uint32_t
++get_value_modifiers(SCM alist, const char *key)
++{
++        SCM modifiers = get_value(alist, key);
++        uint32_t mod = 0;
++        unsigned int i = 0, length = get_list_length(modifiers);
++        for (; i < length; i++) {
++                SCM item = get_list_item(modifiers, i);
++                SCM eval = scm_primitive_eval(item);
++                mod |= scm_to_uint32(eval);
++        }
++        return mod;
++}
++
++static inline unsigned int
++get_value_tag(SCM tag, unsigned int tags)
++{
++        unsigned int target_tag = scm_to_unsigned_integer(tag, 1, tags) - 1;
++        return (1 << (target_tag));
++}
++
++static inline void *
++guile_iterate_list(SCM list, size_t elem_size, int append_null,
++        void (*iterator)(unsigned int, SCM, void*), unsigned int *length_var)
++{
++        unsigned int i = 0, length = 0;
++        length = get_list_length(list);
++        void *allocated = calloc(append_null ? length + 1 : length, elem_size);
++        for (; i < length; i++) {
++                SCM item = get_list_item(list, i);
++                (*iterator)(i, item, allocated);
++        }
++        if (append_null)
++                ((void**)allocated)[i] = NULL;
++        if (length_var)
++                *length_var = length;
++        return allocated;
++}
++
++static inline void*
++guile_call_action(void *data)
++{
++        return scm_call_0(((GuileProcData*)data)->proc);
++}
++
++static inline void*
++guile_call_arrange(void *data)
++{
++        GuileProcData *proc_data = (GuileProcData*)data;
++        SCM mon = scm_from_pointer(proc_data->args, NULL);
++        return scm_call_1(proc_data->proc, mon);
++}
++
++static inline void
++guile_call(GuileProcType type, scm_t_bits *proc_ptr, void *data)
++{
++        if (proc_ptr == NULL) {
++                fprintf(stderr, "guile: could not call proc that is NULL");
++                return;
++        }
++        scm_dynwind_begin(0);
++        SCM proc = SCM_PACK_POINTER(proc_ptr);
++        GuileProcData proc_data = {.proc = proc, .args = data};
++        void *(*func)(void*) = NULL;
++        switch (type) {
++            case GUILE_PROC_ARRANGE:
++                func = &guile_call_arrange;
++                break;
++            case GUILE_PROC_ACTION:
++            default:
++                func = &guile_call_action;
++        }
++        scm_c_with_continuation_barrier(func, &proc_data);
++        scm_dynwind_end();
++}
+diff --git a/guix-install.sh b/guix-install.sh
+new file mode 100755
+index 0000000..b6d17b1
+--- /dev/null
++++ b/guix-install.sh
+@@ -0,0 +1,2 @@
++#!/bin/sh
++guix environment dwl --ad-hoc pkg-config wlroots guile -- make clean dwl CC=gcc
