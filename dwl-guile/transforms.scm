@@ -4,6 +4,7 @@
                #:use-module (ice-9 exceptions)
                #:use-module (guix gexp)
                #:use-module (dwl-guile utils)
+               #:use-module (dwl-guile keycodes)
                #:use-module (dwl-guile configuration)
                #:export (
                          arrange->exp
@@ -79,6 +80,17 @@
     field
     ('modifiers (delete-duplicates value))
     ('action (binding->exp value))
+    ('key (if (number? value)
+              value
+              (let ((keycode (string->keycode value)))
+                (if (number? keycode)
+                    keycode
+                    (raise-exception
+                       (make-exception-with-message
+                         (string-append
+                           "dwl: no conversion for keysym '"
+                           value
+                           "'. use keycode instead")))))))
     (_ value)))
 
 (define (transform-xkb-rule field value source)
@@ -145,21 +157,11 @@
     #:source source))
 
 (define (dwl-key->alist key source)
-  (let*
-    ((modifiers (dwl-key-modifiers key))
-     (has-shift-mod
-       (if (find (lambda (mod) (equal? mod 'SHIFT)) modifiers) #t #f))
-     (transformed-key (configuration->alist
-                              #:transform-value transform-binding
-                              #:type <dwl-key>
-                              #:config key
-                              #:source source)))
-    ; Applying the Shift modifier in Wayland changes
-    ; the event key, i.e. clicking Shift+1 will only trigger
-    ; bindings for Shift+Exclam/Shift+!. To make it easier to parse
-    ; in C, we add a new field in the transformed key output that will
-    ; be set to #t whenever the Shift key is included in the modifiers list.
-    (acons "shift" has-shift-mod transformed-key)))
+  (configuration->alist
+    #:transform-value transform-binding
+    #:type <dwl-key>
+    #:config key
+    #:source source))
 
 (define (dwl-button->alist button source)
   (configuration->alist

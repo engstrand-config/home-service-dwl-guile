@@ -7,6 +7,7 @@
                          maybe-string?
                          maybe-procedure?
                          modifier?
+                         keycode?
                          rgb-color?
                          list-of-strings?
                          list-of-modifiers?
@@ -28,6 +29,7 @@
 (define (maybe-string? val) (or (string? val) (not val)))
 (define (maybe-procedure? val) (or (procedure? val) (not val)))
 (define (modifier? val) (member val %modifiers))
+(define (keycode? val) (or (string? val) (number? val)))
 (define (list-of-strings? lst) (every string? lst))
 (define (list-of-modifiers? lst) (every modifier? lst))
 
@@ -40,7 +42,6 @@
     (every
       (lambda (v) (and (number? v) (and (>= v 0) (<= v 1))))
       lst)))
-
 
 ; Defining tag keys requires you to specify a target tag
 ; for each respective key. For example, you might want to

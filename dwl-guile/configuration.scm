@@ -161,8 +161,8 @@
     (list-of-modifiers %base-key-modifiers)
     "list of modifiers to use for the keybinding")
   (key
-    (string)
-    "regular key that triggers the keybinding")
+    (keycode)
+    "keycode or keysym string that should trigger the keybinding")
   (action
     (maybe-exp %base-key-action)
     "expression to call when triggered")

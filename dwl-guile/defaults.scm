@@ -1,5 +1,6 @@
 (define-module (dwl-guile defaults)
                #:use-module (guix gexp)
+               #:use-module (dwl-guile keycodes)
                #:use-module (dwl-guile configuration)
                #:export (
                          %layout-default
@@ -172,7 +173,7 @@
     (lambda (v)
       (dwl-key
         (modifiers '(CTRL ALT))
-        (key (string-append "XF86Switch_VT_" (number->string v)))
+        (key (string-append "F" (number->string v)))
         (action `(dwl:chvt ,v))))
     (iota 12 1 1)))
 
