@@ -285,20 +285,12 @@
         (action '(dwl:quit)))
       (dwl-key
         (modifiers '())
-        (key "XF86MonBrightnessDown") ;; monitor brightness down?
-        (action #f))
+        (key "XF86MonBrightnessDown")
+        (action '(dwl:shcmd "brightnessctl s 10%-")))
       (dwl-key
         (modifiers '())
-        (key "XF86MonBrightnessUp") ;; monitor brightness up?
-        (action #f))
-      (dwl-key
-        (modifiers '())
-        (key "XF86KbdBrightnessDown")
-        (action '(dwl:shcmd "brightnessctl s-10%")))
-      (dwl-key
-        (modifiers '())
-        (key "XF86KbdBrightnessUp")
-        (action '(dwl:shcmd "brightnessctl s+10%")))
+        (key "XF86MonBrightnessUp")
+        (action '(dwl:shcmd "brightnessctl s +10%")))
       (dwl-key
         (modifiers '())
         (key "XF86AudioLowerVolume")
