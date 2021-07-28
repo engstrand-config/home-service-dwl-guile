@@ -131,7 +131,7 @@
 (define %base-config-tap-to-click #t)
 (define %base-config-natural-scrolling #f)
 (define %base-config-terminal '("alacritty"))
-(define %base-config-menu '("bemenu"))
+(define %base-config-menu '("bemenu-run"))
 (define %base-config-tags '("1" "2" "3" "4" "5" "6" "7" "8" "9"))
 (define %base-config-colors (dwl-colors))
 (define %base-config-rules '())
