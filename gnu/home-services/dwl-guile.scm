@@ -13,6 +13,7 @@
                #:use-module (gnu home-services shepherd)
                #:use-module (gnu services configuration)
                #:use-module (dwl-guile utils)
+               #:use-module (dwl-guile patches)
                #:use-module (dwl-guile package)
                #:use-module (dwl-guile defaults)
                #:use-module (dwl-guile transforms)
@@ -33,6 +34,9 @@
                             dwl-tag-keys
                             dwl-xkb-rule
                             dwl-monitor-rule
+
+                            %patch-base
+                            %patch-xwayland
 
                             %layout-default
                             %layout-monocle
@@ -56,6 +60,9 @@
   (tty-number
     (number 2)
     "Launch dwl on specified tty upon user login. Defaults to 2")
+  (patches
+    (list-of-local-files '())
+    "Additional patch files to apply to dwl")
   (config
     (dwl-config (dwl-config))
     "Custom dwl configuration. Replaces config.h")
@@ -63,13 +70,14 @@
 
 (define (home-dwl-guile-profile-service config)
   (list
-    (make-dwl-package
-      (home-dwl-guile-configuration-package config))))
+    (make-dwl-package (home-dwl-guile-configuration-package config)
+                      (home-dwl-guile-configuration-patches config))))
 
 (define (home-dwl-guile-shepherd-service config)
   "Return a <shepherd-service> for the dwl service"
   (let ((dwl-guile (make-dwl-package
-                     (home-dwl-guile-configuration-package config))))
+                     (home-dwl-guile-configuration-package config)
+                     (home-dwl-guile-configuration-patches config))))
     (list
       (shepherd-service
         (documentation "Run dwl.")
