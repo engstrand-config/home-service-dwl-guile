@@ -307,12 +307,12 @@
     (dwl-button
       (modifiers '(SUPER))
       (button 'MOUSE-LEFT)
-      (action #f)) ; move window
+      (action '(dwl:move-resize CURSOR-MOVE)))
     (dwl-button
       (modifiers '(SUPER))
       (button 'MOUSE-MIDDLE)
-      (action #f)) ; toggle floating
+      (action '(dwl:toggle-floating)))
     (dwl-button
       (modifiers '(SUPER))
       (button 'MOUSE-RIGHT)
-      (action #f)))) ; resize window
+      (action '(dwl:move-resize CURSOR-RESIZE)))))
