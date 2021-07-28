@@ -145,11 +145,21 @@
     #:source source))
 
 (define (dwl-key->alist key source)
-  (configuration->alist
-    #:transform-value transform-binding
-    #:type <dwl-key>
-    #:config key
-    #:source source))
+  (let*
+    ((modifiers (dwl-key-modifiers key))
+     (has-shift-mod
+       (if (find (lambda (mod) (equal? mod 'SHIFT)) modifiers) #t #f))
+     (transformed-key (configuration->alist
+                              #:transform-value transform-binding
+                              #:type <dwl-key>
+                              #:config key
+                              #:source source)))
+    ; Applying the Shift modifier in Wayland changes
+    ; the event key, i.e. clicking Shift+1 will only trigger
+    ; bindings for Shift+Exclam/Shift+!. To make it easier to parse
+    ; in C, we add a new field in the transformed key output that will
+    ; be set to #t whenever the Shift key is included in the modifiers list.
+    (acons "shift" has-shift-mod transformed-key)))
 
 (define (dwl-button->alist button source)
   (configuration->alist
@@ -218,16 +228,12 @@
     #:source source))
 
 (define (dwl-config->alist config)
-  (let*
+  (let
     ((transformed-config (configuration->alist
-               #:type <dwl-config>
-               #:transform-value transform-config
-               #:config config
-               #:source config)))
-     ; this will dangerously mutate the original, but it does
-     ; not matter in this case, since the config will be written
-     ; directly to an output file with no further modifications.
-     (assoc-set! transformed-config "keys"
-                 (append (assoc-ref transformed-config "keys")
-                         (assoc-ref transformed-config "tag-keys")))))
-
+                           #:type <dwl-config>
+                           #:transform-value transform-config
+                           #:config config
+                           #:source config)))
+    (assoc-set! transformed-config "keys"
+                (append (assoc-ref transformed-config "keys")
+                        (assoc-ref transformed-config "tag-keys")))))
