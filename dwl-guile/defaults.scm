@@ -24,7 +24,7 @@
 
                          %base-monitor-name
                          %base-monitor-master-factor
-                         %base-monitor-number-of-masters
+                         %base-monitor-masters
                          %base-monitor-scale
                          %base-monitor-layout
                          %base-monitor-transform
@@ -93,7 +93,7 @@
 ; Default monitor rules
 (define %base-monitor-name #f)
 (define %base-monitor-master-factor 0.55)
-(define %base-monitor-number-of-masters 1)
+(define %base-monitor-masters 1)
 (define %base-monitor-scale 1)
 (define %base-monitor-layout "default")
 (define %base-monitor-transform 'TRANSFORM-NORMAL)

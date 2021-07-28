@@ -134,9 +134,9 @@
   (master-factor
     (number %base-monitor-master-factor)
     "horizontal scaling factor for master windows")
-  (number-of-masters
-    (number %base-monitor-number-of-masters)
-    "number of allowed windows in the master area")
+  (masters
+    (number %base-monitor-masters)
+    "number of windows that will be shown in the master area")
   (scale
     (number %base-monitor-scale)
     "monitor scaling")
