@@ -182,11 +182,11 @@
       (dwl-key
         (modifiers '(SUPER))
         (key "d")
-        (action #f)) ;; spawn .v=menucmd
+        (action '(dwl:spawn-menu)))
       (dwl-key
         (modifiers '(SUPER))
         (key "Return")
-        (action '(dwl:spawn-terminal))) ;; spawn .v=termcmd
+        (action '(dwl:spawn-terminal)))
       (dwl-key
         (modifiers '(SUPER SHIFT))
         (key "Return")
@@ -194,83 +194,83 @@
       (dwl-key
         (modifiers '(SUPER))
         (key "j")
-        (action #f)) ;; focusstack .i=+1
+        (action '(dwl:focus-stack 1)))
       (dwl-key
         (modifiers '(SUPER))
         (key "k")
-        (action #f)) ;; focusstack .i=-1
+        (action '(dwl:focus-stack -1)))
+      (dwl-key
+        (modifiers '(SUPER))
+        (key "l")
+        (action '(dwl:set-master-factor 0.05)))
       (dwl-key
         (modifiers '(SUPER))
         (key "h")
-        (action #f)) ;; setmfact .f=-0.05
-      (dwl-key
-        (modifiers '(SUPER))
-        (key "l") ;; setmfact .f=+0.05
-        (action #f))
-      (dwl-key
-        (modifiers '(SUPER))
-        (key "g") ;; togglegaps 0 ;; not implemented yet?
-        (action #f))
+        (action '(dwl:set-master-factor -0.05)))
+      ; (dwl-key
+      ;   (modifiers '(SUPER))
+      ;   (key "g")
+      ;   (action '(dwl-toggle-gaps)))
       (dwl-key
         (modifiers '(SUPER))
         (key "space")
-        (action #f)) ;; zoom 0
+        (action '(dwl:zoom)))
       (dwl-key
         (modifiers '(SUPER))
         (key "Tab")
-        (action #f)) ;; view 0
+        (action '(dwl:view)))
       (dwl-key
         (modifiers '(SUPER))
         (key "q")
         (action '(dwl:killclient)))
       (dwl-key
         (modifiers '(SUPER))
-        (key "t") ;; setlayout .v=&layouts[0]
-        (action #f))
+        (key "t")
+        (action '(dwl:set-layout "default")))
       (dwl-key
         (modifiers '(SUPER))
-        (key "m") ;; setlayout .v=&layouts[2] ;; toggle layouts?
-        (action #f))
+        (key "m")
+        (action '(dwl:set-layout "monocle")))
       (dwl-key
         (modifiers '(SUPER))
-        (key "f") ;; togglefullscreen 0
-        (action #f))
+        (key "f")
+        (action '(dwl:toggle-fullscreen)))
       (dwl-key
         (modifiers '(SUPER SHIFT))
-        (key "space") ;; togglefloating 0
-        (action #f))
+        (key "space")
+        (action '(dwl:toggle-floating)))
       (dwl-key
         (modifiers '(SUPER))
-        (key "0") ;; view .ui=~0
-        (action #f))
+        (key "0")
+        (action '(dwl:view 0)))
       (dwl-key
         (modifiers '(SUPER))
-        (key "Left") ;; focusmon .i=WLR_DIRECTION_LEFT
-        (action #f))
+        (key "Left")
+        (action '(dwl:focus-monitor DIRECTION_LEFT)))
       (dwl-key
         (modifiers '(SUPER))
-        (key "Right") ;; focusmon .i=WLR_DIRECTION_RIGHT
-        (action #f))
+        (key "Right")
+        (action '(dwl:focus-monitor DIRECTION_RIGHT)))
       (dwl-key
         (modifiers '(SUPER SHIFT))
-        (key "Left") ;; tagmon .i=WLR_DIRECTION_LEFT
-        (action #f))
+        (key "Left")
+        (action '(dwl:tag-monitor DIRECTION_LEFT)))
       (dwl-key
         (modifiers '(SUPER SHIFT))
-        (key "Right") ;; tagmon .i=WLR_DIRECTION_RIGHT
-        (action #f))
+        (key "Right")
+        (action '(dwl:tag-monitor DIRECTION_LEFT)))
       (dwl-key
         (modifiers '(SUPER SHIFT))
         (key "Escape")
         (action '(dwl:quit)))
       (dwl-key
         (modifiers '())
-        (key "Print") ;; primary print screen command?
-        (action #f))
+        (key "Print")
+        (action '(dwl:shcmd "grim")))
       (dwl-key
         (modifiers '(SHIFT))
-        (key "Print") ;; secondary print screen command?
-        (action #f))
+        (key "Print")
+        (action '(dwl:shcmd "flameshot")))
       (dwl-key
         (modifiers '(SUPER SHIFT))
         (key "w")
@@ -279,10 +279,6 @@
         (modifiers '())
         (key "XF86WWW")
         (action '(dwl:shcmd "$BROWSER")))
-      (dwl-key
-        (modifiers '())
-        (key "Print") ;; print screen command?
-        (action #f))
       (dwl-key
         (modifiers '())
         (key "XF86PowerOff")
@@ -297,20 +293,20 @@
         (action #f))
       (dwl-key
         (modifiers '())
-        (key "XF86KbdBrightnessDown") ;; SHCMD("brightnessctl s-10%")
-        (action #f))
+        (key "XF86KbdBrightnessDown")
+        (action '(dwl:shcmd "brightnessctl s-10%")))
       (dwl-key
         (modifiers '())
-        (key "XF86KbdBrightnessUp") ;; SHCMD("brightnessctl s+10%")
-        (action #f))
+        (key "XF86KbdBrightnessUp")
+        (action '(dwl:shcmd "brightnessctl s+10%")))
       (dwl-key
         (modifiers '())
-        (key "XF86AudioLowerVolume") ;; SHCMD("pamixer -u -d 3") ;; not sure
-        (action #f))
+        (key "XF86AudioLowerVolume")
+        (action '(dwl:shcmd "pamixer -u -d 3")))
       (dwl-key
         (modifiers '())
-        (key "XF86AudioRaiseVolume") ;; SHCMD("pamixer -u -i 3") ;; not sure
-        (action #f)))
+        (key "XF86AudioRaiseVolume")
+        (action '(dwl:shcmd "pamixer -u -i 3"))))
     %base-tty-keys))
 
 ; Default mouse button bindings
