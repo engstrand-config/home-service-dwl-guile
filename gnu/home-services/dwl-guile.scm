@@ -71,28 +71,33 @@
     "Custom dwl configuration. Replaces config.h")
   (no-serialization))
 
+(define (config->dwl-package config)
+  (make-dwl-package (home-dwl-guile-configuration-package config)
+                    (home-dwl-guile-configuration-patches config)
+                    (home-dwl-guile-configuration-guile-patch? config)))
+
 (define (home-dwl-guile-profile-service config)
   (list
-    (make-dwl-package (home-dwl-guile-configuration-package config)
-                      (home-dwl-guile-configuration-patches config)
-                      (home-dwl-guile-configuration-guile-patch? config))))
+    (config->dwl-package config)))
 
 (define (home-dwl-guile-shepherd-service config)
   "Return a <shepherd-service> for the dwl service"
-  (let ((dwl-guile (make-dwl-package
-                     (home-dwl-guile-configuration-package config)
-                     (home-dwl-guile-configuration-patches config)
-                     (home-dwl-guile-configuration-guile-patch? config))))
-    (list
-      (shepherd-service
-        (documentation "Run dwl.")
-        (provision '(dwl-guile))
-        (start #~(make-forkexec-constructor
-                   (list #$(file-append dwl-guile "/bin/dwl")
-                         "-c"
-                         (string-append (getenv "HOME")
-                                        "/.config/dwl/config.scm"))))
-        (stop #~(make-kill-destructor))))))
+  (list
+    (shepherd-service
+      (documentation "Run dwl.")
+      (provision '(dwl-guile))
+      ; No need to auto start. Enabling this option means that
+      ; dwl will start every time you run `guix home reconfigure`.
+      ; Instead, we start it manually whenever we login to the
+      ; chosen tty.
+      (auto-start? #f)
+      (start
+        #~(make-forkexec-constructor
+            (list
+              #$(file-append (config->dwl-package config) "/bin/dwl")
+              "-c"
+              (string-append (getenv "HOME") "/.config/dwl/config.scm"))))
+      (stop #~(make-kill-destructor)))))
 
 (define (home-dwl-guile-run-on-tty-service config)
   (list
