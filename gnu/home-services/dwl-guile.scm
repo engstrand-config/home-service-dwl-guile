@@ -63,6 +63,9 @@
   (patches
     (list-of-local-files '())
     "Additional patch files to apply to dwl")
+  (guile-patch?
+    (boolean #t)
+    "If the dwl-guile patch should be applied to package. Defaults to #t")
   (config
     (dwl-config (dwl-config))
     "Custom dwl configuration. Replaces config.h")
@@ -71,13 +74,15 @@
 (define (home-dwl-guile-profile-service config)
   (list
     (make-dwl-package (home-dwl-guile-configuration-package config)
-                      (home-dwl-guile-configuration-patches config))))
+                      (home-dwl-guile-configuration-patches config)
+                      (home-dwl-guile-configuration-guile-patch? config))))
 
 (define (home-dwl-guile-shepherd-service config)
   "Return a <shepherd-service> for the dwl service"
   (let ((dwl-guile (make-dwl-package
                      (home-dwl-guile-configuration-package config)
-                     (home-dwl-guile-configuration-patches config))))
+                     (home-dwl-guile-configuration-patches config)
+                     (home-dwl-guile-configuration-guile-patch? config))))
     (list
       (shepherd-service
         (documentation "Run dwl.")

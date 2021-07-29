@@ -8,7 +8,7 @@
 ; Create a new package definition based on `dwl-package`.
 ; This procedure also allows us to modify the package further,
 ; e.g. by adding the guile configuration patch, and any other user patches.
-(define* (make-dwl-package dwl-package patches)
+(define* (make-dwl-package dwl-package patches guile-patch?)
          (package
            (inherit dwl-package)
            (name "dwl-guile")
@@ -19,4 +19,4 @@
              (origin
                (inherit (package-source dwl-package))
                (patches
-                 (cons %patch-base patches))))))
+                 (if guile-patch? (cons %patch-base patches) patches))))))
