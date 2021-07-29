@@ -8,10 +8,10 @@ index cd4e821..9a886cc 100644
  # Uncomment to build XWayland support
 -#CFLAGS += -DXWAYLAND
 +CFLAGS += -DXWAYLAND
-diff --git a/guix-install.sh b/guix-install.sh
+diff --git a/scripts/guix-install.sh b/scripts/guix-install.sh
 index b6d17b1..039548c 100755
---- a/guix-install.sh
-+++ b/guix-install.sh
+--- a/scripts/guix-install.sh
++++ b/scripts/guix-install.sh
 @@ -1,2 +1,2 @@
  #!/bin/sh
 -guix environment dwl --ad-hoc pkg-config wlroots guile -- make clean dwl CC=gcc

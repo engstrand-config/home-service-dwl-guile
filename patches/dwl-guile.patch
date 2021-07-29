@@ -1,15 +1,17 @@
 diff --git a/.gitignore b/.gitignore
-index 0dde90e..c63275b 100644
+index 0dde90e..b261fc3 100644
 --- a/.gitignore
 +++ b/.gitignore
-@@ -4,3 +4,5 @@ dwl
+@@ -4,3 +4,7 @@ dwl
  *-protocol.h
  .ccls-cache
  config.h
 +config.scm
 +dwl.log
++*.patch
++patches
 diff --git a/Makefile b/Makefile
-index a0d1cc3..5bdb7a8 100644
+index a0d1cc3..691ec14 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1,12 +1,12 @@
@@ -36,10 +38,95 @@ index a0d1cc3..5bdb7a8 100644
 -	cp config.def.h $@
 -
 -dwl.o: config.h client.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h idle-protocol.h
-+dwl.o: guile-config.h client.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h idle-protocol.h
++dwl.o: dscm-utils.h dscm-bindings.h dscm-config.h client.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h idle-protocol.h
  
  dwl: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o idle-protocol.o
  
+diff --git a/README.md b/README.md
+index 92c6221..1e8298d 100644
+--- a/README.md
++++ b/README.md
+@@ -1,77 +1,3 @@
+-# dwl - dwm for Wayland
+-
+-Join us on our [Discord server](https://discord.gg/jJxZnrGPWN)!
+-
+-dwl is a compact, hackable compositor for Wayland based on [wlroots](https://github.com/swaywm/wlroots). It is intended to fill the same space in the Wayland world that dwm does in X11, primarily in terms of philosophy, and secondarily in terms of functionality. Like dwm, dwl is:
+-
+-- Easy to understand, hack on, and extend with patches
+-- One C source file (or a very small number) configurable via `config.h`
+-- Limited to 2000 SLOC to promote hackability
+-- Tied to as few external dependencies as possible
+-
+-dwl is not meant to provide every feature under the sun. Instead, like dwm, it sticks to features which are necessary, simple, and straightforward to implement given the base on which it is built. Implemented default features are:
+-
+-- Any features provided by dwm/Xlib: simple window borders, tags, keybindings, client rules, mouse move/resize. The built-in status bar is an exception to avoid taking a dependency on FreeType or Pango and increasing the SLOC
+-- Configurable multi-monitor layout support, including position and rotation
+-- Configurable HiDPI/multi-DPI support
+-- Various Wayland protocols
+-- XWayland support as provided by wlroots
+-- Zero flickering - Wayland users naturally expect that "every frame is perfect"
+-
+-Features under consideration (possibly as patches) are:
+-
+-- Protocols made trivial by wlroots
+-- Communication from the compositor to status bars.  A straightforward possibility would be to use stdout or a provided file descriptor.
+-- Implement the input-inhibitor protocol to support screen lockers
+-- Implement the idle-inhibit protocol which lets applications such as mpv disable idle monitoring
+-- Layer shell popups (used by Waybar)
+-- Basic yes/no damage tracking to avoid needless redraws
+-- More in-depth damage region tracking ([which may improve power usage](https://mozillagfx.wordpress.com/2019/10/22/dramatically-reduced-power-usage-in-firefox-70-on-macos-with-core-animation/))
+-- Implement the text-input and input-method protocols to support IME once ibus implements input-method v2 (see https://github.com/ibus/ibus/pull/2256 and https://github.com/djpohly/dwl/pull/12)
+-- Implement urgent/attention/focus-request once it's part of the xdg-shell protocol (https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/9)
+-
+-Feature *non-goals* include:
+-
+-- Client-side decoration (any more than is necessary to tell the clients not to)
+-- Client-initiated window management, such as move, resize, and close, which can be done through the compositor
+-
+-## Building dwl
+-
+-dwl has only two dependencies: wlroots 0.12 and wayland-protocols. Simply install these and run `make`.  If you wish to build against a Git version of wlroots, check out the [wlroots-next branch](https://github.com/djpohly/dwl/tree/wlroots-next).
+-
+-To enable XWayland, you should also install xorg-xwayland and uncomment its flag in `config.mk`.
+-
+-## Configuration
+-
+-All configuration is done by editing `config.h` and recompiling, in the same manner as dwm. There is no way to separately restart the window manager in Wayland without restarting the entire display server, so any changes will take effect the next time dwl is executed.
+-
+-As in the dwm community, we encourage users to share patches they have created.  Check out the [patches page on our wiki](https://github.com/djpohly/dwl/wiki/Patches)!
+-
+-## Running dwl
+-
+-dwl can be run as-is, with no arguments. In an existing Wayland or X11 session, this will open a window to act as a virtual display. When run from a TTY, the Wayland server will take over the entire virtual terminal. Clients started by dwl will have `WAYLAND_DISPLAY` set in their environment, and other clients can be started from outside the session by setting this variable accordingly.
+-
+-You can also specify a startup program using the `-s` option. The argument to this option will be run at startup as a shell command (using `sh -c`) and can serve a similar function to `.xinitrc`: starting a service manager or other startup applications. Unlike `.xinitrc`, the display server will not shut down when this process terminates. Instead, as dwl is shutting down, it will send this process a SIGTERM and wait for it to terminate (if it hasn't already). This makes it ideal not only for initialization but also for execing into a user-level service manager like s6 or `systemd --user`.
+-
+-Note: Wayland requires a valid `XDG_RUNTIME_DIR`, which is usually set up by a session manager such as `elogind` or `systemd-logind`.  If your system doesn't do this automatically, you will need to configure it prior to launching `dwl`, e.g.:
+-
+-    export XDG_RUNTIME_DIR=/tmp/xdg-runtime-$(id -u)
+-    mkdir -p $XDG_RUNTIME_DIR
+-
+-## Replacements for X applications
+-
+-You can find a [list of Wayland applications on the sway wiki](https://github.com/swaywm/sway/wiki/i3-Migration-Guide).
+-
+-## IRC channel
+-
+-dwl's IRC channel is #dwl on irc.freenode.net.
+-
+-## Acknowledgements
+-
+-dwl began by extending the TinyWL example provided (CC0) by the sway/wlroots developers. This was made possible in many cases by looking at how sway accomplished something, then trying to do the same in as suckless a way as possible.
+-
+-Many thanks to suckless.org and the dwm developers and community for the inspiration, and to the various contributors to the project, including:
+-
+-- Alexander Courtis for the XWayland implementation
+-- Guido Cella for the layer-shell protocol implementation, patch maintenance, and for helping to keep the project running
+-- Stivvo for output management and fullscreen support, and patch maintenance
++# dwl-guile
++dwl-guile is a patch to dwl that adds dynamic configuration using Guile. It
++integrates with GNU/Guix home as a home service (see [home-dwl-service](https://github.com/engstrand-config/home-dwl-service)).
 diff --git a/config.def.h b/config.def.h
 deleted file mode 100644
 index 4aefa2b..0000000
@@ -158,8 +245,663 @@ index 4aefa2b..0000000
 -	{ MODKEY, BTN_MIDDLE, togglefloating, {0} },
 -	{ MODKEY, BTN_RIGHT,  moveresize,     {.ui = CurResize} },
 -};
+diff --git a/dscm-bindings.h b/dscm-bindings.h
+new file mode 100644
+index 0000000..7f6ab85
+--- /dev/null
++++ b/dscm-bindings.h
+@@ -0,0 +1,283 @@
++static inline SCM
++dscm_binding_monocle(SCM monitor)
++{
++        Monitor *m = (Monitor*)scm_to_pointer(monitor);
++        monocle(m);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_tile(SCM monitor)
++{
++        Monitor *m = (Monitor*)scm_to_pointer(monitor);
++        tile(m);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_spawn(SCM args)
++{
++        if (scm_is_null(args))
++                return SCM_BOOL_F;
++        unsigned int i = 0, length = dscm_get_list_length(args);
++        char *cmd_args[length + 1];
++        for (; i < length; i++) {
++                SCM arg_exp = dscm_get_list_item(args, i);
++                char *arg = scm_to_locale_string(arg_exp);
++                cmd_args[i] = arg;
++        }
++        cmd_args[i] = NULL;
++        Arg a = {.v = cmd_args};
++        spawn(&a);
++        for (char **iter = cmd_args; *iter != NULL; iter++)
++                free(*iter);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_shcmd(SCM args)
++{
++        SCM extended = scm_list_3(scm_from_utf8_string("/bin/sh"),
++                scm_from_utf8_string("-c"), args);
++        return dscm_binding_spawn(extended);
++}
++
++static inline SCM
++dscm_binding_spawn_menu()
++{
++        Arg a = {.v = menucmd};
++        spawn(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_spawn_terminal()
++{
++        Arg a = {.v = termcmd};
++        spawn(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_focusstack(SCM value)
++{
++        Arg a = {.i = scm_to_int(value)};
++        focusstack(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_setmfact(SCM value)
++{
++        Arg a = {.f = scm_to_double(value)};
++        setmfact(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_togglefloating()
++{
++        togglefloating(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_zoom()
++{
++        zoom(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_setlayout(SCM value)
++{
++        char *id = scm_to_locale_string(value);
++        Layout *layout = NULL;
++        for (int i = 0; i < numlayouts; i++) {
++                if (strcmp(layouts[i].id, id) == 0)
++                        layout = &layouts[i];
++        }
++        if (layout == NULL)
++                return SCM_BOOL_F;
++        Arg a = {.v = layout};
++        setlayout(&a);
++        free(id);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_togglefullscreen()
++{
++        togglefullscreen(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_focusmon(SCM value)
++{
++        SCM eval = scm_primitive_eval(value);
++        Arg a = {.i = scm_to_int(eval)};
++        focusmon(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_tagmon(SCM value)
++{
++        SCM eval = scm_primitive_eval(value);
++        Arg a = {.i = scm_to_int(eval)};
++        tagmon(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_chvt(SCM tty)
++{
++        if (!scm_is_number(tty))
++                return SCM_BOOL_F;
++        int target_tty = scm_to_int(tty);
++        if (target_tty <= 0 || target_tty > 12)
++                return SCM_BOOL_F;
++        Arg a = {.ui = (unsigned int)target_tty};
++        chvt(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_view(SCM value)
++{
++        Arg a = {.ui = dscm_get_tag(value, numtags)};
++        view(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_toggleview(SCM value)
++{
++        Arg a = {.ui = dscm_get_tag(value, numtags)};
++        toggleview(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_tag(SCM value)
++{
++        Arg a = {.ui = dscm_get_tag(value, numtags)};
++        tag(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_incnmaster(SCM value)
++{
++        Arg a = {.i = scm_to_int(value)};
++        incnmaster(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_toggletag(SCM value)
++{
++        Arg a = {.ui = dscm_get_tag(value, numtags)};
++        toggletag(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_moveresize(SCM cursor)
++{
++        Arg a = {.ui = scm_to_unsigned_integer(cursor, 0, CurResize)};
++        moveresize(&a);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_killclient()
++{
++        killclient(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
++dscm_binding_quit()
++{
++        quit(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline void
++dscm_register_constants()
++{
++        scm_c_define("SHIFT", scm_from_int(WLR_MODIFIER_SHIFT));
++        scm_c_define("CAPS", scm_from_int(WLR_MODIFIER_CAPS));
++        scm_c_define("CTRL", scm_from_int(WLR_MODIFIER_CTRL));
++        scm_c_define("ALT", scm_from_int(WLR_MODIFIER_ALT));
++        scm_c_define("MOD2", scm_from_int(WLR_MODIFIER_MOD2));
++        scm_c_define("MOD3", scm_from_int(WLR_MODIFIER_MOD3));
++        scm_c_define("SUPER", scm_from_int(WLR_MODIFIER_LOGO));
++        scm_c_define("MOD5", scm_from_int(WLR_MODIFIER_MOD5));
++        /* TODO: add bindings for other mouse buttons */
++        scm_c_define("DIRECTION-LEFT", scm_from_int(WLR_DIRECTION_LEFT));
++        scm_c_define("DIRECTION-RIGHT", scm_from_int(WLR_DIRECTION_RIGHT));
++        scm_c_define("MOUSE-LEFT", scm_from_int(BTN_LEFT));
++        scm_c_define("MOUSE-MIDDLE", scm_from_int(BTN_MIDDLE));
++        scm_c_define("MOUSE-RIGHT", scm_from_int(BTN_RIGHT));
++        scm_c_define("CURSOR-NORMAL", scm_from_int(CurNormal));
++        scm_c_define("CURSOR-MOVE", scm_from_int(CurMove));
++        scm_c_define("CURSOR-RESIZE", scm_from_int(CurResize));
++        scm_c_define("TRANSFORM-NORMAL",
++                scm_from_int(WL_OUTPUT_TRANSFORM_NORMAL));
++        scm_c_define("TRANSFORM-ROTATE-90",
++                scm_from_int(WL_OUTPUT_TRANSFORM_90));
++        scm_c_define("TRANSFORM-ROTATE-180",
++                scm_from_int(WL_OUTPUT_TRANSFORM_180));
++        scm_c_define("TRANSFORM-ROTATE-270",
++                scm_from_int(WL_OUTPUT_TRANSFORM_270));
++        scm_c_define("TRANSFORM-FLIPPED",
++                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED));
++        scm_c_define("TRANSFORM-FLIPPED-90",
++                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_90));
++        scm_c_define("TRANSFORM-FLIPPED-180",
++                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_180));
++        scm_c_define("TRANSFORM-FLIPPED-270",
++                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_270));
++}
++
++static inline void
++dscm_register_procedures()
++{
++        /* The following bindings are a one-to-one translation
++           of the user-callable functions in dwl. Each scheme function
++           has the same name as the corresponding dwl function, but
++           with a dash ('-') between words. Instead of accepting a
++           `Arg` struct as argument, each scheme function takes
++           in each parameter separately. */
++        scm_c_define_gsubr("dwl:chvt", 1, 0, 0, &dscm_binding_chvt);
++        scm_c_define_gsubr("dwl:quit", 0, 0, 0, &dscm_binding_quit);
++        scm_c_define_gsubr("dwl:killclient", 0, 0, 0, &dscm_binding_killclient);
++        scm_c_define_gsubr("dwl:tile", 1, 0, 0, &dscm_binding_tile);
++        scm_c_define_gsubr("dwl:monocle", 1, 0, 0, &dscm_binding_monocle);
++        scm_c_define_gsubr("dwl:spawn", 1, 0, 0, &dscm_binding_spawn);
++        scm_c_define_gsubr("dwl:view", 1, 0, 0, &dscm_binding_view);
++        scm_c_define_gsubr("dwl:toggle-view", 1, 0, 0, &dscm_binding_toggleview);
++        scm_c_define_gsubr("dwl:tag", 1, 0, 0, &dscm_binding_tag);
++        scm_c_define_gsubr("dwl:toggle-tag", 1, 0, 0, &dscm_binding_toggletag);
++        scm_c_define_gsubr("dwl:focus-stack", 1, 0, 0, &dscm_binding_focusstack);
++        scm_c_define_gsubr("dwl:set-master-factor", 1, 0, 0, &dscm_binding_setmfact);
++        scm_c_define_gsubr("dwl:zoom", 0, 0, 0, &dscm_binding_zoom);
++        scm_c_define_gsubr("dwl:set-layout", 1, 0, 0, &dscm_binding_setlayout);
++        scm_c_define_gsubr("dwl:toggle-fullscreen", 0, 0, 0, &dscm_binding_togglefullscreen);
++        scm_c_define_gsubr("dwl:toggle-floating", 0, 0, 0, &dscm_binding_togglefloating);
++        scm_c_define_gsubr("dwl:focus-monitor", 1, 0, 0, &dscm_binding_focusmon);
++        scm_c_define_gsubr("dwl:tag-monitor", 1, 0, 0, &dscm_binding_tagmon);
++        scm_c_define_gsubr("dwl:move-resize", 1, 0, 0, &dscm_binding_moveresize);
++        scm_c_define_gsubr("dwl:set-masters", 1, 0, 0, &dscm_binding_incnmaster);
++
++        /* Custom helper bindings. These bindings corresponds to functions
++           that are not present in dwl by default. They serve as utilites
++           for making certain actions simpler, e.g. spawning your terminal
++           or spawing a generic shell command. */
++        scm_c_define_gsubr("dwl:shcmd", 1, 0, 0, &dscm_binding_shcmd);
++        scm_c_define_gsubr("dwl:spawn-menu", 0, 0, 0, &dscm_binding_spawn_menu);
++        scm_c_define_gsubr("dwl:spawn-terminal", 0, 0, 0, &dscm_binding_spawn_terminal);
++}
+diff --git a/dscm-config.h b/dscm-config.h
+new file mode 100644
+index 0000000..c32af96
+--- /dev/null
++++ b/dscm-config.h
+@@ -0,0 +1,197 @@
++#pragma once
++
++/* Config variable definitions. */
++/* These will be automatically set from the guile config. */
++static int repeat_rate          = 25;
++static int repeat_delay         = 600;
++static int sloppyfocus          = 1;
++static int tap_to_click         = 1;
++static int natural_scrolling    = 1;
++static unsigned int borderpx    = 1;
++static float *rootcolor         = NULL;
++static float *bordercolor       = NULL;
++static float *focuscolor        = NULL;
++static char **tags              = NULL;
++static char **termcmd           = NULL;
++static char **menucmd           = NULL;
++static Layout *layouts          = NULL;
++static MonitorRule *monrules    = NULL;
++static Rule *rules              = NULL;
++static Key *keys                = NULL;
++static Button *buttons          = NULL;
++static struct xkb_rule_names *xkb_rules = NULL;
++
++static unsigned int numtags     = 0;
++static unsigned int numkeys     = 0;
++static unsigned int numrules    = 0;
++static unsigned int numlayouts  = 0;
++static unsigned int nummonrules = 0;
++static unsigned int numbuttons  = 0;
++static unsigned int TAGMASK     = 0;
++
++static inline void
++dscm_parse_color(unsigned int index, SCM value, void *data)
++{
++        ((float*)data)[index] = (float)scm_to_double(value);
++}
++
++static inline void
++dscm_parse_string(unsigned int index, SCM str, void *data)
++{
++        ((char**)data)[index] = scm_to_locale_string(str);
++}
++
++static inline void
++dscm_parse_layout(unsigned int index, SCM layout, void *data)
++{
++        ((Layout*)data)[index] = (Layout){
++                .id = dscm_alist_get_string(layout, "id"),
++                .symbol = dscm_alist_get_string(layout, "symbol"),
++                .arrange = dscm_alist_get_proc_pointer(layout, "arrange")
++        };
++}
++
++static inline void
++dscm_parse_monitor_rule(unsigned int index, SCM rule, void *data)
++{
++        SCM transform = dscm_alist_get(rule, "transform");
++        SCM eval = scm_primitive_eval(transform);
++        ((MonitorRule*)data)[index] = (MonitorRule){
++                .name = dscm_alist_get_string(rule, "name"),
++                .mfact = dscm_alist_get_float(rule, "master-factor"),
++                .nmaster = dscm_alist_get_int(rule, "masters"),
++                .scale = dscm_alist_get_float(rule, "scale"),
++                .lt = &layouts[dscm_alist_get_int(rule, "layout")],
++                .rr = (enum wl_output_transform)scm_to_int(eval),
++                .x = dscm_alist_get_int(rule, "x"),
++                .y = dscm_alist_get_int(rule, "y"),
++        };
++}
++
++static inline void
++dscm_parse_rule(unsigned int index, SCM rule, void *data)
++{
++         ((Rule*)data)[index] = (Rule){
++                .id = dscm_alist_get_string(rule, "id"),
++                .title = dscm_alist_get_string(rule, "title"),
++                .tags = dscm_alist_get_unsigned_int(rule, "tag", -1),
++                .isfloating = dscm_alist_get_int(rule, "floating"),
++                .monitor = dscm_alist_get_int(rule, "monitor")
++         };
++}
++
++static inline void
++dscm_parse_key(unsigned int index, SCM key, void *data)
++{
++        xkb_keycode_t keycode = dscm_alist_get_unsigned_int(key, "key", -1);
++        /* Should we use `xkb_keycode_is_legal_x11`? */
++        if (!xkb_keycode_is_legal_x11(keycode)
++                || !xkb_keycode_is_legal_ext(keycode))
++                BARF("dscm: keycode '%d' is not a legal keycode\n", keycode);
++        ((Key*)data)[index] = (Key){
++                .mod = dscm_alist_get_modifiers(key, "modifiers"),
++                .keycode = keycode,
++                .func = dscm_alist_get_proc_pointer(key, "action")
++        };
++}
++
++static inline void
++dscm_parse_button(unsigned int index, SCM button, void *data)
++{
++        SCM symbol = dscm_alist_get(button, "button");
++        SCM eval = scm_primitive_eval(symbol);
++        ((Button*)data)[index] = (Button){
++                .mod = (unsigned int)dscm_alist_get_modifiers(button, "modifiers"),
++                .button = scm_to_unsigned_integer(eval, 0, -1),
++                .func = dscm_alist_get_proc_pointer(button, "action")
++        };
++}
++
++static inline struct xkb_rule_names *
++dscm_parse_xkb_rules(SCM config)
++{
++        SCM xkb = dscm_alist_get(config, "xkb-rules");
++        struct xkb_rule_names *dest = calloc(1, sizeof(struct xkb_rule_names));
++        *dest = (struct xkb_rule_names){
++                .rules = dscm_alist_get_string(xkb, "rules"),
++                .model = dscm_alist_get_string(xkb, "model"),
++                .layout = dscm_alist_get_string(xkb, "layouts"),
++                .variant = dscm_alist_get_string(xkb, "variants"),
++                .options = dscm_alist_get_string(xkb, "options"),
++        };
++        return dest;
++}
++
++static inline void
++dscm_parse_config(char *config_file)
++{
++        scm_c_primitive_load(config_file);
++        SCM config = dscm_get_variable("config");
++
++        sloppyfocus = dscm_alist_get_int(config, "sloppy-focus");
++        tap_to_click = dscm_alist_get_int(config, "tap-to-click");
++        natural_scrolling = dscm_alist_get_int(config, "natural-scrolling");
++        borderpx = dscm_alist_get_unsigned_int(config, "border-px", 25);
++        repeat_rate = dscm_alist_get_unsigned_int(config, "repeat-rate", 5000);
++        repeat_delay = dscm_alist_get_unsigned_int(config, "repeat-delay", 5000);
++
++        SCM colors = dscm_alist_get(config, "colors");
++        rootcolor = dscm_iterate_list(dscm_alist_get(colors, "root"),
++                sizeof(float), 0, &dscm_parse_color, NULL);
++        bordercolor = dscm_iterate_list(dscm_alist_get(colors, "border"),
++                sizeof(float), 0, &dscm_parse_color, NULL);
++        focuscolor = dscm_iterate_list(dscm_alist_get(colors, "focus"),
++                sizeof(float), 0, &dscm_parse_color, NULL);
++        tags = dscm_iterate_list(dscm_alist_get(config, "tags"),
++                sizeof(char*), 0, &dscm_parse_string, &numtags);
++        termcmd = dscm_iterate_list(dscm_alist_get(config, "terminal"),
++                sizeof(char*), 1, &dscm_parse_string, NULL);
++        menucmd = dscm_iterate_list(dscm_alist_get(config, "menu"),
++                sizeof(char*), 1, &dscm_parse_string, NULL);
++        layouts = dscm_iterate_list(dscm_alist_get(config, "layouts"),
++                sizeof(Layout), 0, &dscm_parse_layout, &numlayouts);
++        rules = dscm_iterate_list(dscm_alist_get(config, "rules"),
++                sizeof(Rule), 0, &dscm_parse_rule, &numrules);
++        monrules = dscm_iterate_list(dscm_alist_get(config, "monitor-rules"),
++                sizeof(MonitorRule), 0, &dscm_parse_monitor_rule, &nummonrules);
++        keys = dscm_iterate_list(dscm_alist_get(config, "keys"),
++                sizeof(Key), 0, &dscm_parse_key, &numkeys);
++        buttons = dscm_iterate_list(dscm_alist_get(config, "buttons"),
++                sizeof(Button), 0, &dscm_parse_button, &numbuttons);
++        xkb_rules = dscm_parse_xkb_rules(config);
++        TAGMASK = ((1 << numtags) - 1);
++}
++
++static inline void
++dscm_config_cleanup()
++{
++        fprintf(stdout, "dscm: starting cleanup\n");
++        int i;
++        char **str;
++        for (i = 0; i < numtags; i++) free(tags[i]);
++        for (str = termcmd; *str != NULL; str++) free(*str);
++        for (str = menucmd; *str != NULL; str++) free(*str);
++        for (i = 0; i < numlayouts; i++) free(layouts[i].symbol);
++        for (i = 0; i < nummonrules; i++) free(monrules[i].name);
++        for (i = 0; i < numrules; i++) {
++                Rule r = rules[i];
++                free(r.id);
++                free(r.title);
++        }
++        free(layouts);
++        free(monrules);
++        /* TODO: iterate keys and call scm_gc_unprotect_object()
++           on the packed scm_t_bits? */
++        free(keys);
++        free(buttons);
++        free(rootcolor);
++        free(bordercolor);
++        free(focuscolor);
++        free((char*)xkb_rules->rules);
++        free((char*)xkb_rules->model);
++        free((char*)xkb_rules->layout);
++        free((char*)xkb_rules->variant);
++        free((char*)xkb_rules->options);
++        free(xkb_rules);
++        /* TODO: run scm_gc()? */
++}
+diff --git a/dscm-utils.h b/dscm-utils.h
+new file mode 100644
+index 0000000..21bbb37
+--- /dev/null
++++ b/dscm-utils.h
+@@ -0,0 +1,157 @@
++#pragma once
++
++enum { DSCM_CALL_ARRANGE, DSCM_CALL_ACTION };
++typedef struct {
++        SCM proc;
++        void *args;
++} dscm_call_data_t;
++
++static inline SCM
++dscm_alist_get(SCM alist, const char* key)
++{
++        return scm_assoc_ref(alist, scm_from_utf8_string(key));
++}
++
++static inline char*
++dscm_alist_get_string(SCM alist, const char* key)
++{
++        SCM value = dscm_alist_get(alist, key);
++        if (scm_is_string(value))
++                return scm_to_locale_string(value);
++        return NULL;
++}
++
++static inline int
++dscm_alist_get_int(SCM alist, const char* key)
++{
++        SCM value = dscm_alist_get(alist, key);
++        if (scm_is_bool(value))
++                return scm_is_true(value) ? 1 : 0;
++        return scm_to_int(value);
++}
++
++static inline unsigned int
++dscm_alist_get_unsigned_int(SCM alist, const char* key, int max)
++{
++        return scm_to_unsigned_integer(dscm_alist_get(alist, key), 0, max);
++}
++
++static inline float
++dscm_alist_get_float(SCM alist, const char* key)
++{
++        SCM value = dscm_alist_get(alist, key);
++        if (scm_is_bool(value))
++                return scm_is_true(value) ? 1 : 0;
++        return (float)scm_to_double(value);
++}
++
++
++static inline scm_t_bits *
++dscm_alist_get_proc_pointer(SCM alist, const char *key)
++{
++        scm_t_bits *proc = NULL;
++        SCM value = dscm_alist_get(alist, key);
++        if (scm_is_false(value))
++                return proc;
++        SCM eval = scm_primitive_eval(value);
++        /* SCM_UNPACK_POINTER is only allowed on expressions where SCM_IMP is 0 */
++        if (SCM_IMP(eval) == 1)
++                BARF("dscm: invalid callback procedure. SCM_IMP(proc) = 1");
++        if (scm_procedure_p(eval) == SCM_BOOL_T) {
++                proc = SCM_UNPACK_POINTER(eval);
++                scm_gc_protect_object(eval);
++        }
++        return proc;
++}
++
++static inline SCM
++dscm_get_variable(const char *name)
++{
++        return scm_variable_ref(scm_c_lookup(name));
++}
++
++static inline unsigned int
++dscm_get_list_length(SCM list)
++{
++        return scm_to_unsigned_integer(scm_length(list), 0, -1);
++}
++
++static inline SCM
++dscm_get_list_item(SCM list, unsigned int index)
++{
++        return scm_list_ref(list, scm_from_unsigned_integer(index));
++}
++
++static inline uint32_t
++dscm_alist_get_modifiers(SCM alist, const char *key)
++{
++        SCM modifiers = dscm_alist_get(alist, key);
++        uint32_t mod = 0;
++        unsigned int i = 0, length = dscm_get_list_length(modifiers);
++        for (; i < length; i++) {
++                SCM item = dscm_get_list_item(modifiers, i);
++                SCM eval = scm_primitive_eval(item);
++                mod |= scm_to_uint32(eval);
++        }
++        return mod;
++}
++
++static inline unsigned int
++dscm_get_tag(SCM tag, unsigned int tags)
++{
++        unsigned int target_tag = scm_to_unsigned_integer(tag, 1, tags) - 1;
++        return (1 << (target_tag));
++}
++
++static inline void *
++dscm_iterate_list(SCM list, size_t elem_size, int append_null,
++        void (*iterator)(unsigned int, SCM, void*), unsigned int *length_var)
++{
++        unsigned int i = 0, length = 0;
++        length = dscm_get_list_length(list);
++        void *allocated = calloc(append_null ? length + 1 : length, elem_size);
++        for (; i < length; i++) {
++                SCM item = dscm_get_list_item(list, i);
++                (*iterator)(i, item, allocated);
++        }
++        if (append_null)
++                ((void**)allocated)[i] = NULL;
++        if (length_var)
++                *length_var = length;
++        return allocated;
++}
++
++static inline void*
++dscm_call_action(void *data)
++{
++        return scm_call_0(((dscm_call_data_t*)data)->proc);
++}
++
++static inline void*
++dscm_call_arrange(void *data)
++{
++        dscm_call_data_t *proc_data = (dscm_call_data_t*)data;
++        SCM mon = scm_from_pointer(proc_data->args, NULL);
++        return scm_call_1(proc_data->proc, mon);
++}
++
++static inline void
++dscm_safe_call(unsigned int type, scm_t_bits *proc_ptr, void *data)
++{
++        if (proc_ptr == NULL) {
++                fprintf(stderr, "dscm: could not call proc that is NULL");
++                return;
++        }
++        SCM proc = SCM_PACK_POINTER(proc_ptr);
++        dscm_call_data_t proc_data = {.proc = proc, .args = data};
++        void *(*func)(void*) = NULL;
++        switch (type) {
++            case DSCM_CALL_ARRANGE:
++                func = &dscm_call_arrange;
++                break;
++            case DSCM_CALL_ACTION:
++            default:
++                func = &dscm_call_action;
++        }
++        scm_c_with_continuation_barrier(func, &proc_data);
++}
 diff --git a/dwl.c b/dwl.c
-index 4098f86..be83e15 100644
+index 4098f86..9871e93 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -42,6 +42,7 @@
@@ -260,9 +1002,9 @@ index 4098f86..be83e15 100644
  #include "client.h"
  
 +/* include guile config and bindings */
-+#include "guile-utils.h"
-+#include "guile-config.h"
-+#include "guile-bindings.h"
++#include "dscm-utils.h"
++#include "dscm-config.h"
++#include "dscm-bindings.h"
 +
  /* compile-time check if all tags fit into an unsigned int bit array. */
  struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
@@ -284,7 +1026,7 @@ index 4098f86..be83e15 100644
 -		m->lt[m->sellt]->arrange(m);
 -	else if (m->fullscreenclient)
 +        if (m->lt[m->sellt]->arrange)
-+                guile_call(GUILE_PROC_ARRANGE, m->lt[m->sellt]->arrange, m);
++                dscm_safe_call(DSCM_CALL_ARRANGE, m->lt[m->sellt]->arrange, m);
 +        else if (m->fullscreenclient)
  		maximizeclient(m->fullscreenclient);
  	/* TODO recheck pointer focus here... or in resize()? */
@@ -307,7 +1049,7 @@ index 4098f86..be83e15 100644
  			if (CLEANMASK(mods) == CLEANMASK(b->mod) &&
  					event->button == b->button && b->func) {
 -				b->func(&b->arg);
-+                                guile_call(GUILE_PROC_ACTION, b->func, NULL);
++                                dscm_safe_call(DSCM_CALL_ACTION, b->func, NULL);
  				return;
  			}
  		}
@@ -348,7 +1090,7 @@ index 4098f86..be83e15 100644
 -				sym == k->keysym && k->func) {
 -			k->func(&k->arg);
 +                                keycode == k->keycode && k->func) {
-+			guile_call(GUILE_PROC_ACTION, k->func, NULL);
++			dscm_safe_call(DSCM_CALL_ACTION, k->func, NULL);
  			handled = 1;
  		}
  	}
@@ -404,12 +1146,12 @@ index 4098f86..be83e15 100644
 +        if (!config_file)
 +                BARF("error: config path must be set using '-c'");
 +        scm_init_guile();
-+        guile_register_constants();
-+        guile_register_procedures();
-+        guile_parse_config(config_file);
++        dscm_register_constants();
++        dscm_register_procedures();
++        dscm_parse_config(config_file);
  	setup();
  	run(startup_cmd);
-+        guile_cleanup();
++        dscm_config_cleanup();
  	cleanup();
  	return EXIT_SUCCESS;
 -
@@ -417,679 +1159,36 @@ index 4098f86..be83e15 100644
 -	BARF("Usage: %s [-s startup command]", argv[0]);
 +	BARF("Usage: %s [-c path to config.scm] [-s startup command]", argv[0]);
  }
-diff --git a/guile-bindings.h b/guile-bindings.h
-new file mode 100644
-index 0000000..84c32fc
+diff --git a/scripts/create-patches.sh b/scripts/create-patches.sh
+new file mode 100755
+index 0000000..f7bf45d
 --- /dev/null
-+++ b/guile-bindings.h
-@@ -0,0 +1,290 @@
-+static inline SCM
-+guile_proc_monocle(SCM monitor)
-+{
-+        Monitor *m = (Monitor*)scm_to_pointer(monitor);
-+        monocle(m);
-+        return SCM_BOOL_T;
-+}
++++ b/scripts/create-patches.sh
+@@ -0,0 +1,19 @@
++#!/bin/sh
++# $1 = dwl-guile patch tag to diff patches to
 +
-+static inline SCM
-+guile_proc_tile(SCM monitor)
-+{
-+        Monitor *m = (Monitor*)scm_to_pointer(monitor);
-+        tile(m);
-+        return SCM_BOOL_T;
-+}
++git fetch --tags
++rm -rf patches
++mkdir -p patches
 +
-+static inline SCM
-+guile_proc_spawn(SCM args)
-+{
-+        if (scm_is_null(args))
-+                return SCM_BOOL_F;
-+        unsigned int i = 0, length = get_list_length(args);
-+        char *cmd_args[length + 1];
-+        for (; i < length; i++) {
-+                SCM arg_exp = get_list_item(args, i);
-+                char *arg = scm_to_locale_string(arg_exp);
-+                cmd_args[i] = arg;
-+                scm_dynwind_free(arg);
-+        }
-+        cmd_args[i] = NULL;
-+        Arg a = {.v = cmd_args};
-+        spawn(&a);
-+        return SCM_BOOL_T;
-+}
++for patch in xwayland
++do
++    git fetch origin patch/$patch
++    git diff $1 patch/$patch \
++        ':(exclude)README.md' \
++        ':(exclude)patches' \
++        ':(exclude)scripts/create-patches.sh' \
++        ':(exclude).gitignore' > patches/$patch.patch
++done
 +
-+static inline SCM
-+guile_proc_shcmd(SCM args)
-+{
-+        SCM extended = scm_list_3(scm_from_locale_string("/bin/sh"),
-+                scm_from_locale_string("-c"), args);
-+        return guile_proc_spawn(extended);
-+}
-+
-+static inline SCM
-+guile_proc_spawn_menu()
-+{
-+        Arg a = {.v = menucmd};
-+        spawn(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_spawn_terminal()
-+{
-+        Arg a = {.v = termcmd};
-+        spawn(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_focusstack(SCM value)
-+{
-+        Arg a = {.i = scm_to_int(value)};
-+        focusstack(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_setmfact(SCM value)
-+{
-+        Arg a = {.f = scm_to_double(value)};
-+        setmfact(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+/* static inline SCM */
-+/* guile_proc_togglegaps() */
-+/* { */
-+/*         togglegaps(NULL); */
-+/*         return SCM_BOOL_T; */
-+/* } */
-+
-+static inline SCM
-+guile_proc_togglefloating()
-+{
-+        togglefloating(NULL);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_zoom()
-+{
-+        zoom(NULL);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_setlayout(SCM value)
-+{
-+        char *id = scm_to_locale_string(value);
-+
-+        Layout *layout = NULL;
-+        for (int i = 0; i < numlayouts; i++) {
-+            if (strcmp(layouts[i].id, id) == 0)
-+                layout = &layouts[i];
-+        }
-+        if (layout == NULL)
-+            return SCM_BOOL_F;
-+        Arg a = {.v = layout};
-+
-+        setlayout(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_togglefullscreen()
-+{
-+        togglefullscreen(NULL);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_focusmon(SCM value)
-+{
-+        SCM eval = scm_primitive_eval(value);
-+        Arg a = {.i = scm_to_int(eval)};
-+        focusmon(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_tagmon(SCM value)
-+{
-+        SCM eval = scm_primitive_eval(value);
-+        Arg a = {.i = scm_to_int(eval)};
-+        tagmon(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_chvt(SCM tty)
-+{
-+        if (!scm_is_number(tty))
-+                return SCM_BOOL_F;
-+        int target_tty = scm_to_int(tty);
-+        if (target_tty <= 0 || target_tty > 12)
-+                return SCM_BOOL_F;
-+        Arg a = {.ui = (unsigned int)target_tty};
-+        chvt(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_view(SCM value)
-+{
-+        Arg a = {.ui = get_value_tag(value, numtags)};
-+        view(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_toggleview(SCM value)
-+{
-+        Arg a = {.ui = get_value_tag(value, numtags)};
-+        toggleview(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_tag(SCM value)
-+{
-+        Arg a = {.ui = get_value_tag(value, numtags)};
-+        tag(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_incnmaster(SCM value)
-+{
-+        Arg a = {.i = scm_to_int(value)};
-+        incnmaster(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_toggletag(SCM value)
-+{
-+        Arg a = {.ui = get_value_tag(value, numtags)};
-+        toggletag(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_moveresize(SCM cursor)
-+{
-+        Arg a = {.ui = scm_to_unsigned_integer(cursor, 0, CurResize)};
-+        moveresize(&a);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_killclient()
-+{
-+        killclient(NULL);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline SCM
-+guile_proc_quit()
-+{
-+        quit(NULL);
-+        return SCM_BOOL_T;
-+}
-+
-+static inline void
-+guile_register_constants()
-+{
-+        scm_c_define("SHIFT", scm_from_int(WLR_MODIFIER_SHIFT));
-+        scm_c_define("CAPS", scm_from_int(WLR_MODIFIER_CAPS));
-+        scm_c_define("CTRL", scm_from_int(WLR_MODIFIER_CTRL));
-+        scm_c_define("ALT", scm_from_int(WLR_MODIFIER_ALT));
-+        scm_c_define("MOD2", scm_from_int(WLR_MODIFIER_MOD2));
-+        scm_c_define("MOD3", scm_from_int(WLR_MODIFIER_MOD3));
-+        scm_c_define("SUPER", scm_from_int(WLR_MODIFIER_LOGO));
-+        scm_c_define("MOD5", scm_from_int(WLR_MODIFIER_MOD5));
-+        /* TODO: add bindings for other mouse buttons */
-+        scm_c_define("DIRECTION-LEFT", scm_from_int(WLR_DIRECTION_LEFT));
-+        scm_c_define("DIRECTION-RIGHT", scm_from_int(WLR_DIRECTION_RIGHT));
-+        scm_c_define("MOUSE-LEFT", scm_from_int(BTN_LEFT));
-+        scm_c_define("MOUSE-MIDDLE", scm_from_int(BTN_MIDDLE));
-+        scm_c_define("MOUSE-RIGHT", scm_from_int(BTN_RIGHT));
-+        scm_c_define("CURSOR-NORMAL", scm_from_int(CurNormal));
-+        scm_c_define("CURSOR-MOVE", scm_from_int(CurMove));
-+        scm_c_define("CURSOR-RESIZE", scm_from_int(CurResize));
-+        scm_c_define("TRANSFORM-NORMAL",
-+                scm_from_int(WL_OUTPUT_TRANSFORM_NORMAL));
-+        scm_c_define("TRANSFORM-ROTATE-90",
-+                scm_from_int(WL_OUTPUT_TRANSFORM_90));
-+        scm_c_define("TRANSFORM-ROTATE-180",
-+                scm_from_int(WL_OUTPUT_TRANSFORM_180));
-+        scm_c_define("TRANSFORM-ROTATE-270",
-+                scm_from_int(WL_OUTPUT_TRANSFORM_270));
-+        scm_c_define("TRANSFORM-FLIPPED",
-+                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED));
-+        scm_c_define("TRANSFORM-FLIPPED-90",
-+                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_90));
-+        scm_c_define("TRANSFORM-FLIPPED-180",
-+                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_180));
-+        scm_c_define("TRANSFORM-FLIPPED-270",
-+                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_270));
-+}
-+
-+static inline void
-+guile_register_procedures()
-+{
-+        /* The following bindings are a one-to-one translation
-+           of the user-callable functions in dwl. Each scheme function
-+           has the same name as the corresponding dwl function, but
-+           with a dash ('-') between words. Instead of accepting a
-+           `Arg` struct as argument, each scheme function takes
-+           in each parameter separately. */
-+        scm_c_define_gsubr("dwl:chvt", 1, 0, 0, &guile_proc_chvt);
-+        scm_c_define_gsubr("dwl:quit", 0, 0, 0, &guile_proc_quit);
-+        scm_c_define_gsubr("dwl:killclient", 0, 0, 0, &guile_proc_killclient);
-+        scm_c_define_gsubr("dwl:tile", 1, 0, 0, &guile_proc_tile);
-+        scm_c_define_gsubr("dwl:monocle", 1, 0, 0, &guile_proc_monocle);
-+        scm_c_define_gsubr("dwl:spawn", 1, 0, 0, &guile_proc_spawn);
-+        scm_c_define_gsubr("dwl:view", 1, 0, 0, &guile_proc_view);
-+        scm_c_define_gsubr("dwl:toggle-view", 1, 0, 0, &guile_proc_toggleview);
-+        scm_c_define_gsubr("dwl:tag", 1, 0, 0, &guile_proc_tag);
-+        scm_c_define_gsubr("dwl:toggle-tag", 1, 0, 0, &guile_proc_toggletag);
-+        scm_c_define_gsubr("dwl:focus-stack", 1, 0, 0, &guile_proc_focusstack);
-+        scm_c_define_gsubr("dwl:set-master-factor", 1, 0, 0, &guile_proc_setmfact);
-+        scm_c_define_gsubr("dwl:zoom", 0, 0, 0, &guile_proc_zoom);
-+        scm_c_define_gsubr("dwl:set-layout", 1, 0, 0, &guile_proc_setlayout);
-+        scm_c_define_gsubr("dwl:toggle-fullscreen", 0, 0, 0, &guile_proc_togglefullscreen);
-+        scm_c_define_gsubr("dwl:toggle-floating", 0, 0, 0, &guile_proc_togglefloating);
-+        scm_c_define_gsubr("dwl:focus-monitor", 1, 0, 0, &guile_proc_focusmon);
-+        scm_c_define_gsubr("dwl:tag-monitor", 1, 0, 0, &guile_proc_tagmon);
-+        scm_c_define_gsubr("dwl:move-resize", 1, 0, 0, &guile_proc_moveresize);
-+        scm_c_define_gsubr("dwl:set-masters", 1, 0, 0, &guile_proc_incnmaster);
-+
-+        /* Custom helper bindings. These bindings corresponds to functions
-+           that are not present in dwl by default. They serve as utilites
-+           for making certain actions simpler, e.g. spawning your terminal
-+           or spawing a generic shell command. */
-+        scm_c_define_gsubr("dwl:shcmd", 1, 0, 0, &guile_proc_shcmd);
-+        scm_c_define_gsubr("dwl:spawn-menu", 0, 0, 0, &guile_proc_spawn_menu);
-+        scm_c_define_gsubr("dwl:spawn-terminal", 0, 0, 0, &guile_proc_spawn_terminal);
-+}
-diff --git a/guile-config.h b/guile-config.h
-new file mode 100644
-index 0000000..729091e
---- /dev/null
-+++ b/guile-config.h
-@@ -0,0 +1,197 @@
-+#pragma once
-+
-+/* Config variable definitions. */
-+/* These will be automatically set from the guile config. */
-+static int repeat_rate          = 25;
-+static int repeat_delay         = 600;
-+static int sloppyfocus          = 1;
-+static int tap_to_click         = 1;
-+static int natural_scrolling    = 1;
-+static unsigned int borderpx    = 1;
-+static float *rootcolor         = NULL;
-+static float *bordercolor       = NULL;
-+static float *focuscolor        = NULL;
-+static char **tags              = NULL;
-+static char **termcmd           = NULL;
-+static char **menucmd           = NULL;
-+static Layout *layouts          = NULL;
-+static MonitorRule *monrules    = NULL;
-+static Rule *rules              = NULL;
-+static Key *keys                = NULL;
-+static Button *buttons          = NULL;
-+static struct xkb_rule_names *xkb_rules = NULL;
-+
-+static unsigned int numtags     = 0;
-+static unsigned int numkeys     = 0;
-+static unsigned int numrules    = 0;
-+static unsigned int numlayouts  = 0;
-+static unsigned int nummonrules = 0;
-+static unsigned int numbuttons  = 0;
-+static unsigned int TAGMASK     = 0;
-+
-+static inline void
-+guile_parse_color(unsigned int index, SCM value, void *data)
-+{
-+        ((float*)data)[index] = (float)scm_to_double(value);
-+}
-+
-+static inline void
-+guile_parse_string(unsigned int index, SCM str, void *data)
-+{
-+        ((char**)data)[index] = scm_to_locale_string(str);
-+}
-+
-+static inline void
-+guile_parse_layout(unsigned int index, SCM layout, void *data)
-+{
-+        ((Layout*)data)[index] = (Layout){
-+                .id = get_value_string(layout, "id"),
-+                .symbol = get_value_string(layout, "symbol"),
-+                .arrange = get_value_proc_pointer(layout, "arrange")
-+        };
-+}
-+
-+static inline void
-+guile_parse_monitor_rule(unsigned int index, SCM rule, void *data)
-+{
-+        SCM transform = get_value(rule, "transform");
-+        SCM eval = scm_primitive_eval(transform);
-+        ((MonitorRule*)data)[index] = (MonitorRule){
-+                .name = get_value_string(rule, "name"),
-+                .mfact = get_value_float(rule, "master-factor"),
-+                .nmaster = get_value_int(rule, "masters"),
-+                .scale = get_value_float(rule, "scale"),
-+                .lt = &layouts[get_value_int(rule, "layout")],
-+                .rr = (enum wl_output_transform)scm_to_int(eval),
-+                .x = get_value_int(rule, "x"),
-+                .y = get_value_int(rule, "y"),
-+        };
-+}
-+
-+static inline void
-+guile_parse_rule(unsigned int index, SCM rule, void *data)
-+{
-+         ((Rule*)data)[index] = (Rule){
-+                .id = get_value_string(rule, "id"),
-+                .title = get_value_string(rule, "title"),
-+                .tags = get_value_unsigned_int(rule, "tag", GUILE_MAX_TAGS),
-+                .isfloating = get_value_int(rule, "floating"),
-+                .monitor = get_value_int(rule, "monitor")
-+         };
-+}
-+
-+static inline void
-+guile_parse_key(unsigned int index, SCM key, void *data)
-+{
-+        xkb_keycode_t keycode = get_value_unsigned_int(key, "key", -1);
-+        /* Should we use `xkb_keycode_is_legal_x11`? */
-+        if (!xkb_keycode_is_legal_x11(keycode)
-+                || !xkb_keycode_is_legal_ext(keycode))
-+                BARF("guile: keycode '%d' is not a legal keycode\n", keycode);
-+        ((Key*)data)[index] = (Key){
-+                .mod = get_value_modifiers(key, "modifiers"),
-+                .keycode = keycode,
-+                .func = get_value_proc_pointer(key, "action")
-+        };
-+}
-+
-+static inline void
-+guile_parse_button(unsigned int index, SCM button, void *data)
-+{
-+        SCM symbol = get_value(button, "button");
-+        SCM eval = scm_primitive_eval(symbol);
-+        ((Button*)data)[index] = (Button){
-+                .mod = (unsigned int)get_value_modifiers(button, "modifiers"),
-+                .button = scm_to_unsigned_integer(eval, 0, -1),
-+                .func = get_value_proc_pointer(button, "action")
-+        };
-+}
-+
-+static inline struct xkb_rule_names *
-+guile_parse_xkb_rules(SCM config)
-+{
-+        SCM xkb = get_value(config, "xkb-rules");
-+        struct xkb_rule_names *dest = calloc(1, sizeof(struct xkb_rule_names));
-+        *dest = (struct xkb_rule_names){
-+                .rules = get_value_string(xkb, "rules"),
-+                .model = get_value_string(xkb, "model"),
-+                .layout = get_value_string(xkb, "layouts"),
-+                .variant = get_value_string(xkb, "variants"),
-+                .options = get_value_string(xkb, "options"),
-+        };
-+        return dest;
-+}
-+
-+static inline void
-+guile_parse_config(char *config_file)
-+{
-+        scm_c_primitive_load(config_file);
-+        SCM config = get_variable("config");
-+
-+        sloppyfocus = get_value_int(config, "sloppy-focus");
-+        tap_to_click = get_value_int(config, "tap-to-click");
-+        natural_scrolling = get_value_int(config, "natural-scrolling");
-+        borderpx = get_value_unsigned_int(config, "border-px", 25);
-+        repeat_rate = get_value_unsigned_int(config, "repeat-rate", 5000);
-+        repeat_delay = get_value_unsigned_int(config, "repeat-delay", 5000);
-+
-+        SCM colors = get_value(config, "colors");
-+        rootcolor = guile_iterate_list(get_value(colors, "root"),
-+                sizeof(float), 0, &guile_parse_color, NULL);
-+        bordercolor = guile_iterate_list(get_value(colors, "border"),
-+                sizeof(float), 0, &guile_parse_color, NULL);
-+        focuscolor = guile_iterate_list(get_value(colors, "focus"),
-+                sizeof(float), 0, &guile_parse_color, NULL);
-+        tags = guile_iterate_list(get_value(config, "tags"),
-+                sizeof(char*), 0, &guile_parse_string, &numtags);
-+        termcmd = guile_iterate_list(get_value(config, "terminal"),
-+                sizeof(char*), 1, &guile_parse_string, NULL);
-+        menucmd = guile_iterate_list(get_value(config, "menu"),
-+                sizeof(char*), 1, &guile_parse_string, NULL);
-+        layouts = guile_iterate_list(get_value(config, "layouts"),
-+                sizeof(Layout), 0, &guile_parse_layout, &numlayouts);
-+        rules = guile_iterate_list(get_value(config, "rules"),
-+                sizeof(Rule), 0, &guile_parse_rule, &numrules);
-+        monrules = guile_iterate_list(get_value(config, "monitor-rules"),
-+                sizeof(MonitorRule), 0, &guile_parse_monitor_rule, &nummonrules);
-+        keys = guile_iterate_list(get_value(config, "keys"),
-+                sizeof(Key), 0, &guile_parse_key, &numkeys);
-+        buttons = guile_iterate_list(get_value(config, "buttons"),
-+                sizeof(Button), 0, &guile_parse_button, &numbuttons);
-+        xkb_rules = guile_parse_xkb_rules(config);
-+        TAGMASK = ((1 << numtags) - 1);
-+}
-+
-+static inline void
-+guile_cleanup()
-+{
-+        fprintf(stdout, "guile: starting cleanup\n");
-+        int i;
-+        char **str;
-+        for (i = 0; i < numtags; i++) free(tags[i]);
-+        for (str = termcmd; *str != NULL; str++) free(*str);
-+        for (str = menucmd; *str != NULL; str++) free(*str);
-+        for (i = 0; i < numlayouts; i++) free(layouts[i].symbol);
-+        for (i = 0; i < nummonrules; i++) free(monrules[i].name);
-+        for (i = 0; i < numrules; i++) {
-+                Rule r = rules[i];
-+                free(r.id);
-+                free(r.title);
-+        }
-+        free(layouts);
-+        free(monrules);
-+        /* TODO: iterate keys and call scm_gc_unprotect_object()
-+           on the packed scm_t_bits? */
-+        free(keys);
-+        free(buttons);
-+        free(rootcolor);
-+        free(bordercolor);
-+        free(focuscolor);
-+        free((char*)xkb_rules->rules);
-+        free((char*)xkb_rules->model);
-+        free((char*)xkb_rules->layout);
-+        free((char*)xkb_rules->variant);
-+        free((char*)xkb_rules->options);
-+        free(xkb_rules);
-+        /* TODO: run scm_gc()? */
-+}
-diff --git a/guile-utils.h b/guile-utils.h
-new file mode 100644
-index 0000000..6de0811
---- /dev/null
-+++ b/guile-utils.h
-@@ -0,0 +1,163 @@
-+#pragma once
-+
-+#define GUILE_RGB_COLOR_LENGTH  4
-+#define GUILE_MAX_LIST_LENGTH   500
-+#define GUILE_MAX_TAGS          100
-+
-+typedef enum { GUILE_PROC_ARRANGE, GUILE_PROC_ACTION } GuileProcType;
-+typedef struct {
-+        SCM proc;
-+        void *args;
-+} GuileProcData;
-+
-+static inline SCM
-+get_value(SCM alist, const char* key)
-+{
-+        return scm_assoc_ref(alist, scm_from_locale_string(key));
-+}
-+
-+static inline char*
-+get_value_string(SCM alist, const char* key)
-+{
-+        SCM value = get_value(alist, key);
-+        if (scm_is_string(value))
-+                return scm_to_locale_string(value);
-+        return NULL;
-+}
-+
-+static inline int
-+get_value_int(SCM alist, const char* key)
-+{
-+        SCM value = get_value(alist, key);
-+        if (scm_is_bool(value))
-+                return scm_is_true(value) ? 1 : 0;
-+        return scm_to_int(value);
-+}
-+
-+static inline unsigned int
-+get_value_unsigned_int(SCM alist, const char* key, int max)
-+{
-+        return scm_to_unsigned_integer(get_value(alist, key), 0, max);
-+}
-+
-+static inline float
-+get_value_float(SCM alist, const char* key)
-+{
-+        SCM value = get_value(alist, key);
-+        if (scm_is_bool(value))
-+                return scm_is_true(value) ? 1 : 0;
-+        return (float)scm_to_double(value);
-+}
-+
-+
-+static inline scm_t_bits *
-+get_value_proc_pointer(SCM alist, const char *key)
-+{
-+        scm_t_bits *proc = NULL;
-+        SCM value = get_value(alist, key);
-+        if (scm_is_false(value))
-+                return proc;
-+        SCM eval = scm_primitive_eval(value);
-+        /* SCM_UNPACK_POINTER is only allowed on expressions where SCM_IMP is 0 */
-+        if (SCM_IMP(eval) == 1)
-+                BARF("guile: invalid callback procedure. SCM_IMP(proc) = 1");
-+        if (scm_procedure_p(eval) == SCM_BOOL_T) {
-+                proc = SCM_UNPACK_POINTER(eval);
-+                scm_gc_protect_object(eval);
-+        }
-+        return proc;
-+}
-+
-+static inline SCM
-+get_variable(const char *name)
-+{
-+        return scm_variable_ref(scm_c_lookup(name));
-+}
-+
-+static inline unsigned int
-+get_list_length(SCM list)
-+{
-+        return scm_to_unsigned_integer(scm_length(list), 0, GUILE_MAX_LIST_LENGTH);
-+}
-+
-+static inline SCM
-+get_list_item(SCM list, unsigned int index)
-+{
-+        return scm_list_ref(list, scm_from_unsigned_integer(index));
-+}
-+
-+static inline uint32_t
-+get_value_modifiers(SCM alist, const char *key)
-+{
-+        SCM modifiers = get_value(alist, key);
-+        uint32_t mod = 0;
-+        unsigned int i = 0, length = get_list_length(modifiers);
-+        for (; i < length; i++) {
-+                SCM item = get_list_item(modifiers, i);
-+                SCM eval = scm_primitive_eval(item);
-+                mod |= scm_to_uint32(eval);
-+        }
-+        return mod;
-+}
-+
-+static inline unsigned int
-+get_value_tag(SCM tag, unsigned int tags)
-+{
-+        unsigned int target_tag = scm_to_unsigned_integer(tag, 1, tags) - 1;
-+        return (1 << (target_tag));
-+}
-+
-+static inline void *
-+guile_iterate_list(SCM list, size_t elem_size, int append_null,
-+        void (*iterator)(unsigned int, SCM, void*), unsigned int *length_var)
-+{
-+        unsigned int i = 0, length = 0;
-+        length = get_list_length(list);
-+        void *allocated = calloc(append_null ? length + 1 : length, elem_size);
-+        for (; i < length; i++) {
-+                SCM item = get_list_item(list, i);
-+                (*iterator)(i, item, allocated);
-+        }
-+        if (append_null)
-+                ((void**)allocated)[i] = NULL;
-+        if (length_var)
-+                *length_var = length;
-+        return allocated;
-+}
-+
-+static inline void*
-+guile_call_action(void *data)
-+{
-+        return scm_call_0(((GuileProcData*)data)->proc);
-+}
-+
-+static inline void*
-+guile_call_arrange(void *data)
-+{
-+        GuileProcData *proc_data = (GuileProcData*)data;
-+        SCM mon = scm_from_pointer(proc_data->args, NULL);
-+        return scm_call_1(proc_data->proc, mon);
-+}
-+
-+static inline void
-+guile_call(GuileProcType type, scm_t_bits *proc_ptr, void *data)
-+{
-+        if (proc_ptr == NULL) {
-+                fprintf(stderr, "guile: could not call proc that is NULL");
-+                return;
-+        }
-+        scm_dynwind_begin(0);
-+        SCM proc = SCM_PACK_POINTER(proc_ptr);
-+        GuileProcData proc_data = {.proc = proc, .args = data};
-+        void *(*func)(void*) = NULL;
-+        switch (type) {
-+            case GUILE_PROC_ARRANGE:
-+                func = &guile_call_arrange;
-+                break;
-+            case GUILE_PROC_ACTION:
-+            default:
-+                func = &guile_call_action;
-+        }
-+        scm_c_with_continuation_barrier(func, &proc_data);
-+        scm_dynwind_end();
-+}
-diff --git a/guix-install.sh b/guix-install.sh
++# Create dwl-guile patch based on dwl v0.2
++git diff v0.2 > patches/dwl-guile.patch
+diff --git a/scripts/guix-install.sh b/scripts/guix-install.sh
 new file mode 100755
 index 0000000..b6d17b1
 --- /dev/null
-+++ b/guix-install.sh
++++ b/scripts/guix-install.sh
 @@ -0,0 +1,2 @@
 +#!/bin/sh
 +guix environment dwl --ad-hoc pkg-config wlroots guile -- make clean dwl CC=gcc
