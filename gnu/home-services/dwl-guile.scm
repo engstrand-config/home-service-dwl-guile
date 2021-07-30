@@ -56,19 +56,24 @@
   home-dwl-guile-configuration
   (package
     (package dwl)
-    "The dwl package to use")
+    "The dwl package to use. By default, this package will be
+    automatically patches using the dwl-guile patch. You can
+    find the base package definition for dwl in gnu/packages/wm.scm.
+
+    If you want to use a custom dwl package where the dwl-guile patch
+    has already been defined, set (guile-patch? #f) in dwl-guile configuration.")
   (tty-number
     (number 2)
     "Launch dwl on specified tty upon user login. Defaults to 2")
   (patches
     (list-of-local-files '())
-    "Additional patch files to apply to dwl")
+    "Additional patch files to apply to dwl-guile")
   (guile-patch?
     (boolean #t)
     "If the dwl-guile patch should be applied to package. Defaults to #t")
   (config
     (dwl-config (dwl-config))
-    "Custom dwl configuration. Replaces config.h")
+    "Custom dwl-guile configuration. Replaces config.h")
   (no-serialization))
 
 (define (config->dwl-package config)
@@ -81,10 +86,10 @@
     (config->dwl-package config)))
 
 (define (home-dwl-guile-shepherd-service config)
-  "Return a <shepherd-service> for the dwl service"
+  "Return a <shepherd-service> for the dwl-guile service"
   (list
     (shepherd-service
-      (documentation "Run dwl.")
+      (documentation "Run dwl-guile")
       (provision '(dwl-guile))
       ; No need to auto start. Enabling this option means that
       ; dwl will start every time you run `guix home reconfigure`.
@@ -94,7 +99,7 @@
       (start
         #~(make-forkexec-constructor
             (list
-              #$(file-append (config->dwl-package config) "/bin/dwl")
+              #$(file-append (config->dwl-package config) "/bin/dwl-guile")
               "-c"
               (string-append (getenv "HOME") "/.config/dwl/config.scm"))))
       (stop #~(make-kill-destructor)))))
@@ -138,4 +143,4 @@
           home-dwl-guile-on-change-service)))
     (compose concatenate)
     (default-value (home-dwl-guile-configuration))
-    (description "Configure and install dwl")))
+    (description "Configure and install dwl guile")))

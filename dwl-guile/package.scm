@@ -1,5 +1,6 @@
 (define-module (dwl-guile package)
                #:use-module (guix gexp)
+               #:use-module (guix utils)
                #:use-module (guix packages)
                #:use-module (gnu packages guile)
                #:use-module (dwl-guile patches)
@@ -19,4 +20,23 @@
              (origin
                (inherit (package-source dwl-package))
                (patches
-                 (if guile-patch? (cons %patch-base patches) patches))))))
+                 (if guile-patch? (cons %patch-base patches) patches))))
+           (arguments
+             (substitute-keyword-arguments
+               (package-arguments dwl-package)
+               ((#:phases phases)
+                `(modify-phases
+                   ,phases
+                   ; name the compiled executable "dwl-guile" so that
+                   ; we can differentiate between regular dwl and dwl-guile.
+                   (replace
+                     'install
+                     (lambda*
+                       (#:key inputs outputs #:allow-other-keys)
+                       (let ((bin (string-append (assoc-ref outputs "out") "/bin")))
+                         (install-file "dwl" bin)
+                         (rename-file (string-append bin "/dwl")
+                                      (string-append bin "/dwl-guile"))
+                         #t)))))))))
+
+
