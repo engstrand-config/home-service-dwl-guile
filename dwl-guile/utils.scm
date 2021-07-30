@@ -53,5 +53,5 @@
   (every
     (lambda
       (pair)
-      (and (string? (car pair)) (number? (cdr pair))))
+      (and (keycode? (car pair)) (number? (cdr pair))))
     lst))

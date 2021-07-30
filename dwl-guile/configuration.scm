@@ -75,13 +75,13 @@
   dwl-colors
   (root
     (rgb-color %base-root-color)
-    "root color in RGBA format")
+    "Root color in RGBA format.")
   (border
     (rgb-color %base-border-color)
-    "border color in RBA format")
+    "Border color in RBA format.")
   (focus
     (rgb-color %base-focus-color)
-    "border focus color in RGBA format")
+    "Border focus color in RGBA format.")
   (no-serialization))
 
 ; Application rule configuration
@@ -89,20 +89,20 @@
   dwl-rule
   (id
     (maybe-string %base-rule-id)
-    "id of application")
+    "Id of target application for rule.")
   (title
     (maybe-string %base-title-id)
-    "title of application")
+    "Title of target application for rule.")
   ; TODO: Allow multiple tags?
   (tag
     (number %base-tag-number)
-    "tag to place application on. 1 corresponds to the first tag in the 'tags' list")
+    "Tag to place application on. 1 corresponds to the first tag in the @code{tags} list.")
   (floating
     (boolean %base-floating-boolean)
-    "if application should be floating initially")
+    "If the application should be floating initially.")
   (monitor
     (number %base-monitor-number)
-    "monitor to spawn application on")
+    "The monitor to spawn the application on.")
   (no-serialization))
 
 ; https://xkbcommon.org/doc/current/structxkb__rule__names.html
@@ -110,19 +110,19 @@
   dwl-xkb-rule
   (rules
     (string %base-xkb-rules)
-    "the rules file to use")
+    "The rules file to use.")
   (model
     (string %base-xkb-model)
-    "the keyboard model that should be used to interpret keycodes and LEDs")
+    "The keyboard model that should be used to interpret keycodes and LEDs.")
   (layouts
     (list-of-strings %base-xkb-layouts)
-    "a list of layouts (languages) to include in the keymap")
+    "A list of layouts (languages) to include in the keymap.")
   (variants
     (list-of-strings %base-xkb-variants)
-    "a list of layout variants, one per layout")
+    "A list of layout variants, one per layout.")
   (options
     (list-of-strings %base-xkb-options)
-    "a list of layout options")
+    "A list of layout options.")
   (no-serialization))
 
 ; Monitor rule configuration
@@ -130,28 +130,28 @@
   dwl-monitor-rule
   (name
     (maybe-string %base-monitor-name)
-    "name of monitor, e.g. eDP-1")
+    "Name of monitor, e.g. eDP-1.")
   (master-factor
     (number %base-monitor-master-factor)
-    "horizontal scaling factor for master windows")
+    "Horizontal scaling factor for master windows.")
   (masters
     (number %base-monitor-masters)
-    "number of windows that will be shown in the master area")
+    "Number of windows that will be shown in the master area.")
   (scale
     (number %base-monitor-scale)
-    "monitor scaling")
+    "Monitor scaling.")
   (layout
     (string %base-monitor-layout)
-    "default layout (id) to use for monitor")
+    "Default layout (id) to use for monitor.")
   (transform
     (symbol %base-monitor-transform)
-    "output transformations, e.g. rotation, reflect")
+    "Monitor output transformations, e.g. rotation, reflect.")
   (x
     (number %base-monitor-x)
-    "position on the x-axis")
+    "Position on the x-axis.")
   (y
     (number %base-monitor-y)
-    "position on the y-axis")
+    "Position on the y-axis.")
   (no-serialization))
 
 ; Keybinding configuration
@@ -159,13 +159,13 @@
   dwl-key
   (modifiers
     (list-of-modifiers %base-key-modifiers)
-    "list of modifiers to use for the keybinding")
+    "List of modifiers to use for the keybinding")
   (key
     (keycode)
-    "keycode or keysym string that should trigger the keybinding")
+    "Keycode or keysym string to use for this keybinding")
   (action
     (maybe-exp %base-key-action)
-    "expression to call when triggered")
+    "Expression to call when triggered.")
   (no-serialization))
 
 ; Mouse button configuration
@@ -173,13 +173,13 @@
   dwl-button
   (modifiers
     (list-of-modifiers %base-button-modifiers)
-    "list of modifiers to use for the button")
+    "List of modifiers to use for the button.")
   (button
     (symbol)
-    "mouse button to use")
+    "Mouse button to use for this binding.")
   (action
     (maybe-exp %base-button-action)
-    "expression to call when triggered")
+    "Expression to call when triggered.")
   (no-serialization))
 
 ; Tag keybindings configuration
@@ -187,21 +187,22 @@
   dwl-tag-keys
   (view-modifiers
     (list-of-modifiers %base-tag-view-modifiers)
-    "modifier(s) that should be used to view a tag")
+    "Modifier(s) that should be used to view a tag.")
   (tag-modifiers
     (list-of-modifiers %base-tag-tag-modifiers)
-    "modifier(s) that should be used to move windows to a tag")
+    "Modifier(s) that should be used to move windows to a tag.")
   (toggle-view-modifiers
     (list-of-modifiers %base-tag-toggle-view-modifiers)
-    "modifier(s) that should be used to toggle the visibilty of a tag")
+    "Modifier(s) that should be used to toggle the visibilty of a tag.")
   (toggle-tag-modifiers
     (list-of-modifiers %base-tag-toggle-tag-modifiers)
-    "modifier(s) that should be used to toggle a tag for a window")
+    "Modifier(s) that should be used to toggle a tag for a window.")
   (keys
     (list-of-tag-key-pairs
-    %base-tag-keys)
-    "list of key/tag pairs to generate tag keybindings for,
-    e.g. '("exclam" . 1) for mapping exclamation key to tag 1")
+      %base-tag-keys)
+    "List of key/tag pairs to generate tag keybindings for,
+  e.g. @code{("1" . 1)} for mapping the key "1" to tag 1.
+  The first value of the pair should be a valid keycode or keysym.")
   (no-serialization))
 
 ; Layout configuration
@@ -209,13 +210,13 @@
   dwl-layout
   (id
     (string)
-    "id that can be used to reference a layout, e.g. in a monitor rule")
+    "Id that can be used to reference a layout in your config, e.g. in a monitor rule.")
   (symbol
     (string)
-    "symbol that should be shown when layout is active")
+    "Symbol that should be shown when layout is active.")
   (arrange
     (maybe-exp %base-layout-arrange)
-    "expression to call when selected")
+    "Expression to call when layout is selected.")
   (no-serialization))
 
 (define (list-of-keys? lst) (every dwl-key? lst))
@@ -230,53 +231,54 @@
   dwl-config
   (sloppy-focus
     (boolean %base-config-sloppy-focus)
-    "focus follows mouse")
+    "If focus should follow mouse.")
   (border-px
     (number %base-config-border-px)
-    "border pixel of windows")
+    "Border width of windows in pixels.")
   (repeat-rate
     (number %base-config-repeat-rate)
-    "keyboard repeat rate on hold")
+    "Keyboard repeat rate on hold.")
   (repeat-delay
     (number %base-config-repeat-delay)
-    "keyboard repeat start delay")
+    "Keyboard repeat start delay.")
   (tap-to-click
     (boolean %base-config-tap-to-click)
-    "trackpad click on tap")
+    "If tapping on the trackpad should be interpreted as a click.")
   (natural-scrolling
     (boolean %base-config-natural-scrolling)
-    "trackpad natural scrolling")
+    "If the trackpad should have natural scrolling.")
   (terminal
     (list-of-strings %base-config-terminal)
-    "terminal application to use")
+    "Default terminal application to use. Will be used when calling @code{dwl:spawn-terminal}.")
   (menu
     (list-of-strings %base-config-menu)
-    "menu application to use")
+    "Default menu application to use. Will be used when calling @code{dwl:spawn-menu}.")
   (tags
     (list-of-strings %base-config-tags)
-    "list of tag names")
+    "List of tag names that may be shown in the bar.")
   (colors
     (dwl-colors %base-config-colors)
-    "root, border and focus colors in RGBA format, 0-255 for RGB and 0-1 for alpha")
+    "Default colors of elements, e.g. background, border and focus.")
   (layouts
     (list-of-layouts %base-config-layouts)
-    "list of layouts to use")
+    "List of layouts that should be available. A layout can be selected using @code{dwl:set-layout <id>}")
   (rules
     (list-of-rules %base-config-rules)
-    "list of application rules")
+    "List of application rules.")
   (monitor-rules
     (list-of-monitor-rules %base-config-monitor-rules)
-    "list of monitor rules")
+    "List of monitor rules.")
+  ; TODO: Allow users to pass in the system keyboard configuration?
   (xkb-rules
     (maybe-xkb-rule %base-config-xkb-rules)
-    "xkb rules and options")
+    "XKB rules and options.")
   (keys
     (list-of-keys %base-config-keys)
-    "list of keybindings")
+    "List of keybindings.")
   (tag-keys
     (dwl-tag-keys %base-config-tag-keys)
-    "tag keys configuration")
+    "Automatically generate all the necessary keybindings for managing tags. Similar to @code{TAGKEYS} macro in dwl.")
   (buttons
     (list-of-buttons %base-config-buttons)
-    "list of mouse button keybindings, e.g. resizing or moving windows")
+    "List of mouse button bindings, e.g. resizing or moving windows.")
   (no-serialization))
