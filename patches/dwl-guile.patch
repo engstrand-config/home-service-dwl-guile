@@ -739,10 +739,10 @@ index 0000000..c32af96
 +}
 diff --git a/dscm-utils.h b/dscm-utils.h
 new file mode 100644
-index 0000000..21bbb37
+index 0000000..57800d6
 --- /dev/null
 +++ b/dscm-utils.h
-@@ -0,0 +1,157 @@
+@@ -0,0 +1,162 @@
 +#pragma once
 +
 +enum { DSCM_CALL_ARRANGE, DSCM_CALL_ACTION };
@@ -781,15 +781,20 @@ index 0000000..21bbb37
 +        return scm_to_unsigned_integer(dscm_alist_get(alist, key), 0, max);
 +}
 +
-+static inline float
-+dscm_alist_get_float(SCM alist, const char* key)
++static inline double
++dscm_alist_get_double(SCM alist, const char* key)
 +{
 +        SCM value = dscm_alist_get(alist, key);
 +        if (scm_is_bool(value))
 +                return scm_is_true(value) ? 1 : 0;
-+        return (float)scm_to_double(value);
++        return scm_to_double(value);
 +}
 +
++static inline float
++dscm_alist_get_float(SCM alist, const char* key)
++{
++        return (float)dscm_alist_get_double(alist, key);
++}
 +
 +static inline scm_t_bits *
 +dscm_alist_get_proc_pointer(SCM alist, const char *key)
@@ -1238,7 +1243,7 @@ index 4098f86..c018cdb 100644
  }
 diff --git a/scripts/create-patches.sh b/scripts/create-patches.sh
 new file mode 100755
-index 0000000..35b66e9
+index 0000000..4a88c6b
 --- /dev/null
 +++ b/scripts/create-patches.sh
 @@ -0,0 +1,24 @@
@@ -1254,10 +1259,10 @@ index 0000000..35b66e9
 +DIFF_ORIGIN=$1
 +[ -z $DIFF_ORIGIN ] && DIFF_ORIGIN="main"
 +
-+for patch in xwayland
++for patch in xwayland alpha smartborders attachabove
 +do
 +    git fetch origin patch/$patch
-+    git diff $1 patch/$patch \
++    git diff $DIFF_ORIGIN patch/$patch \
 +        ':(exclude)README.md' \
 +        ':(exclude)patches' \
 +        ':(exclude)scripts/create-patches.sh' \

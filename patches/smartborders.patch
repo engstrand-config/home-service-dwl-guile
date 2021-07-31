@@ -1,0 +1,159 @@
+diff --git a/dscm-config.h b/dscm-config.h
+index c32af96..5289803 100644
+--- a/dscm-config.h
++++ b/dscm-config.h
+@@ -28,6 +28,7 @@ static unsigned int numlayouts  = 0;
+ static unsigned int nummonrules = 0;
+ static unsigned int numbuttons  = 0;
+ static unsigned int TAGMASK     = 0;
++static int smartborders = 0;
+ 
+ static inline void
+ dscm_parse_color(unsigned int index, SCM value, void *data)
+@@ -134,6 +135,7 @@ dscm_parse_config(char *config_file)
+         borderpx = dscm_alist_get_unsigned_int(config, "border-px", 25);
+         repeat_rate = dscm_alist_get_unsigned_int(config, "repeat-rate", 5000);
+         repeat_delay = dscm_alist_get_unsigned_int(config, "repeat-delay", 5000);
++        smartborders = dscm_alist_get_int(config, "smart-borders");
+ 
+         SCM colors = dscm_alist_get(config, "colors");
+         rootcolor = dscm_iterate_list(dscm_alist_get(colors, "root"),
+diff --git a/dwl.c b/dwl.c
+index c018cdb..22a0426 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -263,7 +263,7 @@ static void render(struct wlr_surface *surface, int sx, int sy, void *data);
+ static void renderclients(Monitor *m, struct timespec *now);
+ static void renderlayer(struct wl_list *layer_surfaces, struct timespec *now);
+ static void rendermon(struct wl_listener *listener, void *data);
+-static void resize(Client *c, int x, int y, int w, int h, int interact);
++static void resize(Client *c, int x, int y, int w, int h, int interact, int draw_borders);
+ static void run(char *startup_cmd);
+ static void scalebox(struct wlr_box *box, float scale);
+ static Client *selclient(void);
+@@ -745,7 +745,7 @@ closemon(Monitor *m)
+ 	wl_list_for_each(c, &clients, link) {
+ 		if (c->isfloating && c->geom.x > m->m.width)
+ 			resize(c, c->geom.x - m->w.width, c->geom.y,
+-				c->geom.width, c->geom.height, 0);
++				c->geom.width, c->geom.height, 0, 1);
+ 		if (c->mon == m)
+ 			setmon(c, selmon, c->tags);
+ 	}
+@@ -871,7 +871,7 @@ createmon(struct wl_listener *listener, void *data)
+ 		wl_list_for_each(c, &clients, link) {
+ 			if (c->isfloating)
+ 				resize(c, c->geom.x + m->w.width, c->geom.y,
+-						c->geom.width, c->geom.height, 0);
++						c->geom.width, c->geom.height, 0, 1);
+ 		}
+ 		return;
+ 	}
+@@ -1050,7 +1050,7 @@ togglefullscreen(const Arg *arg)
+ void
+ maximizeclient(Client *c)
+ {
+-	resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height, 0);
++	resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height, 0, 0);
+ 	/* used for fullscreen clients */
+ }
+ 
+@@ -1071,7 +1071,7 @@ setfullscreen(Client *c, int fullscreen)
+ 	} else {
+ 		/* restore previous size instead of arrange for floating windows since
+ 		 * client positions are set by the user and cannot be recalculated */
+-		resize(c, c->prevx, c->prevy, c->prevwidth, c->prevheight, 0);
++		resize(c, c->prevx, c->prevy, c->prevwidth, c->prevheight, 0, 1);
+ 		c->mon->fullscreenclient = NULL;
+ 		arrange(c->mon);
+ 	}
+@@ -1372,7 +1372,7 @@ monocle(Monitor *m)
+ 		if (c->isfullscreen)
+ 			maximizeclient(c);
+ 		else
+-			resize(c, m->w.x, m->w.y, m->w.width, m->w.height, 0);
++			resize(c, m->w.x, m->w.y, m->w.width, m->w.height, 0, !smartborders);
+ 	}
+ }
+ 
+@@ -1410,12 +1410,12 @@ motionnotify(uint32_t time)
+ 	if (cursor_mode == CurMove) {
+ 		/* Move the grabbed client to the new position. */
+ 		resize(grabc, cursor->x - grabcx, cursor->y - grabcy,
+-				grabc->geom.width, grabc->geom.height, 1);
++				grabc->geom.width, grabc->geom.height, 1, 1);
+ 		return;
+ 	} else if (cursor_mode == CurResize) {
+ 		resize(grabc, grabc->geom.x, grabc->geom.y,
+ 				cursor->x - grabc->geom.x,
+-				cursor->y - grabc->geom.y, 1);
++				cursor->y - grabc->geom.y, 1, 1);
+ 		return;
+ 	}
+ 
+@@ -1788,7 +1788,7 @@ rendermon(struct wl_listener *listener, void *data)
+ }
+ 
+ void
+-resize(Client *c, int x, int y, int w, int h, int interact)
++resize(Client *c, int x, int y, int w, int h, int interact, int draw_borders)
+ {
+ 	/*
+ 	 * Note that I took some shortcuts here. In a more fleshed-out
+@@ -1800,6 +1800,7 @@ resize(Client *c, int x, int y, int w, int h, int interact)
+ 	c->geom.y = y;
+ 	c->geom.width = w;
+ 	c->geom.height = h;
++	c->bw = (1 - !draw_borders) * borderpx;
+ 	applybounds(c, bbox);
+ 	/* wlroots makes this a no-op if size hasn't changed */
+ 	c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
+@@ -1909,6 +1910,15 @@ setlayout(const Arg *arg)
+ 		selmon->sellt ^= 1;
+ 	if (arg && arg->v)
+ 		selmon->lt[selmon->sellt] = (Layout *)arg->v;
++	if (!selmon->lt[selmon->sellt]->arrange) {
++		/* floating layout, draw borders around all clients */
++		Client *c;
++		wl_list_for_each(c, &clients, link) {
++			if (c->bw)
++				continue;
++			resize(c, c->geom.x, c->geom.y, c->geom.width, c->geom.height, 0, 1);
++		}
++	}
+ 	/* TODO change layout symbol? */
+ 	arrange(selmon);
+ }
+@@ -2175,7 +2185,7 @@ tagmon(const Arg *arg)
+ void
+ tile(Monitor *m)
+ {
+-	unsigned int i, n = 0, h, mw, my, ty;
++	unsigned int i, n = 0, h, mw, my, ty, draw_borders = 1;
+ 	Client *c;
+ 
+ 	wl_list_for_each(c, &clients, link)
+@@ -2184,6 +2194,9 @@ tile(Monitor *m)
+ 	if (n == 0)
+ 		return;
+ 
++	if (n == smartborders)
++		draw_borders = 0;
++
+ 	if (n > m->nmaster)
+ 		mw = m->nmaster ? m->w.width * m->mfact : 0;
+ 	else
+@@ -2196,11 +2209,11 @@ tile(Monitor *m)
+ 			maximizeclient(c);
+ 		else if (i < m->nmaster) {
+ 			h = (m->w.height - my) / (MIN(n, m->nmaster) - i);
+-			resize(c, m->w.x, m->w.y + my, mw, h, 0);
++			resize(c, m->w.x, m->w.y + my, mw, h, 0, draw_borders);
+ 			my += c->geom.height;
+ 		} else {
+ 			h = (m->w.height - ty) / (n - i);
+-			resize(c, m->w.x + mw, m->w.y + ty, m->w.width - mw, h, 0);
++			resize(c, m->w.x + mw, m->w.y + ty, m->w.width - mw, h, 0, draw_borders);
+ 			ty += c->geom.height;
+ 		}
+ 		i++;

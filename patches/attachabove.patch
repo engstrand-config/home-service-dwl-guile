@@ -1,0 +1,23 @@
+diff --git a/dwl.c b/dwl.c
+index c018cdb..961c5ec 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -1341,9 +1341,15 @@ mapnotify(struct wl_listener *listener, void *data)
+ 	}
+ 
+ 	/* Insert this client into client lists. */
+-	wl_list_insert(&clients, &c->link);
+-	wl_list_insert(&fstack, &c->flink);
+-	wl_list_insert(&stack, &c->slink);
++	if (oldfocus) {
++		wl_list_insert(oldfocus->link.prev, &c->link);
++		wl_list_insert(oldfocus->flink.prev, &c->flink);
++		wl_list_insert(oldfocus->slink.prev, &c->slink);
++	} else {
++		wl_list_insert(&clients, &c->link);
++		wl_list_insert(&fstack, &c->flink);
++		wl_list_insert(&stack, &c->slink);
++	}
+ 
+ 	client_get_geometry(c, &c->geom);
+ 	c->geom.width += 2 * c->bw;

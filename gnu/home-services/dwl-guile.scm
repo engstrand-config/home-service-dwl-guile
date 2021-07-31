@@ -38,6 +38,7 @@
                             %patch-base
                             %patch-alpha
                             %patch-xwayland
+                            %patch-attach-above
                             %patch-smartborders
 
                             %layout-default
@@ -59,7 +60,7 @@
   (package
     (package dwl)
     "The dwl package to use. By default, this package will be
-    automatically patches using the dwl-guile patch. You can
+    automatically patched using the dwl-guile patch. You can
     find the base package definition for dwl in gnu/packages/wm.scm.
 
     If you want to use a custom dwl package where the dwl-guile patch
