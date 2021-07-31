@@ -1,7 +1,7 @@
 ; Defines the configuration records for dwl,
 ; as well as procedures for transforming the configuration
 ; into a format that can easily be parsed in C.
-(define-module (gnu home-services dwl-guile)
+(define-module (dwl-guile home-service)
                #:use-module (guix gexp)
                #:use-module (guix packages)
                #:use-module (srfi srfi-1)
