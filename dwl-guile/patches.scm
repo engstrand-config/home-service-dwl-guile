@@ -6,7 +6,8 @@
                          %patch-xwayland
                          %patch-alpha
                          %patch-smartborders
-                         %patch-attach-above
+                         %patch-attachabove
+                         %patch-focusmon
                          make-patch
                          list-of-local-files?))
 
@@ -26,4 +27,5 @@
 (define %patch-xwayland (make-patch "xwayland"))
 (define %patch-alpha (make-patch "alpha"))
 (define %patch-smartborders (make-patch "smartborders"))
-(define %patch-attach-above (make-patch "attachabove"))
+(define %patch-attachabove (make-patch "attachabove"))
+(define %patch-focusmon (make-patch "focusmon"))

@@ -1,0 +1,18 @@
+diff --git a/dwl.c b/dwl.c
+index c018cdb..3d292f4 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -1159,10 +1159,13 @@ focusclient(Client *c, int lift)
+ void
+ focusmon(const Arg *arg)
+ {
++        Monitor *prevm = selmon;
+ 	do
+ 		selmon = dirtomon(arg->i);
+ 	while (!selmon->wlr_output->enabled);
+ 	focusclient(focustop(selmon), 1);
++        if (prevm != selmon)
++                wlr_cursor_move(cursor, NULL, selmon->m.x, prevm->m.x);
+ }
+ 
+ void
