@@ -8,6 +8,7 @@
                          %patch-smartborders
                          %patch-attachabove
                          %patch-focusmon
+                         %patch-vanitygaps
                          make-patch
                          list-of-local-files?))
 
@@ -29,3 +30,4 @@
 (define %patch-smartborders (make-patch "smartborders"))
 (define %patch-attachabove (make-patch "attachabove"))
 (define %patch-focusmon (make-patch "focusmon"))
+(define %patch-vanitygaps (make-patch "vanitygaps"))

@@ -68,7 +68,14 @@
                          dwl-config-buttons
                          dwl-config-tag-keys
                          dwl-config-xkb-rules
-                         dwl-config-monitor-rules))
+                         dwl-config-monitor-rules
+                         dwl-config-default-alpha
+                         dwl-config-smart-borders
+                         dwl-config-smart-gaps
+                         dwl-config-gaps-horizontal-inner
+                         dwl-config-gaps-horizontal-outer
+                         dwl-config-gaps-vertical-inner
+                         dwl-config-gaps-vertical-outer))
 
 ; Color configuration
 (define-configuration
@@ -286,8 +293,23 @@
     "List of mouse button bindings, e.g. resizing or moving windows.")
   (default-alpha
     (number %base-config-default-alpha)
-    "Default transparency (0-1) for windows. Requires the @code{%patch-alpha} patch")
+    "Default transparency (0-1) for windows. Requires the @code{%patch-alpha} patch.")
   (smart-borders
     (boolean %base-config-smart-borders)
-    "Hide borders if there only is one window. Requires the @code{%patch-smartborders} patch")
+    "Hide borders if there is only one window. Requires the @code{%patch-smartborders} patch.")
+  (smart-gaps
+    (boolean %base-config-smart-gaps)
+    "Remove gaps if there is only one window. Requires the @code{%patch-vanitygaps} patch.")
+  (gaps-horizontal-inner
+    (number %base-config-gaps-horizontal-inner)
+    "Inner horizontal gaps between windows. Requires the @code{%patch-vanitygaps} patch.")
+  (gaps-horizontal-outer
+    (number %base-config-gaps-horizontal-outer)
+    "Outer horizontal gaps between windows. Requires the @code{%patch-vanitygaps} patch.")
+  (gaps-vertical-inner
+    (number %base-config-gaps-vertical-inner)
+    "Inner vertical gaps between windows. Requires the @code{%patch-vanitygaps} patch.")
+  (gaps-vertical-outer
+    (number %base-config-gaps-vertical-outer)
+    "Outer vertical gaps between windows. Requires the @code{%patch-vanitygaps} patch.")
   (no-serialization))

@@ -66,6 +66,11 @@
                          %base-config-monitor-rules
                          %base-config-default-alpha
                          %base-config-smart-borders
+                         %base-config-smart-gaps
+                         %base-config-gaps-horizontal-inner
+                         %base-config-gaps-horizontal-outer
+                         %base-config-gaps-vertical-inner
+                         %base-config-gaps-vertical-outer
                          ; do not need to write "%base-" before each variable?
                          ; can load the variables in the configuration with
                          ; #:prefix %base-
@@ -143,7 +148,12 @@
 (define %base-config-xkb-rules #f)
 (define %base-config-tag-keys (dwl-tag-keys))
 (define %base-config-default-alpha 0.9)
-(define %base-config-smart-borders #f)
+(define %base-config-smart-borders #t)
+(define %base-config-smart-gaps #t)
+(define %base-config-gaps-horizontal-inner 10)
+(define %base-config-gaps-horizontal-outer 10)
+(define %base-config-gaps-vertical-inner 10)
+(define %base-config-gaps-vertical-outer 10)
 
 ; Default monitor rules
 (define %base-config-monitor-rules
