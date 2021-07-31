@@ -35,12 +35,6 @@
                             dwl-xkb-rule
                             dwl-monitor-rule
 
-                            %patch-base
-                            %patch-alpha
-                            %patch-xwayland
-                            %patch-attach-above
-                            %patch-smartborders
-
                             %layout-default
                             %layout-monocle
                             %layout-floating
