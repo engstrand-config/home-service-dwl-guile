@@ -12,10 +12,11 @@
                          %base-focus-color
 
                          %base-rule-id
-                         %base-title-id
-                         %base-tag-number
-                         %base-floating-boolean
-                         %base-monitor-number
+                         %base-rule-title-id
+                         %base-rule-tag-number
+                         %base-rule-floating-boolean
+                         %base-rule-monitor-number
+                         %base-rule-alpha
 
                          %base-xkb-rules
                          %base-xkb-model
@@ -63,6 +64,7 @@
                          %base-config-keys
                          %base-config-layouts
                          %base-config-monitor-rules
+                         %base-config-default-alpha
                          ; do not need to write "%base-" before each variable?
                          ; can load the variables in the configuration with
                          ; #:prefix %base-
@@ -76,10 +78,11 @@
 
 ; Default application rules
 (define %base-rule-id #f)
-(define %base-title-id #f)
-(define %base-tag-number 1)
-(define %base-floating-boolean #f)
-(define %base-monitor-number 1) ;; can be confused with %base-monitor-* below?
+(define %base-rule-title-id #f)
+(define %base-rule-tag-number 1)
+(define %base-rule-floating-boolean #f)
+(define %base-rule-monitor-number 1)
+(define %base-rule-alpha 0.9)
 
 ; Default XKB rules
 (define %base-xkb-rules "")
@@ -138,6 +141,7 @@
 (define %base-config-rules '())
 (define %base-config-xkb-rules #f)
 (define %base-config-tag-keys (dwl-tag-keys))
+(define %base-config-default-alpha 0.9)
 
 ; Default monitor rules
 (define %base-config-monitor-rules

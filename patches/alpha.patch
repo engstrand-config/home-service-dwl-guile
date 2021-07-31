@@ -1,0 +1,214 @@
+diff --git a/dscm-bindings.h b/dscm-bindings.h
+index 7f6ab85..34a6913 100644
+--- a/dscm-bindings.h
++++ b/dscm-bindings.h
+@@ -205,6 +205,14 @@ dscm_binding_quit()
+         return SCM_BOOL_T;
+ }
+ 
++static inline SCM
++dscm_binding_changealpha(SCM value)
++{
++        Arg a = {.f = scm_to_double(value)};
++        changealpha(&a);
++        return SCM_BOOL_T;
++}
++
+ static inline void
+ dscm_register_constants()
+ {
+@@ -280,4 +288,5 @@ dscm_register_procedures()
+         scm_c_define_gsubr("dwl:shcmd", 1, 0, 0, &dscm_binding_shcmd);
+         scm_c_define_gsubr("dwl:spawn-menu", 0, 0, 0, &dscm_binding_spawn_menu);
+         scm_c_define_gsubr("dwl:spawn-terminal", 0, 0, 0, &dscm_binding_spawn_terminal);
++        scm_c_define_gsubr("dwl:change-alpha", 1, 0, 0, &dscm_binding_changealpha);
+ }
+diff --git a/dscm-config.h b/dscm-config.h
+index c32af96..0cdc002 100644
+--- a/dscm-config.h
++++ b/dscm-config.h
+@@ -28,6 +28,7 @@ static unsigned int numlayouts  = 0;
+ static unsigned int nummonrules = 0;
+ static unsigned int numbuttons  = 0;
+ static unsigned int TAGMASK     = 0;
++static double default_alpha     = 1.0;
+ 
+ static inline void
+ dscm_parse_color(unsigned int index, SCM value, void *data)
+@@ -76,7 +77,8 @@ dscm_parse_rule(unsigned int index, SCM rule, void *data)
+                 .title = dscm_alist_get_string(rule, "title"),
+                 .tags = dscm_alist_get_unsigned_int(rule, "tag", -1),
+                 .isfloating = dscm_alist_get_int(rule, "floating"),
+-                .monitor = dscm_alist_get_int(rule, "monitor")
++                .monitor = dscm_alist_get_int(rule, "monitor"),
++                .alpha = dscm_alist_get_double(rule, "alpha")
+          };
+ }
+ 
+@@ -134,6 +136,7 @@ dscm_parse_config(char *config_file)
+         borderpx = dscm_alist_get_unsigned_int(config, "border-px", 25);
+         repeat_rate = dscm_alist_get_unsigned_int(config, "repeat-rate", 5000);
+         repeat_delay = dscm_alist_get_unsigned_int(config, "repeat-delay", 5000);
++        default_alpha = dscm_alist_get_double(config, "default-alpha");
+ 
+         SCM colors = dscm_alist_get(config, "colors");
+         rootcolor = dscm_iterate_list(dscm_alist_get(colors, "root"),
+diff --git a/dscm-utils.h b/dscm-utils.h
+index 21bbb37..1a2c507 100644
+--- a/dscm-utils.h
++++ b/dscm-utils.h
+@@ -36,13 +36,19 @@ dscm_alist_get_unsigned_int(SCM alist, const char* key, int max)
+         return scm_to_unsigned_integer(dscm_alist_get(alist, key), 0, max);
+ }
+ 
+-static inline float
+-dscm_alist_get_float(SCM alist, const char* key)
++static inline double
++dscm_alist_get_double(SCM alist, const char* key)
+ {
+         SCM value = dscm_alist_get(alist, key);
+         if (scm_is_bool(value))
+                 return scm_is_true(value) ? 1 : 0;
+-        return (float)scm_to_double(value);
++        return scm_to_double(value);
++}
++
++static inline float
++dscm_alist_get_float(SCM alist, const char* key)
++{
++        return (float)dscm_alist_get_double(alist, key);
+ }
+ 
+ 
+diff --git a/dwl.c b/dwl.c
+index c018cdb..490ee39 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -104,6 +104,8 @@ typedef struct {
+ 	int bw;
+ 	unsigned int tags;
+ 	int isfloating;
++	double alpha;
++	double prevalpha;
+ 	uint32_t resize; /* configure serial of a pending resize */
+ 	int prevx;
+ 	int prevy;
+@@ -192,6 +194,7 @@ typedef struct {
+ 	char *title;
+ 	unsigned int tags;
+ 	int isfloating;
++	double alpha;
+ 	int monitor;
+ } Rule;
+ 
+@@ -201,6 +204,7 @@ struct render_data {
+ 	struct wlr_output *output;
+ 	struct timespec *when;
+ 	int x, y; /* layout-relative */
++	double alpha;
+ };
+ 
+ /* function declarations */
+@@ -215,6 +219,7 @@ static void arrangelayer(Monitor *m, struct wl_list *list,
+ static void arrangelayers(Monitor *m);
+ static void axisnotify(struct wl_listener *listener, void *data);
+ static void buttonpress(struct wl_listener *listener, void *data);
++static void changealpha(const Arg *arg);
+ static void chvt(const Arg *arg);
+ static void cleanup(void);
+ static void cleanupkeyboard(struct wl_listener *listener, void *data);
+@@ -470,6 +475,7 @@ applyrules(Client *c)
+ 		if ((!r.title || strstr(title, r.title))
+ 				&& (!r.id || strstr(appid, r.id))) {
+ 			c->isfloating = r.isfloating;
++                        c->alpha = r.alpha;
+ 			newtags |= r.tags;
+ 			j = 0;
+ 			wl_list_for_each(m, &mons, link)
+@@ -680,6 +686,21 @@ buttonpress(struct wl_listener *listener, void *data)
+ 			event->time_msec, event->button, event->state);
+ }
+ 
++void
++changealpha(const Arg *arg)
++{
++	Client *sel = selclient();
++
++	if (sel) {
++		sel->alpha += arg->f;
++		if (sel->alpha > 1.0)
++			sel->alpha = 1.0;
++
++		if (sel->alpha < 0.1)
++			sel->alpha = 0.1;
++	}
++}
++
+ void
+ chvt(const Arg *arg)
+ {
+@@ -895,6 +916,7 @@ createnotify(struct wl_listener *listener, void *data)
+ 	c = xdg_surface->data = calloc(1, sizeof(*c));
+ 	c->surface.xdg = xdg_surface;
+ 	c->bw = borderpx;
++	c->alpha = default_alpha;
+ 
+ 	/* Tell the client not to try anything fancy */
+ 	wlr_xdg_toplevel_set_tiled(c->surface.xdg, WLR_EDGE_TOP |
+@@ -1066,11 +1088,14 @@ setfullscreen(Client *c, int fullscreen)
+ 		c->prevy = c->geom.y;
+ 		c->prevheight = c->geom.height;
+ 		c->prevwidth = c->geom.width;
++                c->prevalpha = c->alpha;
++                c->alpha = 1;
+ 		c->mon->fullscreenclient = c;
+ 		maximizeclient(c);
+ 	} else {
+ 		/* restore previous size instead of arrange for floating windows since
+ 		 * client positions are set by the user and cannot be recalculated */
++                c->alpha = c->prevalpha;
+ 		resize(c, c->prevx, c->prevy, c->prevwidth, c->prevheight, 0);
+ 		c->mon->fullscreenclient = NULL;
+ 		arrange(c->mon);
+@@ -1656,7 +1681,7 @@ render(struct wlr_surface *surface, int sx, int sy, void *data)
+ 
+ 	/* This takes our matrix, the texture, and an alpha, and performs the actual
+ 	 * rendering on the GPU. */
+-	wlr_render_texture_with_matrix(drw, texture, matrix, 1);
++	wlr_render_texture_with_matrix(drw, texture, matrix, rdata->alpha);
+ 
+ 	/* This lets the client know that we've displayed that frame and it can
+ 	 * prepare another one now if it likes. */
+@@ -1711,6 +1736,7 @@ renderclients(Monitor *m, struct timespec *now)
+ 		rdata.when = now;
+ 		rdata.x = c->geom.x + c->bw;
+ 		rdata.y = c->geom.y + c->bw;
++		rdata.alpha = c->alpha;
+ 		client_for_each_surface(c, render, &rdata);
+ 	}
+ }
+@@ -1725,6 +1751,7 @@ renderlayer(struct wl_list *layer_surfaces, struct timespec *now)
+ 			.when = now,
+ 			.x = layersurface->geo.x,
+ 			.y = layersurface->geo.y,
++			.alpha = 1,
+ 		};
+ 
+ 		wlr_surface_for_each_surface(layersurface->layer_surface->surface,
+@@ -2439,6 +2466,7 @@ createnotifyx11(struct wl_listener *listener, void *data)
+ 	c->type = xwayland_surface->override_redirect ? X11Unmanaged : X11Managed;
+ 	c->bw = borderpx;
+ 	c->isfullscreen = 0;
++	c->alpha = default_alpha;
+ 
+ 	/* Listen to the various events it can emit */
+ 	LISTEN(&xwayland_surface->events.map, &c->map, mapnotify);
+@@ -2486,6 +2514,8 @@ renderindependents(struct wlr_output *output, struct timespec *now)
+ 		rdata.when = now;
+ 		rdata.x = c->surface.xwayland->x;
+ 		rdata.y = c->surface.xwayland->y;
++		rdata.alpha = c->alpha;
++
+ 		wlr_surface_for_each_surface(c->surface.xwayland->surface, render, &rdata);
+ 	}
+ }

@@ -36,6 +36,7 @@
                             dwl-monitor-rule
 
                             %patch-base
+                            %patch-alpha
                             %patch-xwayland
 
                             %layout-default

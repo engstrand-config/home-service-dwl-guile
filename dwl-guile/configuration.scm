@@ -91,18 +91,21 @@
     (maybe-string %base-rule-id)
     "Id of target application for rule.")
   (title
-    (maybe-string %base-title-id)
+    (maybe-string %base-rule-title-id)
     "Title of target application for rule.")
   ; TODO: Allow multiple tags?
   (tag
-    (number %base-tag-number)
+    (number %base-rule-tag-number)
     "Tag to place application on. 1 corresponds to the first tag in the @code{tags} list.")
   (floating
-    (boolean %base-floating-boolean)
+    (boolean %base-rule-floating-boolean)
     "If the application should be floating initially.")
   (monitor
-    (number %base-monitor-number)
+    (number %base-rule-monitor-number)
     "The monitor to spawn the application on.")
+  (alpha
+    (number %base-rule-alpha)
+    "Default window transparency (0-1) for the application. Requires the @code{%patch-alpha} patch.")
   (no-serialization))
 
 ; https://xkbcommon.org/doc/current/structxkb__rule__names.html
@@ -281,4 +284,7 @@
   (buttons
     (list-of-buttons %base-config-buttons)
     "List of mouse button bindings, e.g. resizing or moving windows.")
+  (default-alpha
+    (number %base-config-default-alpha)
+    "Default transparency (0-1) for windows. Requires the @code{%patch-alpha} patch")
   (no-serialization))

@@ -4,6 +4,7 @@
                #:export (
                          %patch-base
                          %patch-xwayland
+                         %patch-alpha
                          make-patch
                          list-of-local-files?))
 
@@ -19,9 +20,6 @@
 (define (make-patch file-name)
   (local-file (string-append %patch-directory "/patches/" file-name ".patch")))
 
-; TODO: use absolute path to patches
-; If we assume that `home-dwl-service` will be installed as a package,
-; we can simply copy the patches folder into the build output and
-; then reference the patches using #$(file-append home-dwl-service "/patches/xyz.patch"
 (define %patch-base (make-patch "dwl-guile"))
 (define %patch-xwayland (make-patch "xwayland"))
+(define %patch-alpha (make-patch "alpha"))
