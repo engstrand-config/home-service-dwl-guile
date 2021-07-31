@@ -38,6 +38,7 @@
                             %patch-base
                             %patch-alpha
                             %patch-xwayland
+                            %patch-smartborders
 
                             %layout-default
                             %layout-monocle

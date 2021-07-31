@@ -287,4 +287,7 @@
   (default-alpha
     (number %base-config-default-alpha)
     "Default transparency (0-1) for windows. Requires the @code{%patch-alpha} patch")
+  (smart-borders
+    (boolean %base-config-smart-borders)
+    "Hide borders if there only is one window. Requires the @code{%patch-smartborders} patch")
   (no-serialization))

@@ -5,6 +5,7 @@
                          %patch-base
                          %patch-xwayland
                          %patch-alpha
+                         %patch-smartborders
                          make-patch
                          list-of-local-files?))
 
@@ -23,3 +24,4 @@
 (define %patch-base (make-patch "dwl-guile"))
 (define %patch-xwayland (make-patch "xwayland"))
 (define %patch-alpha (make-patch "alpha"))
+(define %patch-smartborders (make-patch "smartborders"))

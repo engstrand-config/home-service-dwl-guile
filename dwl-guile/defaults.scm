@@ -65,6 +65,7 @@
                          %base-config-layouts
                          %base-config-monitor-rules
                          %base-config-default-alpha
+                         %base-config-smart-borders
                          ; do not need to write "%base-" before each variable?
                          ; can load the variables in the configuration with
                          ; #:prefix %base-
@@ -142,6 +143,7 @@
 (define %base-config-xkb-rules #f)
 (define %base-config-tag-keys (dwl-tag-keys))
 (define %base-config-default-alpha 0.9)
+(define %base-config-smart-borders #f)
 
 ; Default monitor rules
 (define %base-config-monitor-rules
