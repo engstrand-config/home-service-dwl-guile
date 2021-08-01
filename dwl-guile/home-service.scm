@@ -68,9 +68,6 @@
   (guile-patch?
     (boolean #t)
     "If the dwl-guile patch should be applied to package. Defaults to #t.")
-  (add-to-load-path?
-    (boolean #t)
-    "If the path to dwl-guile should be added to @code{GUILE_LOAD_PATH}.")
   (config
     (dwl-config (dwl-config))
     "Custom dwl-guile configuration. Replaces config.h.")
