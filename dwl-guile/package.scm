@@ -19,6 +19,7 @@
            (source
              (origin
                (inherit (package-source dwl-package))
+               (patch-flags '("-p1" "-F3"))
                (patches
                  (if guile-patch? (cons %patch-base patches) patches))))
            (arguments
