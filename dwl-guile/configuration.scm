@@ -2,6 +2,7 @@
                #:use-module (srfi srfi-1)
                #:use-module (ice-9 match)
                #:use-module (ice-9 exceptions)
+               #:use-module (gnu system keyboard)
                #:use-module (gnu services configuration)
                #:use-module (dwl-guile utils)
                #:use-module (dwl-guile defaults)
@@ -234,7 +235,9 @@
 (define (list-of-buttons? lst) (every dwl-button? lst))
 (define (list-of-layouts? lst) (every dwl-layout? lst))
 (define (list-of-monitor-rules? lst) (every dwl-monitor-rule? lst))
-(define (maybe-xkb-rule? val) (or (dwl-xkb-rule? val) (not val)))
+(define (maybe-xkb-configuration? val)
+  (or (or (dwl-xkb-rule? val) (keyboard-layout? val))
+      (not val)))
 
 ; base configuration
 (define-configuration
@@ -278,10 +281,9 @@
   (monitor-rules
     (list-of-monitor-rules %base-config-monitor-rules)
     "List of monitor rules.")
-  ; TODO: Allow users to pass in the system keyboard configuration?
   (xkb-rules
-    (maybe-xkb-rule %base-config-xkb-rules)
-    "XKB rules and options.")
+    (maybe-xkb-configuration %base-config-xkb-rules)
+    "XKB rules and options. Allowed values are @code{dwl-xkb-rule} and @code{keyboard-layout}.")
   (keys
     (list-of-keys %base-config-keys)
     "List of keybindings.")

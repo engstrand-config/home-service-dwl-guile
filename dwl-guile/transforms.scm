@@ -2,6 +2,7 @@
                #:use-module (srfi srfi-1)
                #:use-module (ice-9 match)
                #:use-module (ice-9 exceptions)
+               #:use-module (gnu system keyboard)
                #:use-module (guix gexp)
                #:use-module (dwl-guile utils)
                #:use-module (dwl-guile keycodes)
@@ -86,11 +87,11 @@
                 (if (number? keycode)
                     keycode
                     (raise-exception
-                       (make-exception-with-message
-                         (string-append
-                           "dwl: no conversion for keysym '"
-                           value
-                           "'. use keycode instead")))))))
+                      (make-exception-with-message
+                        (string-append
+                          "dwl: no conversion for keysym '"
+                          value
+                          "'. use keycode instead")))))))
     (_ value)))
 
 (define (transform-xkb-rule field value source)
@@ -215,12 +216,28 @@
         '()
         keys))))
 
+; Converts an operating system keyboard layout into an alist.
+; This allows us to re-use the same keyboard configuration
+; that is already being used by the system (optionally).
+(define (keyboard-layout->alist layout)
+  (let ((name (keyboard-layout-name layout))
+        (variant (keyboard-layout-variant layout))
+        (model (keyboard-layout-model layout))
+        (options (keyboard-layout-options layout)))
+    `(("rules" . "")
+      ("layouts" . ,name)
+      ("model" . ,(if (not model) "" model))
+      ("variants" . ,(if (not variant) "" variant))
+      ("options" . ,(if (null? options) "" (string-join options ","))))))
+
 (define (dwl-xkb-rule->alist rule source)
-  (configuration->alist
-    #:type <dwl-xkb-rule>
-    #:transform-value transform-xkb-rule
-    #:config rule
-    #:source source))
+  (if (keyboard-layout? rule)
+      (keyboard-layout->alist rule)
+      (configuration->alist
+        #:type <dwl-xkb-rule>
+        #:transform-value transform-xkb-rule
+        #:config rule
+        #:source source)))
 
 (define (dwl-monitor-rule->alist rule source)
   (configuration->alist
