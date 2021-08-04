@@ -46,7 +46,8 @@
                             %base-config-tag-keys
                             %base-config-rules
                             %base-config-xkb-rules
-                            %base-config-monitor-rules))
+                            %base-config-monitor-rules
+                            %base-environment-variables))
 
 ; dwl service type configuration
 (define-configuration
@@ -58,16 +59,23 @@
     find the base package definition for dwl in gnu/packages/wm.scm.
 
     If you want to use a custom dwl package where the dwl-guile patch
-    has already been defined, set (guile-patch? #f) in dwl-guile configuration.")
+    has already been defined, set @code{(guile-patch? #f)} in dwl-guile configuration.")
   (tty-number
     (number 2)
     "Launch dwl on specified tty upon user login. Defaults to 2.")
   (patches
     (list-of-local-files '())
-    "Additional patch files to apply to dwl-guile.")
+    "Additional patch files to apply to package.")
   (guile-patch?
     (boolean #t)
     "If the dwl-guile patch should be applied to package. Defaults to #t.")
+  (environment-variables
+    (list %base-environment-variables)
+    "Environment variables for enabling wayland support in many different applications.
+    Basic environment variables will be added if no value is specified.
+
+    You can modify the variables that will be set by extending
+    @code{%base-environment-variables}, or by specifying a custom list.")
   (config
     (dwl-config (dwl-config))
     "Custom dwl-guile configuration. Replaces config.h.")
@@ -79,6 +87,10 @@
   (make-dwl-package (home-dwl-guile-configuration-package config)
                     (home-dwl-guile-configuration-patches config)
                     (home-dwl-guile-configuration-guile-patch? config)))
+
+; Add wayland specific environment variables
+(define (home-dwl-guile-environment-variables-service config)
+  (home-dwl-guile-configuration-environment-variables config))
 
 ; Add dwl-guile package to your profile
 (define (home-dwl-guile-profile-service config)
@@ -141,6 +153,9 @@
         (service-extension
           home-profile-service-type
           home-dwl-guile-profile-service)
+        (service-extension
+          home-environment-variables-service-type
+          home-dwl-guile-environment-variables-service)
         (service-extension
           home-files-service-type
           home-dwl-guile-files-service)

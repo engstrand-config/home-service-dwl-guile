@@ -7,6 +7,8 @@
                          %layout-monocle
                          %layout-floating
 
+                         %base-environment-variables
+
                          %base-root-color
                          %base-border-color
                          %base-focus-color
@@ -76,6 +78,17 @@
                          ; #:prefix %base-
                          ; ?
                          ))
+
+; Base wayland environment variables
+; TODO: Add support for using electron apps natively in wayland?
+(define %base-environment-variables
+  `(("XDG_CURRENT_DESKTOP" . "dwl")
+    ("XDG_SESSION_TYPE" . "wayland")
+    ("MOZ_ENABLE_WAYLAND" . "1")
+    ("ELM_ENGINE" . "wayland_egl")
+    ("ECORE_EVAS_ENGINE" . "wayland-egl")
+    ("QT_QPA_PLATFORM" . "wayland-egl")
+    ("_JAVA_AWT_WM_NONPARENTING" . "1")))
 
 ; Default colors
 (define %base-root-color '(0.3 0.3 0.3 1.0))
