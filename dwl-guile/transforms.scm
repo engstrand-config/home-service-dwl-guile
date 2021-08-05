@@ -43,7 +43,7 @@
       (lambda (field acc)
         (append
           (let ((value ((record-accessor type field) config)))
-            `((,(symbol->string field) .
+            `((,(remove-question-mark (symbol->string field)) .
                                        ,(if (not transform-value)
                                             value
                                             (transform-value field value source)))))

@@ -3,6 +3,7 @@
                #:use-module (guix gexp)
                #:use-module (srfi srfi-1)
                #:export (
+                         remove-question-mark
                          maybe-exp?
                          maybe-string?
                          maybe-procedure?
@@ -55,3 +56,8 @@
       (pair)
       (and (keycode? (car pair)) (number? (cdr pair))))
     lst))
+
+; Removes the '?' from the end of a string.
+; This is used when transforming a config into an alist.
+(define (remove-question-mark str)
+  (string-trim-right str #\?))

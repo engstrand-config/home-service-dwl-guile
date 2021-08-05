@@ -105,7 +105,7 @@
   (tag
     (number %base-rule-tag-number)
     "Tag to place application on. 1 corresponds to the first tag in the @code{tags} list.")
-  (floating
+  (floating?
     (boolean %base-rule-floating-boolean)
     "If the application should be floating initially.")
   (monitor
@@ -242,7 +242,7 @@
 ; base configuration
 (define-configuration
   dwl-config
-  (sloppy-focus
+  (sloppy-focus?
     (boolean %base-config-sloppy-focus)
     "If focus should follow mouse.")
   (border-px
@@ -254,10 +254,10 @@
   (repeat-delay
     (number %base-config-repeat-delay)
     "Keyboard repeat start delay.")
-  (tap-to-click
+  (tap-to-click?
     (boolean %base-config-tap-to-click)
     "If tapping on the trackpad should be interpreted as a click.")
-  (natural-scrolling
+  (natural-scrolling?
     (boolean %base-config-natural-scrolling)
     "If the trackpad should have natural scrolling.")
   (terminal
@@ -296,10 +296,10 @@
   (default-alpha
     (number %base-config-default-alpha)
     "Default transparency (0-1) for windows. Requires the @code{%patch-alpha} patch.")
-  (smart-borders
+  (smart-borders?
     (boolean %base-config-smart-borders)
     "Hide borders if there is only one window. Requires the @code{%patch-smartborders} patch.")
-  (smart-gaps
+  (smart-gaps?
     (boolean %base-config-smart-gaps)
     "Remove gaps if there is only one window. Requires the @code{%patch-vanitygaps} patch.")
   (gaps-horizontal-inner
