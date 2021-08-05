@@ -14,7 +14,7 @@
                #:use-module ((gnu packages admin) #:select(shepherd))
                #:use-module (dwl-guile utils)
                #:use-module (dwl-guile patches)
-               #:use-module (dwl-guile package)
+               #:use-module (dwl-guile packages)
                #:use-module (dwl-guile defaults)
                #:use-module (dwl-guile transforms)
                #:use-module (dwl-guile configuration)
@@ -58,17 +58,17 @@
     automatically patched using the dwl-guile patch. You can
     find the base package definition for dwl in gnu/packages/wm.scm.
 
-    If you want to use a custom dwl package where the dwl-guile patch
-    has already been defined, set @code{(guile-patch? #f)} in dwl-guile configuration.")
+    If you want to use a custom dwl package, set @code{(package-transform #f)}
+    in your dwl-guile configuration.")
   (tty-number
     (number 2)
     "Launch dwl on specified tty upon user login. Defaults to 2.")
   (patches
     (list-of-local-files '())
     "Additional patch files to apply to package.")
-  (guile-patch?
+  (package-transform?
     (boolean #t)
-    "If the dwl-guile patch should be applied to package. Defaults to #t.")
+    "If package should be dynamically transformed based on your configuration. Defaults to #t.")
   (environment-variables
     (list %base-environment-variables)
     "Environment variables for enabling wayland support in many different applications.
@@ -84,9 +84,11 @@
 ; Helper for creating the custom dwl package.
 ; TODO: Figure out a way to only run this once?
 (define (config->dwl-package config)
-  (make-dwl-package (home-dwl-guile-configuration-package config)
-                    (home-dwl-guile-configuration-patches config)
-                    (home-dwl-guile-configuration-guile-patch? config)))
+  (let ((package (home-dwl-guile-configuration-package config))
+        (patches (home-dwl-guile-configuration-patches config)))
+    (if (home-dwl-guile-configuration-package-transform? config)
+        (make-dwl-package package patches)
+        package)))
 
 ; Add wayland specific environment variables
 (define (home-dwl-guile-environment-variables-service config)
