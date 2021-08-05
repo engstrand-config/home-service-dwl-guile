@@ -1,8 +1,8 @@
 diff --git a/dwl.c b/dwl.c
-index c018cdb..3d292f4 100644
+index fbb5e81..c5f71d8 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -1159,10 +1159,13 @@ focusclient(Client *c, int lift)
+@@ -1146,10 +1146,13 @@ focusclient(Client *c, int lift)
  void
  focusmon(const Arg *arg)
  {

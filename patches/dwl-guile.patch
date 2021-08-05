@@ -43,7 +43,7 @@ index a0d1cc3..691ec14 100644
  dwl: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o idle-protocol.o
  
 diff --git a/README.md b/README.md
-index 92c6221..1e8298d 100644
+index 22dfa07..1e8298d 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,77 +1,3 @@
@@ -60,7 +60,7 @@ index 92c6221..1e8298d 100644
 -
 -dwl is not meant to provide every feature under the sun. Instead, like dwm, it sticks to features which are necessary, simple, and straightforward to implement given the base on which it is built. Implemented default features are:
 -
--- Any features provided by dwm/Xlib: simple window borders, tags, keybindings, client rules, mouse move/resize. The built-in status bar is an exception to avoid taking a dependency on FreeType or Pango and increasing the SLOC
+-- Any features provided by dwm/Xlib: simple window borders, tags, keybindings, client rules, mouse move/resize. Providing a built-in status bar is an exception to this goal, to avoid dependencies on font rendering and/or drawing libraries when an external bar could work well.
 -- Configurable multi-monitor layout support, including position and rotation
 -- Configurable HiDPI/multi-DPI support
 -- Various Wayland protocols
@@ -70,7 +70,7 @@ index 92c6221..1e8298d 100644
 -Features under consideration (possibly as patches) are:
 -
 -- Protocols made trivial by wlroots
--- Communication from the compositor to status bars.  A straightforward possibility would be to use stdout or a provided file descriptor.
+-- Provide information to external status bars via stdout or another file descriptor
 -- Implement the input-inhibitor protocol to support screen lockers
 -- Implement the idle-inhibit protocol which lets applications such as mpv disable idle monitoring
 -- Layer shell popups (used by Waybar)
@@ -86,7 +86,7 @@ index 92c6221..1e8298d 100644
 -
 -## Building dwl
 -
--dwl has only two dependencies: wlroots 0.12 and wayland-protocols. Simply install these and run `make`.  If you wish to build against a Git version of wlroots, check out the [wlroots-next branch](https://github.com/djpohly/dwl/tree/wlroots-next).
+-dwl has only two dependencies: wlroots 0.13 and wayland-protocols. Simply install these and run `make`.  If you wish to build against a Git version of wlroots, check out the [wlroots-next branch](https://github.com/djpohly/dwl/tree/wlroots-next).
 -
 -To enable XWayland, you should also install xorg-xwayland and uncomment its flag in `config.mk`.
 -
@@ -129,10 +129,10 @@ index 92c6221..1e8298d 100644
 +integrates with GNU/Guix home as a home service (see [home-dwl-service](https://github.com/engstrand-config/home-dwl-service)).
 diff --git a/config.def.h b/config.def.h
 deleted file mode 100644
-index 4aefa2b..0000000
+index 089aa37..0000000
 --- a/config.def.h
 +++ /dev/null
-@@ -1,112 +0,0 @@
+@@ -1,116 +0,0 @@
 -/* appearance */
 -static const int sloppyfocus        = 1;  /* focus follows mouse */
 -static const unsigned int borderpx  = 1;  /* border pixel of windows */
@@ -184,7 +184,7 @@ index 4aefa2b..0000000
 -
 -/* Trackpad */
 -static const int tap_to_click = 1;
--static const int natural_scrolling = 1;
+-static const int natural_scrolling = 0;
 -
 -#define MODKEY WLR_MODIFIER_ALT
 -#define TAGKEYS(KEY,SKEY,TAG) \
@@ -197,11 +197,13 @@ index 4aefa2b..0000000
 -#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 -
 -/* commands */
--static const char *termcmd[]  = { "alacritty", NULL };
+-static const char *termcmd[] = { "alacritty", NULL };
+-static const char *menucmd[] = { "bemenu-run", NULL };
 -
 -static const Key keys[] = {
 -	/* Note that Shift changes certain key codes: c -> C, 2 -> at, etc. */
 -	/* modifier                  key                 function        argument */
+-	{ MODKEY,                    XKB_KEY_p,          spawn,          {.v = menucmd} },
 -	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Return,     spawn,          {.v = termcmd} },
 -	{ MODKEY,                    XKB_KEY_j,          focusstack,     {.i = +1} },
 -	{ MODKEY,                    XKB_KEY_k,          focusstack,     {.i = -1} },
@@ -234,6 +236,8 @@ index 4aefa2b..0000000
 -	TAGKEYS(          XKB_KEY_8, XKB_KEY_asterisk,                   7),
 -	TAGKEYS(          XKB_KEY_9, XKB_KEY_parenleft,                  8),
 -	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Q,          quit,           {0} },
+-
+-	/* Ctrl-Alt-Backspace and Ctrl-Alt-Fx used to be handled by X server */
 -	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_Terminate_Server, quit, {0} },
 -#define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = (n)} }
 -	CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
@@ -247,10 +251,10 @@ index 4aefa2b..0000000
 -};
 diff --git a/dscm-bindings.h b/dscm-bindings.h
 new file mode 100644
-index 0000000..7f6ab85
+index 0000000..35e38fe
 --- /dev/null
 +++ b/dscm-bindings.h
-@@ -0,0 +1,283 @@
+@@ -0,0 +1,268 @@
 +static inline SCM
 +dscm_binding_monocle(SCM monitor)
 +{
@@ -459,7 +463,7 @@ index 0000000..7f6ab85
 +}
 +
 +static inline void
-+dscm_register_constants()
++dscm_register()
 +{
 +        scm_c_define("SHIFT", scm_from_int(WLR_MODIFIER_SHIFT));
 +        scm_c_define("CAPS", scm_from_int(WLR_MODIFIER_CAPS));
@@ -494,17 +498,7 @@ index 0000000..7f6ab85
 +                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_180));
 +        scm_c_define("TRANSFORM-FLIPPED-270",
 +                scm_from_int(WL_OUTPUT_TRANSFORM_FLIPPED_270));
-+}
 +
-+static inline void
-+dscm_register_procedures()
-+{
-+        /* The following bindings are a one-to-one translation
-+           of the user-callable functions in dwl. Each scheme function
-+           has the same name as the corresponding dwl function, but
-+           with a dash ('-') between words. Instead of accepting a
-+           `Arg` struct as argument, each scheme function takes
-+           in each parameter separately. */
 +        scm_c_define_gsubr("dwl:chvt", 1, 0, 0, &dscm_binding_chvt);
 +        scm_c_define_gsubr("dwl:quit", 0, 0, 0, &dscm_binding_quit);
 +        scm_c_define_gsubr("dwl:killclient", 0, 0, 0, &dscm_binding_killclient);
@@ -525,22 +519,19 @@ index 0000000..7f6ab85
 +        scm_c_define_gsubr("dwl:tag-monitor", 1, 0, 0, &dscm_binding_tagmon);
 +        scm_c_define_gsubr("dwl:move-resize", 1, 0, 0, &dscm_binding_moveresize);
 +        scm_c_define_gsubr("dwl:set-masters", 1, 0, 0, &dscm_binding_incnmaster);
-+
-+        /* Custom helper bindings. These bindings corresponds to functions
-+           that are not present in dwl by default. They serve as utilites
-+           for making certain actions simpler, e.g. spawning your terminal
-+           or spawing a generic shell command. */
 +        scm_c_define_gsubr("dwl:shcmd", 1, 0, 0, &dscm_binding_shcmd);
 +        scm_c_define_gsubr("dwl:spawn-menu", 0, 0, 0, &dscm_binding_spawn_menu);
 +        scm_c_define_gsubr("dwl:spawn-terminal", 0, 0, 0, &dscm_binding_spawn_terminal);
 +}
 diff --git a/dscm-config.h b/dscm-config.h
 new file mode 100644
-index 0000000..c32af96
+index 0000000..058f82b
 --- /dev/null
 +++ b/dscm-config.h
-@@ -0,0 +1,197 @@
+@@ -0,0 +1,196 @@
 +#pragma once
++
++SCM config;
 +
 +/* Config variable definitions. */
 +/* These will be automatically set from the guile config. */
@@ -665,10 +656,10 @@ index 0000000..c32af96
 +}
 +
 +static inline void
-+dscm_parse_config(char *config_file)
++dscm_config_parse(char *config_file)
 +{
 +        scm_c_primitive_load(config_file);
-+        SCM config = dscm_get_variable("config");
++        config = dscm_get_variable("config");
 +
 +        sloppyfocus = dscm_alist_get_int(config, "sloppy-focus");
 +        tap_to_click = dscm_alist_get_int(config, "tap-to-click");
@@ -722,8 +713,6 @@ index 0000000..c32af96
 +        }
 +        free(layouts);
 +        free(monrules);
-+        /* TODO: iterate keys and call scm_gc_unprotect_object()
-+           on the packed scm_t_bits? */
 +        free(keys);
 +        free(buttons);
 +        free(rootcolor);
@@ -735,7 +724,6 @@ index 0000000..c32af96
 +        free((char*)xkb_rules->variant);
 +        free((char*)xkb_rules->options);
 +        free(xkb_rules);
-+        /* TODO: run scm_gc()? */
 +}
 diff --git a/dscm-utils.h b/dscm-utils.h
 new file mode 100644
@@ -906,7 +894,7 @@ index 0000000..57800d6
 +        scm_c_with_continuation_barrier(func, &proc_data);
 +}
 diff --git a/dwl.c b/dwl.c
-index 4098f86..c018cdb 100644
+index 0deae84..fbb5e81 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -42,6 +42,7 @@
@@ -967,7 +955,7 @@ index 4098f86..c018cdb 100644
  } Layout;
  
  struct Monitor {
-@@ -179,7 +177,7 @@ struct Monitor {
+@@ -178,7 +176,7 @@ struct Monitor {
  };
  
  typedef struct {
@@ -976,7 +964,7 @@ index 4098f86..c018cdb 100644
  	float mfact;
  	int nmaster;
  	float scale;
-@@ -190,8 +188,8 @@ typedef struct {
+@@ -189,8 +187,8 @@ typedef struct {
  } MonitorRule;
  
  typedef struct {
@@ -987,7 +975,7 @@ index 4098f86..c018cdb 100644
  	unsigned int tags;
  	int isfloating;
  	int monitor;
-@@ -243,7 +241,7 @@ static Client *focustop(Monitor *m);
+@@ -242,7 +240,7 @@ static Client *focustop(Monitor *m);
  static void getxdecomode(struct wl_listener *listener, void *data);
  static void incnmaster(const Arg *arg);
  static void inputdevice(struct wl_listener *listener, void *data);
@@ -996,7 +984,7 @@ index 4098f86..c018cdb 100644
  static void keypress(struct wl_listener *listener, void *data);
  static void keypressmod(struct wl_listener *listener, void *data);
  static void killclient(const Arg *arg);
-@@ -368,12 +366,14 @@ static struct wlr_xwayland *xwayland;
+@@ -367,12 +365,14 @@ static struct wlr_xwayland *xwayland;
  static Atom netatom[NetLast];
  #endif
  
@@ -1014,7 +1002,7 @@ index 4098f86..c018cdb 100644
  /* compile-time check if all tags fit into an unsigned int bit array. */
  struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
  
-@@ -455,8 +455,8 @@ applyrules(Client *c)
+@@ -454,8 +454,8 @@ applyrules(Client *c)
  {
  	/* rule matching */
  	const char *appid, *title;
@@ -1025,7 +1013,7 @@ index 4098f86..c018cdb 100644
  	Monitor *mon = selmon, *m;
  
  	c->isfloating = client_is_float_type(c);
-@@ -465,14 +465,15 @@ applyrules(Client *c)
+@@ -464,14 +464,15 @@ applyrules(Client *c)
  	if (!(title = client_get_title(c)))
  		title = broken;
  
@@ -1048,20 +1036,17 @@ index 4098f86..c018cdb 100644
  					mon = m;
  		}
  	}
-@@ -482,9 +483,9 @@ applyrules(Client *c)
+@@ -481,15 +482,15 @@ applyrules(Client *c)
  void
  arrange(Monitor *m)
  {
 -	if (m->lt[m->sellt]->arrange)
 -		m->lt[m->sellt]->arrange(m);
--	else if (m->fullscreenclient)
 +        if (m->lt[m->sellt]->arrange)
 +                dscm_safe_call(DSCM_CALL_ARRANGE, m->lt[m->sellt]->arrange, m);
-+        else if (m->fullscreenclient)
- 		maximizeclient(m->fullscreenclient);
  	/* TODO recheck pointer focus here... or in resize()? */
  }
-@@ -492,7 +493,7 @@ arrange(Monitor *m)
+ 
  void
  arrangelayer(Monitor *m, struct wl_list *list, struct wlr_box *usable_area, int exclusive)
  {
@@ -1070,7 +1055,7 @@ index 4098f86..c018cdb 100644
  	struct wlr_box full_area = m->m;
  
  	wl_list_for_each(layersurface, list, link) {
-@@ -638,7 +639,7 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -635,7 +636,7 @@ buttonpress(struct wl_listener *listener, void *data)
  	struct wlr_keyboard *keyboard;
  	uint32_t mods;
  	Client *c;
@@ -1079,7 +1064,7 @@ index 4098f86..c018cdb 100644
  
  	wlr_idle_notify_activity(idle, seat);
  
-@@ -650,10 +651,11 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -647,10 +648,11 @@ buttonpress(struct wl_listener *listener, void *data)
  
  		keyboard = wlr_seat_get_keyboard(seat);
  		mods = wlr_keyboard_get_modifiers(keyboard);
@@ -1095,7 +1080,7 @@ index 4098f86..c018cdb 100644
  				return;
  			}
  		}
-@@ -791,7 +793,7 @@ createkeyboard(struct wlr_input_device *device)
+@@ -788,7 +790,7 @@ createkeyboard(struct wlr_input_device *device)
  
  	/* Prepare an XKB keymap and assign it to the keyboard. */
  	context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
@@ -1104,7 +1089,7 @@ index 4098f86..c018cdb 100644
  		XKB_KEYMAP_COMPILE_NO_FLAGS);
  
  	wlr_keyboard_set_keymap(device->keyboard, keymap);
-@@ -816,7 +818,7 @@ createmon(struct wl_listener *listener, void *data)
+@@ -813,7 +815,7 @@ createmon(struct wl_listener *listener, void *data)
  	/* This event is raised by the backend when a new output (aka a display or
  	 * monitor) becomes available. */
  	struct wlr_output *wlr_output = data;
@@ -1113,7 +1098,7 @@ index 4098f86..c018cdb 100644
  	Monitor *m = wlr_output->data = calloc(1, sizeof(*m));
  	m->wlr_output = wlr_output;
  
-@@ -824,14 +826,15 @@ createmon(struct wl_listener *listener, void *data)
+@@ -821,14 +823,15 @@ createmon(struct wl_listener *listener, void *data)
  	for (size_t i = 0; i < LENGTH(m->layers); i++)
  		wl_list_init(&m->layers[i]);
  	m->tagset[0] = m->tagset[1] = 1;
@@ -1137,7 +1122,7 @@ index 4098f86..c018cdb 100644
  			break;
  		}
  	}
-@@ -858,7 +861,7 @@ createmon(struct wl_listener *listener, void *data)
+@@ -855,7 +858,7 @@ createmon(struct wl_listener *listener, void *data)
  	 * display, which Wayland clients can see to find out information about the
  	 * output (such as DPI, scale factor, manufacturer, etc).
  	 */
@@ -1146,7 +1131,7 @@ index 4098f86..c018cdb 100644
  	sgeom = *wlr_output_layout_get_box(output_layout, NULL);
  
  	/* When adding monitors, the geometries of all monitors must be updated */
-@@ -1244,7 +1247,7 @@ inputdevice(struct wl_listener *listener, void *data)
+@@ -1231,7 +1234,7 @@ inputdevice(struct wl_listener *listener, void *data)
  }
  
  int
@@ -1155,7 +1140,7 @@ index 4098f86..c018cdb 100644
  {
  	/*
  	 * Here we handle compositor keybindings. This is when the compositor is
-@@ -1252,32 +1255,27 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
+@@ -1239,32 +1242,27 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
  	 * processing.
  	 */
  	int handled = 0;
@@ -1195,17 +1180,17 @@ index 4098f86..c018cdb 100644
  	int handled = 0;
  	uint32_t mods = wlr_keyboard_get_modifiers(kb->device->keyboard);
  
-@@ -1285,8 +1283,7 @@ keypress(struct wl_listener *listener, void *data)
+@@ -1272,8 +1270,7 @@ keypress(struct wl_listener *listener, void *data)
  
  	/* On _press_, attempt to process a compositor keybinding. */
- 	if (event->state == WLR_KEY_PRESSED)
+ 	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED)
 -		for (i = 0; i < nsyms; i++)
 -			handled = keybinding(mods, syms[i]) || handled;
 +                handled = keybinding(mods, keycode) || handled;
  
  	if (!handled) {
  		/* Pass unhandled keycodes along to the client. */
-@@ -2551,11 +2548,14 @@ int
+@@ -2561,11 +2558,14 @@ int
  main(int argc, char *argv[])
  {
  	char *startup_cmd = NULL;
@@ -1221,16 +1206,15 @@ index 4098f86..c018cdb 100644
  		else
  			goto usage;
  	}
-@@ -2566,11 +2566,17 @@ main(int argc, char *argv[])
+@@ -2576,11 +2576,16 @@ main(int argc, char *argv[])
  	// socket
  	if (!getenv("XDG_RUNTIME_DIR"))
  		BARF("XDG_RUNTIME_DIR must be set");
 +        if (!config_file)
 +                BARF("error: config path must be set using '-c'");
 +        scm_init_guile();
-+        dscm_register_constants();
-+        dscm_register_procedures();
-+        dscm_parse_config(config_file);
++        dscm_register();
++        dscm_config_parse(config_file);
  	setup();
  	run(startup_cmd);
 +        dscm_config_cleanup();
@@ -1241,9 +1225,53 @@ index 4098f86..c018cdb 100644
 -	BARF("Usage: %s [-s startup command]", argv[0]);
 +	BARF("Usage: %s [-c path to config.scm] [-s startup command]", argv[0]);
  }
+diff --git a/guix.scm b/guix.scm
+new file mode 100644
+index 0000000..63cb2e7
+--- /dev/null
++++ b/guix.scm
+@@ -0,0 +1,38 @@
++(use-modules (dwl-guile packages)
++             (guix gexp)
++             (guix utils)
++             (guix packages)
++             (guix git-download)
++             (gnu packages wm)
++             (gnu packages guile))
++
++(define this-directory
++  (dirname (current-filename)))
++
++(define source
++  (local-file this-directory
++              #:recursive? #t
++              #:select? (git-predicate this-directory)))
++
++(package
++  (inherit dwl)
++  (source source)
++  (name "dwl-guile-devel")
++  (inputs
++    `(("guile-3.0" ,guile-3.0)
++      ("wlroots-0.13.0" ,wlroots-0.13.0)))
++  (arguments
++    (substitute-keyword-arguments
++      (package-arguments dwl)
++      ((#:phases phases)
++       `(modify-phases
++          ,phases
++            (replace
++              'install
++              (lambda*
++                (#:key inputs outputs #:allow-other-keys)
++                (let ((bin (string-append (assoc-ref outputs "out") "/bin")))
++                  (install-file "dwl" bin)
++                  (rename-file (string-append bin "/dwl")
++                               (string-append bin "/dwl-guile-devel"))
++                  #t))))))))
 diff --git a/scripts/create-patches.sh b/scripts/create-patches.sh
 new file mode 100755
-index 0000000..4a88c6b
+index 0000000..1959568
 --- /dev/null
 +++ b/scripts/create-patches.sh
 @@ -0,0 +1,24 @@
@@ -1259,7 +1287,7 @@ index 0000000..4a88c6b
 +DIFF_ORIGIN=$1
 +[ -z $DIFF_ORIGIN ] && DIFF_ORIGIN="main"
 +
-+for patch in xwayland alpha smartborders attachabove
++for patch in xwayland alpha smartborders attachabove focusmon vanitygaps
 +do
 +    git fetch origin patch/$patch
 +    git diff $DIFF_ORIGIN patch/$patch \
@@ -1269,13 +1297,5 @@ index 0000000..4a88c6b
 +        ':(exclude).gitignore' > patches/$patch.patch
 +done
 +
-+# Create dwl-guile patch based on dwl v0.2
-+git diff v0.2 > patches/dwl-guile.patch
-diff --git a/scripts/guix-install.sh b/scripts/guix-install.sh
-new file mode 100755
-index 0000000..b6d17b1
---- /dev/null
-+++ b/scripts/guix-install.sh
-@@ -0,0 +1,2 @@
-+#!/bin/sh
-+guix environment dwl --ad-hoc pkg-config wlroots guile -- make clean dwl CC=gcc
++# Create dwl-guile patch based on dwl v0.2.1
++git diff v0.2.1 > patches/dwl-guile.patch
