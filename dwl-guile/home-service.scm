@@ -18,8 +18,11 @@
                #:use-module (dwl-guile defaults)
                #:use-module (dwl-guile transforms)
                #:use-module (dwl-guile configuration)
-               #:export (home-dwl-guile-service-type
-                          home-dwl-guile-configuration)
+               #:export (
+                         home-dwl-guile-service-type
+                         home-dwl-guile-configuration
+                         home-dwl-guile-configuration?
+                         <home-dwl-guile-configuration>)
 
                ; re-export configurations so that they are
                ; available in the home environment without
