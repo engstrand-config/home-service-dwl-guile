@@ -15,13 +15,13 @@
 ; Find the absolute path to home-dwl-service by looking in the load path.
 (define %dwl-guile-root-dir
   (find (lambda (path)
-          (file-exists? (string-append path "/patches/dwl-guile.patch")))
+          (file-exists? (string-append path "/dwl-guile/patches/dwl-guile.patch")))
         %load-path))
 
 (define (list-of-local-files? val) (every local-file? val))
 
 (define (make-patch file-name)
-  (local-file (string-append %dwl-guile-root-dir "/patches/" file-name ".patch")))
+  (local-file (string-append %dwl-guile-root-dir "/dwl-guile/patches/" file-name ".patch")))
 
 (define %patch-base (make-patch "dwl-guile"))
 (define %patch-xwayland (make-patch "xwayland"))
