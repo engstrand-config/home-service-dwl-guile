@@ -11,7 +11,7 @@ You can find the source of dwl-guile
 - Install dwl with guile support
 - Automatically start dwl on login
 - Apply patches to dwl using the home service (optional)
-- Dynamically configure dwl (no more config.h) using Guile
+- Dynamically configure dwl using Guile (no config.h)
 
 ## Channel introduction
 To make installation and usage as simple as possible, `home-dwl-service` is
@@ -23,6 +23,7 @@ Add the channel to your `~/.config/guix/channels.scm`:
 (channel
   (name 'home-dwl-service)
   (url "https://github.com/engstrand-config/home-dwl-service")
+  (branch "main")
   (introduction
     (make-channel-introduction
       "314453a87634d67e914cfdf51d357638902dd9fe"
