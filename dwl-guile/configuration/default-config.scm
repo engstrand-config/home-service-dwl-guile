@@ -43,129 +43,127 @@
                  (iota 12 1 1)))
 
 (define-public %dwl-base-keys
-               (append
-                 (list
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "d")
-                     (action '(dwl:spawn-menu)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "Return")
-                     (action '(dwl:spawn-terminal)))
-                   (dwl-key
-                     (modifiers '(SUPER SHIFT))
-                     (key "Return")
-                     (action '(dwl:shcmd "samedir")))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "j")
-                     (action '(dwl:focus-stack 1)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "k")
-                     (action '(dwl:focus-stack -1)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "l")
-                     (action '(dwl:set-master-factor 0.05)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "h")
-                     (action '(dwl:set-master-factor -0.05)))
-                   ; (dwl-key
-                   ;   (modifiers '(SUPER))
-                   ;   (key "g")
-                   ;   (action '(dwl-toggle-gaps)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "space")
-                     (action '(dwl:zoom)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "Tab")
-                     (action '(dwl:view)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "q")
-                     (action '(dwl:killclient)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "t")
-                     (action '(dwl:set-layout "default")))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "m")
-                     (action '(dwl:set-layout "monocle")))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "f")
-                     (action '(dwl:toggle-fullscreen)))
-                   (dwl-key
-                     (modifiers '(SUPER SHIFT))
-                     (key "space")
-                     (action '(dwl:toggle-floating)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "0")
-                     (action '(dwl:view 0)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "Left")
-                     (action '(dwl:focus-monitor DIRECTION_LEFT)))
-                   (dwl-key
-                     (modifiers '(SUPER))
-                     (key "Right")
-                     (action '(dwl:focus-monitor DIRECTION_RIGHT)))
-                   (dwl-key
-                     (modifiers '(SUPER SHIFT))
-                     (key "Left")
-                     (action '(dwl:tag-monitor DIRECTION_LEFT)))
-                   (dwl-key
-                     (modifiers '(SUPER SHIFT))
-                     (key "Right")
-                     (action '(dwl:tag-monitor DIRECTION_LEFT)))
-                   (dwl-key
-                     (modifiers '(SUPER SHIFT))
-                     (key "Escape")
-                     (action '(dwl:quit)))
-                   (dwl-key
-                     (modifiers '())
-                     (key "Print")
-                     (action '(dwl:shcmd "grim")))
-                   (dwl-key
-                     (modifiers '(SHIFT))
-                     (key "Print")
-                     (action '(dwl:shcmd "flameshot")))
-                   (dwl-key
-                     (modifiers '(SUPER SHIFT))
-                     (key "w")
-                     (action '(dwl:shcmd "$BROWSER")))
-                   (dwl-key
-                     (modifiers '())
-                     (key "XF86WWW")
-                     (action '(dwl:shcmd "$BROWSER")))
-                   (dwl-key
-                     (modifiers '())
-                     (key "XF86PowerOff")
-                     (action '(dwl:quit)))
-                   (dwl-key
-                     (modifiers '())
-                     (key "XF86MonBrightnessDown")
-                     (action '(dwl:shcmd "brightnessctl s 10%-")))
-                   (dwl-key
-                     (modifiers '())
-                     (key "XF86MonBrightnessUp")
-                     (action '(dwl:shcmd "brightnessctl s +10%")))
-                   (dwl-key
-                     (modifiers '())
-                     (key "XF86AudioLowerVolume")
-                     (action '(dwl:shcmd "pamixer -u -d 3")))
-                   (dwl-key
-                     (modifiers '())
-                     (key "XF86AudioRaiseVolume")
-                     (action '(dwl:shcmd "pamixer -u -i 3"))))
-                 %dwl-base-tty-keys))
+               (list
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "d")
+                   (action '(dwl:spawn-menu)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "Return")
+                   (action '(dwl:spawn-terminal)))
+                 (dwl-key
+                   (modifiers '(SUPER SHIFT))
+                   (key "Return")
+                   (action '(dwl:shcmd "samedir")))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "j")
+                   (action '(dwl:focus-stack 1)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "k")
+                   (action '(dwl:focus-stack -1)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "l")
+                   (action '(dwl:set-master-factor 0.05)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "h")
+                   (action '(dwl:set-master-factor -0.05)))
+                 ; (dwl-key
+                 ;   (modifiers '(SUPER))
+                 ;   (key "g")
+                 ;   (action '(dwl-toggle-gaps)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "space")
+                   (action '(dwl:zoom)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "Tab")
+                   (action '(dwl:view)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "q")
+                   (action '(dwl:killclient)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "t")
+                   (action '(dwl:set-layout "default")))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "m")
+                   (action '(dwl:set-layout "monocle")))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "f")
+                   (action '(dwl:toggle-fullscreen)))
+                 (dwl-key
+                   (modifiers '(SUPER SHIFT))
+                   (key "space")
+                   (action '(dwl:toggle-floating)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "0")
+                   (action '(dwl:view 0)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "Left")
+                   (action '(dwl:focus-monitor DIRECTION_LEFT)))
+                 (dwl-key
+                   (modifiers '(SUPER))
+                   (key "Right")
+                   (action '(dwl:focus-monitor DIRECTION_RIGHT)))
+                 (dwl-key
+                   (modifiers '(SUPER SHIFT))
+                   (key "Left")
+                   (action '(dwl:tag-monitor DIRECTION_LEFT)))
+                 (dwl-key
+                   (modifiers '(SUPER SHIFT))
+                   (key "Right")
+                   (action '(dwl:tag-monitor DIRECTION_LEFT)))
+                 (dwl-key
+                   (modifiers '(SUPER SHIFT))
+                   (key "Escape")
+                   (action '(dwl:quit)))
+                 (dwl-key
+                   (modifiers '())
+                   (key "Print")
+                   (action '(dwl:shcmd "grim")))
+                 (dwl-key
+                   (modifiers '(SHIFT))
+                   (key "Print")
+                   (action '(dwl:shcmd "flameshot")))
+                 (dwl-key
+                   (modifiers '(SUPER SHIFT))
+                   (key "w")
+                   (action '(dwl:shcmd "$BROWSER")))
+                 (dwl-key
+                   (modifiers '())
+                   (key "XF86WWW")
+                   (action '(dwl:shcmd "$BROWSER")))
+                 (dwl-key
+                   (modifiers '())
+                   (key "XF86PowerOff")
+                   (action '(dwl:quit)))
+                 (dwl-key
+                   (modifiers '())
+                   (key "XF86MonBrightnessDown")
+                   (action '(dwl:shcmd "brightnessctl s 10%-")))
+                 (dwl-key
+                   (modifiers '())
+                   (key "XF86MonBrightnessUp")
+                   (action '(dwl:shcmd "brightnessctl s +10%")))
+                 (dwl-key
+                   (modifiers '())
+                   (key "XF86AudioLowerVolume")
+                   (action '(dwl:shcmd "pamixer -u -d 3")))
+                 (dwl-key
+                   (modifiers '())
+                   (key "XF86AudioRaiseVolume")
+                   (action '(dwl:shcmd "pamixer -u -i 3")))))
 
 ; Default mouse button bindings
 (define-public %dwl-base-buttons

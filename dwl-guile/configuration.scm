@@ -135,6 +135,9 @@
   (keys
     (list-of-keys %dwl-base-keys)
     "List of keybindings.")
+  (tty-keys
+    (list-of-keys %dwl-base-tty-keys)
+    "List of keys that should be used to switch tty's. By default, Alt+Ctrl+F1-F12 will be bound.")
   (tag-keys
     (dwl-tag-keys (dwl-tag-keys))
     "Automatically generate all the necessary keybindings for managing tags. Similar to @code{TAGKEYS} macro in dwl.")

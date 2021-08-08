@@ -123,7 +123,7 @@
   (match
     field
     ('colors (dwl-colors->alist value source))
-    ('keys (map (lambda (key) (dwl-key->alist key source)) value))
+    ((or 'keys 'tty-keys) (map (lambda (key) (dwl-key->alist key source)) value))
     ('buttons (map (lambda (button) (dwl-button->alist button source)) value))
     ('layouts (map (lambda (layout) (dwl-layout->alist layout source)) value))
     ('rules (map (lambda (rule) (dwl-rule->alist rule source)) value))
@@ -253,6 +253,14 @@
                            #:transform-value transform-config
                            #:config config
                            #:source config)))
+    ; Merge all keybindings into a single "keys" list.
+    ; This makes it much easier to use in C.
+    ;
+    ; The reason behind them being split into different fields in the
+    ; configuration is because it makes it easier for the user to extend without removing
+    ; all of the defaults. For example, most people will be using the standard keys
+    ; for switching tty's, and most will use some modifier and 1-9 for switching workspaces.
     (assoc-set! transformed-config "keys"
                 (append (assoc-ref transformed-config "keys")
+                        (assoc-ref transformed-config "tty-keys")
                         (assoc-ref transformed-config "tag-keys")))))
