@@ -1,12 +1,12 @@
-(define-module (dwl-guile transforms)
+(define-module (dwl-guile configuration transform)
                #:use-module (srfi srfi-1)
                #:use-module (ice-9 match)
                #:use-module (ice-9 exceptions)
                #:use-module (gnu system keyboard)
                #:use-module (guix gexp)
                #:use-module (dwl-guile utils)
-               #:use-module (dwl-guile keycodes)
                #:use-module (dwl-guile configuration)
+               #:use-module (dwl-guile configuration keycodes)
                #:export (
                          arrange->exp
                          binding->exp

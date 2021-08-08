@@ -15,14 +15,15 @@
                #:use-module (dwl-guile utils)
                #:use-module (dwl-guile patches)
                #:use-module (dwl-guile packages)
-               #:use-module (dwl-guile defaults)
-               #:use-module (dwl-guile transforms)
                #:use-module (dwl-guile configuration)
+               #:use-module (dwl-guile configuration transform)
+               #:use-module (dwl-guile configuration default-config)
                #:export (
                          home-dwl-guile-service-type
                          home-dwl-guile-configuration
                          home-dwl-guile-configuration?
-                         <home-dwl-guile-configuration>)
+                         <home-dwl-guile-configuration>
+                         %base-environment-variables)
 
                ; re-export configurations so that they are
                ; available in the home environment without
@@ -38,19 +39,25 @@
                             dwl-xkb-rule
                             dwl-monitor-rule
 
-                            %layout-default
-                            %layout-monocle
-                            %layout-floating
+                            %dwl-layout-tile
+                            %dwl-layout-monocle
+                            %dwl-layout-floating
 
-                            %base-config-keys
-                            %base-config-colors
-                            %base-config-buttons
-                            %base-config-layouts
-                            %base-config-tag-keys
-                            %base-config-rules
-                            %base-config-xkb-rules
-                            %base-config-monitor-rules
-                            %base-environment-variables))
+                            %dwl-base-keys
+                            %dwl-base-buttons
+                            %dwl-base-layouts
+                            %dwl-base-monitor-rules))
+
+; Base wayland environment variables
+; TODO: Add support for using electron apps natively in wayland?
+(define %base-environment-variables
+  `(("XDG_CURRENT_DESKTOP" . "dwl")
+    ("XDG_SESSION_TYPE" . "wayland")
+    ("MOZ_ENABLE_WAYLAND" . "1")
+    ("ELM_ENGINE" . "wayland_egl")
+    ("ECORE_EVAS_ENGINE" . "wayland-egl")
+    ("QT_QPA_PLATFORM" . "wayland-egl")
+    ("_JAVA_AWT_WM_NONPARENTING" . "1")))
 
 ; dwl service type configuration
 (define-configuration

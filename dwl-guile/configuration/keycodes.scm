@@ -1,4 +1,4 @@
-(define-module (dwl-guile keycodes)
+(define-module (dwl-guile configuration keycodes)
                #:use-module (ice-9 match)
                #:export (string->keycode))
 
