@@ -3,7 +3,7 @@
  ; TODO: Remove when Guix home has been upstreamed
  (dependencies
   (channel
-   (name 'rde)
+   (name rde) ; no quote needed here
    (url "https://git.sr.ht/~abcdw/rde")
    (introduction
     (channel-introduction
