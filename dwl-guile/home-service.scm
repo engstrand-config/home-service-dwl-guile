@@ -6,6 +6,7 @@
                #:use-module (guix packages)
                #:use-module (srfi srfi-1)
                #:use-module (ice-9 match)
+               #:use-module (gnu packages)
                #:use-module (gnu packages wm)
                #:use-module (gnu home-services)
                #:use-module (gnu home-services shells)
@@ -106,8 +107,9 @@
 
 ; Add dwl-guile package to your profile
 (define (home-dwl-guile-profile-service config)
-  (list
-    (config->dwl-package config)))
+  (append
+    (list (config->dwl-package config))
+    (map specification->package '("xdg-desktop-portal" "xdg-desktop-portal-wlr"))))
 
 ; Add new shepherd service for starting, stopping and restarting dwl-guile
 (define (home-dwl-guile-shepherd-service config)
