@@ -32,8 +32,8 @@
                          home-dwl-guile-configuration-package-transform?
                          %base-environment-variables
 
-                         extend-dwl-guile
-                         extend-dwl-guile-config)
+                         modify-dwl-guile
+                         modify-dwl-guile-config)
 
                ; re-export configurations so that they are
                ; available in the home environment without
@@ -180,47 +180,48 @@
 ; (simple-service
 ;   'change-dwl-guile-tty
 ;   home-dwl-guile-service-type
-;   (lambda (old-config)
-;     (extend-dwl-guile
-;       old-config
-;       (tty-number 3))))
+;   (modify-dwl-guile
+;     (config =>
+;             (home-dwl-guile-configuration
+;               (inherit config)
+;               (tty-number 3)))))
 ; @end example
 ;
 ; @example
 ; (simple-service
 ;   'add-dwl-guile-keybinding
 ;   home-dwl-guile-service-type
-;   (lambda (old-config)
-;     (extend-dwl-guile-config
-;       old-config
-;       (keys
-;         (append
-;           (list
-;             (dwl-key
-;               (modifiers '(SUPER SHIFT))
-;               (key "m")
-;               (action #f)))
-;           (dwl-config-keys (home-dwl-guile-configuration-config old-config)))))))
+;   (modify-dwl-guile-config
+;     (config =>
+;             (dwl-config
+;               (inherit config)
+;               (keys
+;                 (append
+;                   (list
+;                     (dwl-key
+;                       (modifiers '(SUPER SHIFT))
+;                       (key "m")
+;                       (action #f)))
+;                   (dwl-config-keys config)))))))
 ; @end example
 (define (home-dwl-guile-extension old-config extend-config)
   (extend-config old-config))
 
-(define-syntax extend-dwl-guile
-  (syntax-rules ()
-    ((_ old-config entries ...)
-     (home-dwl-guile-configuration
-       (inherit old-config)
-       entries ...))))
+(define-syntax modify-dwl-guile
+  (syntax-rules (=>)
+    ((_ (param => new-config))
+     (lambda (old-config)
+       (let ((param old-config))
+         new-config)))))
 
-(define-syntax extend-dwl-guile-config
-  (syntax-rules ()
-    ((_ old-config entries ...)
-     (home-dwl-guile-configuration
-       (inherit old-config)
-       (config
-         (dwl-config
-           (inherit (home-dwl-guile-configuration-config old-config))
-           entries ...))))))
+(define-syntax modify-dwl-guile-config
+  (syntax-rules (=>)
+    ((_ (param => new-config))
+     (lambda (old-config)
+       (let ((param (home-dwl-guile-configuration-config old-config)))
+         (home-dwl-guile-configuration
+           (inherit old-config)
+           (config new-config)))))))
 
 (define home-dwl-guile-service-type
   (service-type
@@ -245,7 +246,15 @@
         (service-extension
           home-run-on-change-service-type
           home-dwl-guile-on-change-service)))
-    (compose concatenate)
+    ; Each extension will override the previous config
+    ; with its own, generally by inheriting the old config
+    ; and then adding their own updated values. This means
+    ; that we should always use the configuration of the
+    ; extension that was applied last.
+    (compose (lambda (extensions)
+               (match extensions
+                      (() identity)
+                      ((config . _) config))))
     (extend home-dwl-guile-extension)
     (default-value (home-dwl-guile-configuration))
     (description "Configure and install dwl guile")))
