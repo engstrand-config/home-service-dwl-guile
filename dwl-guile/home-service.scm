@@ -24,7 +24,16 @@
                          home-dwl-guile-configuration
                          home-dwl-guile-configuration?
                          <home-dwl-guile-configuration>
-                         %base-environment-variables)
+                         home-dwl-guile-configuration-config
+                         home-dwl-guile-configuration-patches
+                         home-dwl-guile-configuration-package
+                         home-dwl-guile-configuration-tty-number
+                         home-dwl-guile-environment-variables-service
+                         home-dwl-guile-configuration-package-transform?
+                         %base-environment-variables
+
+                         extend-dwl-guile
+                         extend-dwl-guile-config)
 
                ; re-export configurations so that they are
                ; available in the home environment without
@@ -159,9 +168,63 @@
         #~(define config
             `(#$@(dwl-config->alist (home-dwl-guile-configuration-config config))))))))
 
+; Allow configuration to be extended by creating a new service
+; of type @code{home-dwl-guile-service-type}.
+;
+; The extension service accepts a procedure that takes in
+; the old configuration and returns an updated configuration.
+; To reduce the amount of boilerplate needed, you can use one of
+; the included syntax macro's:
+;
+; @example
+; (simple-service
+;   'change-dwl-guile-tty
+;   home-dwl-guile-service-type
+;   (lambda (old-config)
+;     (extend-dwl-guile
+;       old-config
+;       (tty-number 3))))
+; @end example
+;
+; @example
+; (simple-service
+;   'add-dwl-guile-keybinding
+;   home-dwl-guile-service-type
+;   (lambda (old-config)
+;     (extend-dwl-guile-config
+;       old-config
+;       (keys
+;         (append
+;           (list
+;             (dwl-key
+;               (modifiers '(SUPER SHIFT))
+;               (key "m")
+;               (action #f)))
+;           (dwl-config-keys (home-dwl-guile-configuration-config old-config)))))))
+; @end example
+(define (home-dwl-guile-extension old-config extend-config)
+  (extend-config old-config))
+
+(define-syntax extend-dwl-guile
+  (syntax-rules ()
+    ((_ old-config entries ...)
+     (home-dwl-guile-configuration
+       (inherit old-config)
+       entries ...))))
+
+(define-syntax extend-dwl-guile-config
+  (syntax-rules ()
+    ((_ old-config entries ...)
+     (home-dwl-guile-configuration
+       (inherit old-config)
+       (config
+         (dwl-config
+           (inherit (home-dwl-guile-configuration-config old-config))
+           entries ...))))))
+
 (define home-dwl-guile-service-type
   (service-type
-    (name 'home-dwl)
+    (name 'home-dwl-guile)
     (extensions
       (list
         (service-extension
@@ -183,5 +246,6 @@
           home-run-on-change-service-type
           home-dwl-guile-on-change-service)))
     (compose concatenate)
+    (extend home-dwl-guile-extension)
     (default-value (home-dwl-guile-configuration))
     (description "Configure and install dwl guile")))
