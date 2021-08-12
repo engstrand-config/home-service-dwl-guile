@@ -53,10 +53,6 @@
                    (key "Return")
                    (action '(dwl:spawn-terminal)))
                  (dwl-key
-                   (modifiers '(SUPER SHIFT))
-                   (key "Return")
-                   (action '(dwl:shcmd "samedir")))
-                 (dwl-key
                    (modifiers '(SUPER))
                    (key "j")
                    (action '(dwl:focus-stack 1)))
@@ -72,10 +68,6 @@
                    (modifiers '(SUPER))
                    (key "h")
                    (action '(dwl:set-master-factor -0.05)))
-                 ; (dwl-key
-                 ;   (modifiers '(SUPER))
-                 ;   (key "g")
-                 ;   (action '(dwl-toggle-gaps)))
                  (dwl-key
                    (modifiers '(SUPER))
                    (key "space")
@@ -130,24 +122,10 @@
                    (action '(dwl:quit)))
                  (dwl-key
                    (modifiers '())
-                   (key "Print")
-                   (action '(dwl:shcmd "grim")))
-                 (dwl-key
-                   (modifiers '(SHIFT))
-                   (key "Print")
-                   (action '(dwl:shcmd "flameshot")))
-                 (dwl-key
-                   (modifiers '(SUPER SHIFT))
-                   (key "w")
-                   (action '(dwl:shcmd "$BROWSER")))
-                 (dwl-key
-                   (modifiers '())
-                   (key "XF86WWW")
-                   (action '(dwl:shcmd "$BROWSER")))
-                 (dwl-key
-                   (modifiers '())
                    (key "XF86PowerOff")
                    (action '(dwl:quit)))
+
+                 ; TODO: Remove these
                  (dwl-key
                    (modifiers '())
                    (key "XF86MonBrightnessDown")
