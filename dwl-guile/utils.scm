@@ -10,6 +10,7 @@
                          modifier?
                          keycode?
                          rgb-color?
+                         start-parameters?
                          list-of-strings?
                          list-of-modifiers?
                          list-of-tag-key-pairs?))
@@ -33,6 +34,7 @@
 (define (keycode? val) (or (string? val) (number? val)))
 (define (list-of-strings? lst) (every string? lst))
 (define (list-of-modifiers? lst) (every modifier? lst))
+(define (start-parameters? lst) (every (lambda (v) (or (file-append? v) (string? v))) lst))
 
 ; Validates the format of an RGBA list, e.g.
 ; '(0.2 0.5 0.6 1.0). Only values between 0-1 are allowed

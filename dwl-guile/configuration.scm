@@ -2,6 +2,8 @@
                #:use-module (srfi srfi-1)
                #:use-module (gnu system keyboard)
                #:use-module (gnu services configuration)
+               #:use-module (gnu packages xdisorg)
+               #:use-module (gnu packages terminals)
                #:use-module (dwl-guile utils)
                #:use-module (dwl-guile configuration records)
                #:use-module (dwl-guile configuration default-config)
@@ -109,10 +111,10 @@
     (boolean #t)
     "If the trackpad should have natural scrolling.")
   (terminal
-    (list-of-strings '("foot"))
+    (start-parameters `(,(file-append foot "/bin/foot")))
     "Default terminal application to use. Will be used when calling @code{dwl:spawn-terminal}.")
   (menu
-    (list-of-strings '("bemenu-run"))
+    (start-parameters `(,(file-append bemenu "/bin/bemenu")))
     "Default menu application to use. Will be used when calling @code{dwl:spawn-menu}.")
   (tags
     (list-of-strings '("1" "2" "3" "4" "5" "6" "7" "8" "9"))
