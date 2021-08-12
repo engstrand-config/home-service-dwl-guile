@@ -204,8 +204,8 @@
 ;                       (action #f)))
 ;                   (dwl-config-keys config)))))))
 ; @end example
-(define (home-dwl-guile-extension old-config extend-config)
-  (extend-config old-config))
+(define (home-dwl-guile-extension old-config extend-proc)
+  (extend-proc old-config))
 
 (define-syntax modify-dwl-guile
   (syntax-rules (=>)
@@ -248,13 +248,19 @@
           home-dwl-guile-on-change-service)))
     ; Each extension will override the previous config
     ; with its own, generally by inheriting the old config
-    ; and then adding their own updated values. This means
-    ; that we should always use the configuration of the
-    ; extension that was applied last.
+    ; and then adding their own updated values.
+    ;
+    ; Composing the extensions is done by creating a new procedure
+    ; that accepts the service configuration and then recursively
+    ; call each extension procedure with the result of the previous extension.
     (compose (lambda (extensions)
                (match extensions
                       (() identity)
-                      ((config . _) config))))
+                      ((procs ...)
+                       (lambda (old-config)
+                         (fold-right (lambda (p extended-config) (p extended-config))
+                                     old-config
+                                     extensions))))))
     (extend home-dwl-guile-extension)
     (default-value (home-dwl-guile-configuration))
     (description "Configure and install dwl guile")))
