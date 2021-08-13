@@ -135,7 +135,9 @@
               (list
                 #$(file-append (config->dwl-package config) "/bin/dwl-guile")
                 "-c" #$(string-append config-dir "/config.scm")
-                "-s" #$(string-append config-dir "/startup.scm")))))
+                "-s" #$(string-append config-dir "/startup.scm"))
+              #:log-file #$(string-append (or (getenv "XDG_LOG_HOME") (getenv "HOME"))
+                                          "/dwl-guile.log"))))
       (stop #~(make-kill-destructor)))))
 
 ; Automatically start dwl-guile on the selected tty after login
