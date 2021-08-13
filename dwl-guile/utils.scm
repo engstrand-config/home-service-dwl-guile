@@ -12,6 +12,7 @@
                          rgb-color?
                          start-parameters?
                          list-of-strings?
+                         list-of-gexps?
                          list-of-modifiers?
                          list-of-tag-key-pairs?))
 
@@ -33,6 +34,7 @@
 (define (modifier? val) (member val %modifiers))
 (define (keycode? val) (or (string? val) (number? val)))
 (define (list-of-strings? lst) (every string? lst))
+(define (list-of-gexps? lst) (every gexp? lst))
 (define (list-of-modifiers? lst) (every modifier? lst))
 (define (start-parameters? lst) (every (lambda (v) (or (file-append? v) (string? v))) lst))
 

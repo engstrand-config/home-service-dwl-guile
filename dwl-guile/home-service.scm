@@ -28,6 +28,7 @@
                          home-dwl-guile-configuration-patches
                          home-dwl-guile-configuration-package
                          home-dwl-guile-configuration-tty-number
+                         home-dwl-guile-configuration-startup-commands
                          home-dwl-guile-environment-variables-service
                          home-dwl-guile-configuration-package-transform?
                          %base-environment-variables
@@ -96,6 +97,9 @@
 
     You can modify the variables that will be set by extending
     @code{%base-environment-variables}, or by specifying a custom list.")
+  (startup-commands
+    (list-of-gexps '())
+    "A list of gexps to be executed on dwl-guile startup.")
   (config
     (dwl-config (dwl-config))
     "Custom dwl-guile configuration. Replaces config.h.")
@@ -139,7 +143,9 @@
               "-c"
               ; TODO: Respect XDG configuration.
               ;       Set target config path in configuration?
-              (string-append (getenv "HOME") "/.config/dwl/config.scm"))))
+              (string-append (getenv "HOME") "/.config/dwl/config.scm")
+              "-s"
+              (string-append (getenv "HOME") "/.config/dwl/startup.scm"))))
       (stop #~(make-kill-destructor)))))
 
 ; Automatically start dwl-guile on the selected tty after login
@@ -162,11 +168,18 @@
 ; Create the config file based on the configuration options.
 ; TODO: Respect XDG configuration?
 (define (home-dwl-guile-files-service config)
-  `(("config/dwl/config.scm"
-     ,(scheme-file
-        "dwl-config.scm"
-        #~(define config
-            `(#$@(dwl-config->alist (home-dwl-guile-configuration-config config))))))))
+  (let ((startup (home-dwl-guile-configuration-startup-commands config)))
+    `(("config/dwl/config.scm"
+       ,(scheme-file
+          "dwl-config.scm"
+          #~(define config
+              `(#$@(dwl-config->alist (home-dwl-guile-configuration-config config))))))
+      ("config/dwl/startup.scm"
+       ,(program-file
+          "startup.scm"
+          (if (null? startup)
+              #~(exit 0)
+              #~(begin #$@startup)))))))
 
 ; Allow configuration to be extended by creating a new service
 ; of type @code{home-dwl-guile-service-type}.
