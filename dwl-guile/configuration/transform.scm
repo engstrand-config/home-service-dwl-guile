@@ -55,8 +55,8 @@
   (match
     field
     ('tag
-     (let ((tags (length (dwl-config-tags original)))
-           (tag (- value 1)))
+     (let ((tags (length (dwl-config-tags source)))
+           (tag (if (eq? value 0) value (- value 1))))
        (if
          (< tag tags)
          tag
