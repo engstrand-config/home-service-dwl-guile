@@ -68,6 +68,15 @@ Add the channel to your `~/.config/guix/channels.scm`:
     ; Or extend the default environment variables:
     ; (environment-variables (cons `(("var" . "value")) %base-environment-variables))
 
+    ; A list of gexps to be executed after starting dwl-guile.
+    ; This is the equivalent of specifying a script to the '-s' flag of dwl.
+    ; The gexp's will be executed in the same order as in the list.
+    ;
+    ; You can find the generated script in: @file{$HOME/.config/dwl-guile/startup.scm}.
+    (startup-commands
+      (list
+        #~(system* ...)))
+
     ; Create a custom configuration for dwl.
     (config
       (dwl-config ...))))
@@ -75,6 +84,58 @@ Add the channel to your `~/.config/guix/channels.scm`:
 ; You can also use the default configuration
 (service home-dwl-guile-service-type)
 ```
+
+### Extending the dwl-guile home service
+To help with conditionally apply certain configuration options to dwl-guile,
+the home service can be extended. This is especially useful if you use something
+like [rde](https://github.com/abcdw/rde).
+
+Consider the following exaple that will add two new keybindings for
+dismissing system notifications from [mako](https://github.com/emersion/mako):
+
+```scheme
+(simple-service
+  'add-mako-dwl-keybindings
+  home-dwl-guile-service-type
+  (modify-dwl-guile-config
+    (config =>
+            (dwl-config
+              (inherit config)
+              (keys
+                (append
+                  (list
+                    (dwl-key
+                      (modifiers '(SUPER CTRL))
+                      (key "d")
+                      (action `(system* ,(file-append mako "/bin/makoctl")
+                                        "dismiss")))
+                    (dwl-key
+                      (modifiers '(SUPER CTRL SHIFT))
+                      (key "d")
+                      (action `(system* ,(file-append mako "/bin/makoctl")
+                                        "dismiss" "--all"))))
+                (dwl-config-keys config))))))))))
+```
+
+There are two different syntax macros that you can use for convenience:
+
+* `modify-dwl-guile` - to modify the home service configuration
+* `modify-dwl-guile-config` - to modify the dwl config
+
+Both macros follow the same format, but the parameter `config` (the name does
+not matter) will take on different values based on the macro. For
+`modify-dwl-guile`, `config` will refer to the `home-dwl-guile-configuration`
+record, whereas the `config` of `modify-dwl-guile-config` will refer to the
+`config` field of the `home-dwl-guile-configuration` record. Using the
+`modify-dwl-guile-config` macro will only modify the dwl config.
+
+It is very important that you remember to **inherit the received `config`** to make
+sure that your previous configuration options are not overridden. Each service
+extension will be recursively composed into a single configuration.
+
+You can find more examples of this in
+[our GNU/Guix configuration](https://github.com/engstrand-config/guix-dotfiles),
+mainly in the `engstrand/features/wayland.scm` file.
 
 ### Patching
 TODO
