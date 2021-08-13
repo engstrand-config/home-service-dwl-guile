@@ -114,38 +114,28 @@
         (make-dwl-package package patches)
         package)))
 
-; Add wayland specific environment variables
 (define (home-dwl-guile-environment-variables-service config)
   (home-dwl-guile-configuration-environment-variables config))
 
-; Add dwl-guile package to your profile
 (define (home-dwl-guile-profile-service config)
   (append
     (list (config->dwl-package config))
     (map specification->package '("xdg-desktop-portal" "xdg-desktop-portal-wlr"))))
 
-; Add new shepherd service for starting, stopping and restarting dwl-guile
 (define (home-dwl-guile-shepherd-service config)
   "Return a <shepherd-service> for the dwl-guile service"
   (list
     (shepherd-service
       (documentation "Run dwl-guile")
       (provision '(dwl-guile))
-      ; No need to auto start. Enabling this option means that
-      ; dwl will start every time you run `guix home reconfigure`.
-      ; Instead, we start it manually whenever we login to the
-      ; chosen tty.
       (auto-start? #f)
       (start
-        #~(make-forkexec-constructor
-            (list
-              #$(file-append (config->dwl-package config) "/bin/dwl-guile")
-              "-c"
-              ; TODO: Respect XDG configuration.
-              ;       Set target config path in configuration?
-              (string-append (getenv "HOME") "/.config/dwl/config.scm")
-              "-s"
-              (string-append (getenv "HOME") "/.config/dwl/startup.scm"))))
+        (let ((config-dir (string-append (getenv "HOME") "/.config/dwl-guile")))
+          #~(make-forkexec-constructor
+              (list
+                #$(file-append (config->dwl-package config) "/bin/dwl-guile")
+                "-c" #$(string-append config-dir "/config.scm")
+                "-s" #$(string-append config-dir "/startup.scm")))))
       (stop #~(make-kill-destructor)))))
 
 ; Automatically start dwl-guile on the selected tty after login
@@ -155,28 +145,25 @@
     (format #f "[ $(tty) = /dev/tty~a ] && herd start dwl-guile"
             (home-dwl-guile-configuration-tty-number config))))
 
-; Automatically updates the configuration of dwl-guile
 ; TODO: Add option to disable this.
 ;       Use signals instead? Killing dwl-guile is inefficient and
 ;       it will close all of your windows. Perhaps we could even
 ;       attach a file listener directly to dwl and re-parse the config
 ;       when changed?
 (define (home-dwl-guile-on-change-service config)
-  `(("files/config/dwl/config.scm"
+  `(("files/config/dwl-guile/config.scm"
      ,#~(system* #$(file-append shepherd "/bin/herd") "restart" "dwl-guile"))))
 
-; Create the config file based on the configuration options.
-; TODO: Respect XDG configuration?
 (define (home-dwl-guile-files-service config)
   (let ((startup (home-dwl-guile-configuration-startup-commands config)))
-    `(("config/dwl/config.scm"
+    `(("config/dwl-guile/config.scm"
        ,(scheme-file
           "dwl-config.scm"
           #~(define config
               `(#$@(dwl-config->alist (home-dwl-guile-configuration-config config))))))
-      ("config/dwl/startup.scm"
+      ("config/dwl-guile/startup.scm"
        ,(program-file
-          "startup.scm"
+          "dwl-startup.scm"
           (if (null? startup)
               #~(exit 0)
               #~(begin #$@startup)))))))
