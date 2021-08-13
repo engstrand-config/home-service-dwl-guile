@@ -147,7 +147,7 @@
     (list-of-buttons %dwl-base-buttons)
     "List of mouse button bindings, e.g. resizing or moving windows.")
   (default-alpha
-    (number 0.9)
+    (number 1.0)
     "Default transparency (0-1) for windows. Requires the @code{%patch-alpha} patch.")
   (smart-borders?
     (boolean #t)
