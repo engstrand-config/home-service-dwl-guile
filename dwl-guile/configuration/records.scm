@@ -78,7 +78,7 @@
     "Title of target application for rule.")
   ; TODO: Allow multiple tags?
   (tag
-    (number 1)
+    (number 0)
     "Tag to place application on. 1 corresponds to the first tag in the @code{tags} list.")
   (floating?
     (boolean #f)
