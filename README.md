@@ -21,8 +21,8 @@ Add the channel to your `~/.config/guix/channels.scm`:
 
 ```scheme
 (channel
-  (name 'home-dwl-service)
-  (url "https://github.com/engstrand-config/home-dwl-service")
+  (name 'home-service-dwl-guile)
+  (url "https://github.com/engstrand-config/home-service-dwl-guile")
   (branch "main")
   (introduction
     (make-channel-introduction
