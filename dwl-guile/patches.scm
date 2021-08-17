@@ -9,6 +9,7 @@
                          %patch-attachabove
                          %patch-focusmon
                          %patch-vanitygaps
+                         %patch-monitor-config
                          make-patch
                          list-of-local-files?))
 
@@ -30,3 +31,4 @@
 (define %patch-attachabove (make-patch "attachabove"))
 (define %patch-focusmon (make-patch "focusmon"))
 (define %patch-vanitygaps (make-patch "vanitygaps"))
+(define %patch-monitor-config (make-patch "monitor-config"))

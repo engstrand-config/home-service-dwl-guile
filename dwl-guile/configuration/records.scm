@@ -127,7 +127,7 @@
     (number 1)
     "Monitor scaling.")
   (layout
-    (string)
+    (string "tile")
     "Default layout (id) to use for monitor.")
   (transform
     (symbol 'TRANSFORM-NORMAL)
@@ -138,6 +138,18 @@
   (y
     (number 0)
     "Position on the y-axis.")
+  (width
+    (number 1920)
+    "Monitor resolution width. Requires the @code{%patch-monitor-config} patch.")
+  (height
+    (number 1080)
+    "Monitor resolution height Requires the @code{%patch-monitor-config} patch.")
+  (refresh-rate
+    (number 60)
+    "Monitor refresh rate. Requires the @code{%patch-monitor-config} patch.")
+  (adaptive-sync?
+    (boolean #f)
+    "Enable adaptive sync for monitor. Requires the @code{%patch-monitor-config} patch.")
   (no-serialization))
 
 ; Keybinding configuration
