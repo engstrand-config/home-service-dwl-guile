@@ -8,6 +8,8 @@
                #:use-module (ice-9 match)
                #:use-module (gnu packages)
                #:use-module (gnu packages wm)
+               #:use-module (gnu packages qt)
+               #:use-module (gnu packages freedesktop)
                #:use-module (gnu home-services)
                #:use-module (gnu home-services shells)
                #:use-module (gnu home-services shepherd)
@@ -67,7 +69,6 @@
     ("MOZ_ENABLE_WAYLAND" . "1")
     ("ELM_ENGINE" . "wayland_egl")
     ("ECORE_EVAS_ENGINE" . "wayland-egl")
-    ("QT_QPA_PLATFORM" . "wayland-egl")
     ("_JAVA_AWT_WM_NONPARENTING" . "1")))
 
 ; dwl service type configuration
@@ -97,6 +98,9 @@
 
     You can modify the variables that will be set by extending
     @code{%base-environment-variables}, or by specifying a custom list.")
+  (native-qt?
+    (boolean #t)
+    "If qt applications should be rendered natively in Wayland.")
   (startup-commands
     (list-of-gexps '())
     "A list of gexps to be executed on dwl-guile startup.")
@@ -115,12 +119,20 @@
         package)))
 
 (define (home-dwl-guile-environment-variables-service config)
-  (home-dwl-guile-configuration-environment-variables config))
+  (append
+    (home-dwl-guile-configuration-environment-variables config)
+    (if (home-dwl-guile-configuration-native-qt? config)
+        `(("QT_QPA_PLATFORM" . "wayland-egl"))
+        '())))
 
 (define (home-dwl-guile-profile-service config)
   (append
-    (list (config->dwl-package config))
-    (map specification->package '("xdg-desktop-portal" "xdg-desktop-portal-wlr"))))
+    (list (config->dwl-package config)
+          xdg-desktop-portal
+          xdg-desktop-portal-wlr)
+    (if (home-dwl-guile-configuration-native-qt? config)
+        (list qtwayland)
+        '())))
 
 (define (home-dwl-guile-shepherd-service config)
   "Return a <shepherd-service> for the dwl-guile service"
