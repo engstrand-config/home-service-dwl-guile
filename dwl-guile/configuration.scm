@@ -109,7 +109,7 @@
     (boolean #f)
     "If tapping on the trackpad should be interpreted as a click.")
   (natural-scrolling?
-    (boolean #t)
+    (boolean #f)
     "If the trackpad should have natural scrolling.")
   (terminal
     (start-parameters `(,(file-append foot "/bin/foot")))
