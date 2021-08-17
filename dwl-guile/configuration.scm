@@ -1,5 +1,6 @@
 (define-module (dwl-guile configuration)
                #:use-module (srfi srfi-1)
+               #:use-module (guix gexp)
                #:use-module (gnu system keyboard)
                #:use-module (gnu services configuration)
                #:use-module (gnu packages xdisorg)
