@@ -77,6 +77,11 @@ Add the channel to your `~/.config/guix/channels.scm`:
       (list
         #~(system* ...)))
 
+    ; If qt applications should be rendered natively in Wayland.
+    ; Enabling this will set QT_QPA_PLATFORM="wayland-egl" and install
+    ; the "qtwayland" package to enable support for Wayland.
+    (native-qt? #t)
+
     ; Create a custom configuration for dwl.
     (config
       (dwl-config ...))))
@@ -114,7 +119,7 @@ dismissing system notifications from [mako](https://github.com/emersion/mako):
                       (key "d")
                       (action `(system* ,(file-append mako "/bin/makoctl")
                                         "dismiss" "--all"))))
-                (dwl-config-keys config))))))))))
+                (dwl-config-keys config)))))))
 ```
 
 There are two different syntax macros that you can use for convenience:
@@ -134,7 +139,7 @@ sure that your previous configuration options are not overridden. Each service
 extension will be recursively composed into a single configuration.
 
 You can find more examples of this in
-[our GNU/Guix configuration](https://github.com/engstrand-config/guix-dotfiles),
+[our GNU Guix configuration](https://github.com/engstrand-config/guix-dotfiles),
 mainly in the `engstrand/features/wayland.scm` file.
 
 ### Patching
