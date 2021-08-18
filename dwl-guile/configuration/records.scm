@@ -84,7 +84,7 @@
     (boolean #f)
     "If the application should be floating initially.")
   (monitor
-    (number 1)
+    (number -1)
     "The monitor to spawn the application on.")
   (alpha
     (number 0.9)
