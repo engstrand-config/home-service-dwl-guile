@@ -13,7 +13,7 @@ index 058f82b..274dc9c 100644
  }
  
 diff --git a/dwl.c b/dwl.c
-index fbb5e81..7693a8d 100644
+index a73d684..6199b15 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -104,6 +104,8 @@ typedef struct {
@@ -65,7 +65,7 @@ index fbb5e81..7693a8d 100644
  			newtags |= r.tags;
  			j = 0;
  			wl_list_for_each(m, &mons, link)
-@@ -677,6 +684,21 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -678,6 +685,21 @@ buttonpress(struct wl_listener *listener, void *data)
  			event->time_msec, event->button, event->state);
  }
  
@@ -87,7 +87,7 @@ index fbb5e81..7693a8d 100644
  void
  chvt(const Arg *arg)
  {
-@@ -889,6 +911,7 @@ createnotify(struct wl_listener *listener, void *data)
+@@ -901,6 +923,7 @@ createnotify(struct wl_listener *listener, void *data)
  	c = xdg_surface->data = calloc(1, sizeof(*c));
  	c->surface.xdg = xdg_surface;
  	c->bw = borderpx;
@@ -95,21 +95,24 @@ index fbb5e81..7693a8d 100644
  
  	/* Tell the client not to try anything fancy */
  	wlr_xdg_toplevel_set_tiled(c->surface.xdg, WLR_EDGE_TOP |
-@@ -1054,10 +1077,13 @@ setfullscreen(Client *c, int fullscreen)
+@@ -1066,6 +1089,8 @@ setfullscreen(Client *c, int fullscreen)
  		c->prevy = c->geom.y;
  		c->prevheight = c->geom.height;
  		c->prevwidth = c->geom.width;
 +                c->prevalpha = c->alpha;
 +                c->alpha = 1;
  		resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height, 0);
+ 		wl_list_remove(&c->slink);
+ 		wl_list_insert(&stack, &c->slink);
+@@ -1073,6 +1098,7 @@ setfullscreen(Client *c, int fullscreen)
  	} else {
  		/* restore previous size instead of arrange for floating windows since
  		 * client positions are set by the user and cannot be recalculated */
 +                c->alpha = c->prevalpha;
  		resize(c, c->prevx, c->prevy, c->prevwidth, c->prevheight, 0);
- 		arrange(c->mon);
- 	}
-@@ -1656,7 +1682,7 @@ render(struct wlr_surface *surface, int sx, int sy, void *data)
+ 		if (!c->isfloating) {
+ 			wl_list_remove(&c->slink);
+@@ -1680,7 +1706,7 @@ render(struct wlr_surface *surface, int sx, int sy, void *data)
  
  	/* This takes our matrix, the texture, and an alpha, and performs the actual
  	 * rendering on the GPU. */
@@ -118,7 +121,7 @@ index fbb5e81..7693a8d 100644
  
  	/* This lets the client know that we've displayed that frame and it can
  	 * prepare another one now if it likes. */
-@@ -1711,6 +1737,7 @@ renderclients(Monitor *m, struct timespec *now)
+@@ -1735,6 +1761,7 @@ renderclients(Monitor *m, struct timespec *now)
  		rdata.when = now;
  		rdata.x = c->geom.x + c->bw;
  		rdata.y = c->geom.y + c->bw;
@@ -126,7 +129,7 @@ index fbb5e81..7693a8d 100644
  		client_for_each_surface(c, render, &rdata);
  	}
  }
-@@ -1725,6 +1752,7 @@ renderlayer(struct wl_list *layer_surfaces, struct timespec *now)
+@@ -1749,6 +1776,7 @@ renderlayer(struct wl_list *layer_surfaces, struct timespec *now)
  			.when = now,
  			.x = layersurface->geo.x,
  			.y = layersurface->geo.y,
@@ -134,7 +137,7 @@ index fbb5e81..7693a8d 100644
  		};
  
  		wlr_surface_for_each_surface(layersurface->layer_surface->surface,
-@@ -2449,6 +2477,7 @@ createnotifyx11(struct wl_listener *listener, void *data)
+@@ -2483,6 +2511,7 @@ createnotifyx11(struct wl_listener *listener, void *data)
  	c->type = xwayland_surface->override_redirect ? X11Unmanaged : X11Managed;
  	c->bw = borderpx;
  	c->isfullscreen = 0;
@@ -142,7 +145,7 @@ index fbb5e81..7693a8d 100644
  
  	/* Listen to the various events it can emit */
  	LISTEN(&xwayland_surface->events.map, &c->map, mapnotify);
-@@ -2496,6 +2525,8 @@ renderindependents(struct wlr_output *output, struct timespec *now)
+@@ -2530,6 +2559,8 @@ renderindependents(struct wlr_output *output, struct timespec *now)
  		rdata.when = now;
  		rdata.x = c->surface.xwayland->x;
  		rdata.y = c->surface.xwayland->y;
@@ -151,7 +154,7 @@ index fbb5e81..7693a8d 100644
  		wlr_surface_for_each_surface(c->surface.xwayland->surface, render, &rdata);
  	}
  }
-@@ -2580,7 +2611,9 @@ main(int argc, char *argv[])
+@@ -2614,7 +2645,9 @@ main(int argc, char *argv[])
                  BARF("error: config path must be set using '-c'");
          scm_init_guile();
          dscm_register();

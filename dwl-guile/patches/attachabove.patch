@@ -1,8 +1,8 @@
 diff --git a/dwl.c b/dwl.c
-index fbb5e81..f873792 100644
+index a73d684..bb03eac 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -1319,7 +1319,7 @@ void
+@@ -1338,7 +1338,7 @@ void
  mapnotify(struct wl_listener *listener, void *data)
  {
  	/* Called when the surface is mapped, or ready to display on-screen. */
@@ -11,21 +11,18 @@ index fbb5e81..f873792 100644
  
  	if (client_is_unmanaged(c)) {
  		/* Insert this independent into independents lists. */
-@@ -1328,9 +1328,15 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1347,8 +1347,13 @@ mapnotify(struct wl_listener *listener, void *data)
  	}
  
  	/* Insert this client into client lists. */
 -	wl_list_insert(&clients, &c->link);
 -	wl_list_insert(&fstack, &c->flink);
--	wl_list_insert(&stack, &c->slink);
 +	if (oldfocus) {
 +		wl_list_insert(oldfocus->link.prev, &c->link);
 +		wl_list_insert(oldfocus->flink.prev, &c->flink);
-+		wl_list_insert(oldfocus->slink.prev, &c->slink);
 +	} else {
 +		wl_list_insert(&clients, &c->link);
 +		wl_list_insert(&fstack, &c->flink);
-+		wl_list_insert(&stack, &c->slink);
 +	}
  
  	client_get_geometry(c, &c->geom);

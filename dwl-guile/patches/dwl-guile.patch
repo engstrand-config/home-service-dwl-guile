@@ -43,10 +43,10 @@ index a0d1cc3..691ec14 100644
  dwl: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o idle-protocol.o
  
 diff --git a/README.md b/README.md
-index 22dfa07..1e8298d 100644
+index 22dfa07..43346d1 100644
 --- a/README.md
 +++ b/README.md
-@@ -1,77 +1,3 @@
+@@ -1,77 +1,4 @@
 -# dwl - dwm for Wayland
 -
 -Join us on our [Discord server](https://discord.gg/jJxZnrGPWN)!
@@ -126,7 +126,8 @@ index 22dfa07..1e8298d 100644
 -- Stivvo for output management and fullscreen support, and patch maintenance
 +# dwl-guile
 +dwl-guile is a patch to dwl that adds dynamic configuration using Guile. It
-+integrates with GNU/Guix home as a home service (see [home-dwl-service](https://github.com/engstrand-config/home-dwl-service)).
++integrates with GNU Guix as a home service (see
++[home-service-dwl-guile](https://github.com/engstrand-config/home-service-dwl-guile)).
 diff --git a/config.def.h b/config.def.h
 deleted file mode 100644
 index 089aa37..0000000
@@ -894,7 +895,7 @@ index 0000000..57800d6
 +        scm_c_with_continuation_barrier(func, &proc_data);
 +}
 diff --git a/dwl.c b/dwl.c
-index 0deae84..fbb5e81 100644
+index 0deae84..a73d684 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -42,6 +42,7 @@
@@ -1013,7 +1014,7 @@ index 0deae84..fbb5e81 100644
  	Monitor *mon = selmon, *m;
  
  	c->isfloating = client_is_float_type(c);
-@@ -464,14 +464,15 @@ applyrules(Client *c)
+@@ -464,32 +464,34 @@ applyrules(Client *c)
  	if (!(title = client_get_title(c)))
  		title = broken;
  
@@ -1036,7 +1037,10 @@ index 0deae84..fbb5e81 100644
  					mon = m;
  		}
  	}
-@@ -481,15 +482,15 @@ applyrules(Client *c)
++	wl_list_insert(c->isfloating ? &stack : stack.prev, &c->slink);
+ 	setmon(c, mon, newtags);
+ }
+ 
  void
  arrange(Monitor *m)
  {
@@ -1055,7 +1059,7 @@ index 0deae84..fbb5e81 100644
  	struct wlr_box full_area = m->m;
  
  	wl_list_for_each(layersurface, list, link) {
-@@ -635,7 +636,7 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -635,7 +637,7 @@ buttonpress(struct wl_listener *listener, void *data)
  	struct wlr_keyboard *keyboard;
  	uint32_t mods;
  	Client *c;
@@ -1064,7 +1068,7 @@ index 0deae84..fbb5e81 100644
  
  	wlr_idle_notify_activity(idle, seat);
  
-@@ -647,10 +648,11 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -647,10 +649,11 @@ buttonpress(struct wl_listener *listener, void *data)
  
  		keyboard = wlr_seat_get_keyboard(seat);
  		mods = wlr_keyboard_get_modifiers(keyboard);
@@ -1080,7 +1084,7 @@ index 0deae84..fbb5e81 100644
  				return;
  			}
  		}
-@@ -788,7 +790,7 @@ createkeyboard(struct wlr_input_device *device)
+@@ -788,7 +791,7 @@ createkeyboard(struct wlr_input_device *device)
  
  	/* Prepare an XKB keymap and assign it to the keyboard. */
  	context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
@@ -1089,7 +1093,7 @@ index 0deae84..fbb5e81 100644
  		XKB_KEYMAP_COMPILE_NO_FLAGS);
  
  	wlr_keyboard_set_keymap(device->keyboard, keymap);
-@@ -813,7 +815,7 @@ createmon(struct wl_listener *listener, void *data)
+@@ -813,7 +816,7 @@ createmon(struct wl_listener *listener, void *data)
  	/* This event is raised by the backend when a new output (aka a display or
  	 * monitor) becomes available. */
  	struct wlr_output *wlr_output = data;
@@ -1098,7 +1102,7 @@ index 0deae84..fbb5e81 100644
  	Monitor *m = wlr_output->data = calloc(1, sizeof(*m));
  	m->wlr_output = wlr_output;
  
-@@ -821,14 +823,15 @@ createmon(struct wl_listener *listener, void *data)
+@@ -821,14 +824,15 @@ createmon(struct wl_listener *listener, void *data)
  	for (size_t i = 0; i < LENGTH(m->layers); i++)
  		wl_list_init(&m->layers[i]);
  	m->tagset[0] = m->tagset[1] = 1;
@@ -1122,7 +1126,7 @@ index 0deae84..fbb5e81 100644
  			break;
  		}
  	}
-@@ -855,7 +858,7 @@ createmon(struct wl_listener *listener, void *data)
+@@ -855,7 +859,7 @@ createmon(struct wl_listener *listener, void *data)
  	 * display, which Wayland clients can see to find out information about the
  	 * output (such as DPI, scale factor, manufacturer, etc).
  	 */
@@ -1131,7 +1135,55 @@ index 0deae84..fbb5e81 100644
  	sgeom = *wlr_output_layout_get_box(output_layout, NULL);
  
  	/* When adding monitors, the geometries of all monitors must be updated */
-@@ -1231,7 +1234,7 @@ inputdevice(struct wl_listener *listener, void *data)
+@@ -879,8 +883,19 @@ createnotify(struct wl_listener *listener, void *data)
+ 	struct wlr_xdg_surface *xdg_surface = data;
+ 	Client *c;
+ 
+-	if (xdg_surface->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
++	if (xdg_surface->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
++                c = selclient();
++                if (c) {
++                        struct wlr_box constraint = {
++                                .x = 0,
++                                .y = 0,
++                                .width = c->geom.width,
++                                .height = c->geom.height,
++                        };
++                        wlr_xdg_popup_unconstrain_from_box(xdg_surface->popup, &constraint);
++                }
+ 		return;
++        }
+ 
+ 	/* Allocate a Client for this surface */
+ 	c = xdg_surface->data = calloc(1, sizeof(*c));
+@@ -1052,10 +1067,17 @@ setfullscreen(Client *c, int fullscreen)
+ 		c->prevheight = c->geom.height;
+ 		c->prevwidth = c->geom.width;
+ 		resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height, 0);
++		wl_list_remove(&c->slink);
++		wl_list_insert(&stack, &c->slink);
++		motionnotify(0);
+ 	} else {
+ 		/* restore previous size instead of arrange for floating windows since
+ 		 * client positions are set by the user and cannot be recalculated */
+ 		resize(c, c->prevx, c->prevy, c->prevwidth, c->prevheight, 0);
++		if (!c->isfloating) {
++			wl_list_remove(&c->slink);
++			wl_list_insert(stack.prev, &c->slink);
++		}
+ 		arrange(c->mon);
+ 	}
+ }
+@@ -1088,7 +1110,7 @@ focusclient(Client *c, int lift)
+ 	struct wlr_keyboard *kb;
+ 
+ 	/* Raise client in stacking order if requested */
+-	if (c && lift) {
++        if (c && lift && (c->isfloating || c->isfullscreen)) {
+ 		wl_list_remove(&c->slink);
+ 		wl_list_insert(&stack, &c->slink);
+ 	}
+@@ -1231,7 +1253,7 @@ inputdevice(struct wl_listener *listener, void *data)
  }
  
  int
@@ -1140,7 +1192,7 @@ index 0deae84..fbb5e81 100644
  {
  	/*
  	 * Here we handle compositor keybindings. This is when the compositor is
-@@ -1239,32 +1242,27 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
+@@ -1239,32 +1261,27 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
  	 * processing.
  	 */
  	int handled = 0;
@@ -1180,7 +1232,7 @@ index 0deae84..fbb5e81 100644
  	int handled = 0;
  	uint32_t mods = wlr_keyboard_get_modifiers(kb->device->keyboard);
  
-@@ -1272,8 +1270,7 @@ keypress(struct wl_listener *listener, void *data)
+@@ -1272,8 +1289,7 @@ keypress(struct wl_listener *listener, void *data)
  
  	/* On _press_, attempt to process a compositor keybinding. */
  	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED)
@@ -1190,7 +1242,89 @@ index 0deae84..fbb5e81 100644
  
  	if (!handled) {
  		/* Pass unhandled keycodes along to the client. */
-@@ -2561,11 +2558,14 @@ int
+@@ -1333,7 +1349,6 @@ mapnotify(struct wl_listener *listener, void *data)
+ 	/* Insert this client into client lists. */
+ 	wl_list_insert(&clients, &c->link);
+ 	wl_list_insert(&fstack, &c->flink);
+-	wl_list_insert(&stack, &c->slink);
+ 
+ 	client_get_geometry(c, &c->geom);
+ 	c->geom.width += 2 * c->bw;
+@@ -1353,6 +1368,12 @@ monocle(Monitor *m)
+ 			continue;
+ 		resize(c, m->w.x, m->w.y, m->w.width, m->w.height, 0);
+ 	}
++	/* Lift the focused client. */
++        Client *sel = selclient();
++        if (sel) {
++                wl_list_remove(&c->slink);
++                wl_list_insert(&stack, &c->slink);
++        }
+ }
+ 
+ void
+@@ -1818,6 +1839,27 @@ run(char *startup_cmd)
+ 	const char *socket = wl_display_add_socket_auto(dpy);
+ 	if (!socket)
+ 		BARF("startup: display_add_socket_auto");
++        setenv("WAYLAND_DISPLAY", socket, 1);
++
++	if (startup_cmd) {
++		int piperw[2];
++		pipe(piperw);
++		startup_pid = fork();
++		if (startup_pid < 0)
++			EBARF("startup: fork");
++		if (startup_pid == 0) {
++			dup2(piperw[0], STDIN_FILENO);
++			close(piperw[1]);
++			execl("/bin/sh", "/bin/sh", "-c", startup_cmd, NULL);
++			EBARF("startup: execl");
++		}
++		dup2(piperw[1], STDOUT_FILENO);
++		close(piperw[0]);
++	}
++
++	/* If nobody is reading the status output, don't terminate */
++	signal(SIGPIPE, SIG_IGN);
++	printstatus();
+ 
+ 	/* Start the backend. This will enumerate outputs and inputs, become the DRM
+ 	 * master, etc */
+@@ -1835,21 +1877,6 @@ run(char *startup_cmd)
+ 	wlr_cursor_warp_closest(cursor, NULL, cursor->x, cursor->y);
+ 	wlr_xcursor_manager_set_cursor_image(cursor_mgr, "left_ptr", cursor);
+ 
+-	/* Set the WAYLAND_DISPLAY environment variable to our socket and run the
+-	 * startup command if requested. */
+-	setenv("WAYLAND_DISPLAY", socket, 1);
+-
+-	if (startup_cmd) {
+-		startup_pid = fork();
+-		if (startup_pid < 0)
+-			EBARF("startup: fork");
+-		if (startup_pid == 0) {
+-			dup2(STDERR_FILENO, STDOUT_FILENO);
+-			execl("/bin/sh", "/bin/sh", "-c", startup_cmd, NULL);
+-			EBARF("startup: execl");
+-		}
+-	}
+-
+ 	/* Run the Wayland event loop. This does not return until you exit the
+ 	 * compositor. Starting the backend rigged up all of the necessary event
+ 	 * loop configuration to listen to libinput events, DRM events, generate
+@@ -1902,6 +1929,10 @@ setcursor(struct wl_listener *listener, void *data)
+ void
+ setfloating(Client *c, int floating)
+ {
++	if (c->isfloating != floating) {
++		wl_list_remove(&c->slink);
++		wl_list_insert(floating ? &stack : stack.prev, &c->slink);
++	}
+ 	c->isfloating = floating;
+ 	arrange(c->mon);
+ }
+@@ -2561,11 +2592,14 @@ int
  main(int argc, char *argv[])
  {
  	char *startup_cmd = NULL;
@@ -1206,7 +1340,7 @@ index 0deae84..fbb5e81 100644
  		else
  			goto usage;
  	}
-@@ -2576,11 +2576,16 @@ main(int argc, char *argv[])
+@@ -2576,11 +2610,16 @@ main(int argc, char *argv[])
  	// socket
  	if (!getenv("XDG_RUNTIME_DIR"))
  		BARF("XDG_RUNTIME_DIR must be set");
@@ -1271,14 +1405,14 @@ index 0000000..63cb2e7
 +                  #t))))))))
 diff --git a/scripts/create-patches.sh b/scripts/create-patches.sh
 new file mode 100755
-index 0000000..1959568
+index 0000000..12426c8
 --- /dev/null
 +++ b/scripts/create-patches.sh
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,25 @@
 +#!/bin/sh
 +# $1 = dwl-guile patch tag to diff patches to
 +
-+git fetch --tags
++git fetch --all
 +rm -rf patches
 +mkdir -p patches
 +
@@ -1287,7 +1421,8 @@ index 0000000..1959568
 +DIFF_ORIGIN=$1
 +[ -z $DIFF_ORIGIN ] && DIFF_ORIGIN="main"
 +
-+for patch in xwayland alpha smartborders attachabove focusmon vanitygaps
++for patch in xwayland alpha smartborders attachabove \
++    vanitygaps monitor-config focusmonpointer
 +do
 +    git fetch origin patch/$patch
 +    git diff $DIFF_ORIGIN patch/$patch \
