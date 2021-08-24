@@ -83,7 +83,7 @@
                  (dwl-key
                    (modifiers '(SUPER))
                    (key "t")
-                   (action '(dwl:set-layout "default")))
+                   (action '(dwl:set-layout "tile")))
                  (dwl-key
                    (modifiers '(SUPER))
                    (key "m")
@@ -100,22 +100,6 @@
                    (modifiers '(SUPER))
                    (key "0")
                    (action '(dwl:view 0)))
-                 (dwl-key
-                   (modifiers '(SUPER))
-                   (key "Left")
-                   (action '(dwl:focus-monitor DIRECTION_LEFT)))
-                 (dwl-key
-                   (modifiers '(SUPER))
-                   (key "Right")
-                   (action '(dwl:focus-monitor DIRECTION_RIGHT)))
-                 (dwl-key
-                   (modifiers '(SUPER SHIFT))
-                   (key "Left")
-                   (action '(dwl:tag-monitor DIRECTION_LEFT)))
-                 (dwl-key
-                   (modifiers '(SUPER SHIFT))
-                   (key "Right")
-                   (action '(dwl:tag-monitor DIRECTION_LEFT)))
                  (dwl-key
                    (modifiers '(SUPER SHIFT))
                    (key "Escape")
