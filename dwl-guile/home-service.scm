@@ -69,7 +69,7 @@
     ("MOZ_ENABLE_WAYLAND" . "1")
     ("ELM_ENGINE" . "wayland_egl")
     ("ECORE_EVAS_ENGINE" . "wayland-egl")
-    ("_JAVA_AWT_WM_NONPARENTING" . "1")))
+    ("_JAVA_AWT_WM_NONREPARENTING" . "1")))
 
 ; dwl service type configuration
 (define-configuration
