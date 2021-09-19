@@ -125,7 +125,11 @@
                  (dwl-key
                    (modifiers '())
                    (key "XF86AudioRaiseVolume")
-                   (action '(dwl:shcmd "pamixer -u -i 3")))))
+                   (action '(dwl:shcmd "pamixer -u -i 3")))
+                 (dwl-key
+                   (modifiers '())
+                   (key "XF86AudioMute")
+                   (action '(dwl:shcmd "pamixer -t")))))
 
 ; Default mouse button bindings
 (define-public %dwl-base-buttons
