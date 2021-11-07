@@ -254,9 +254,9 @@
         (service-extension
           home-shepherd-service-type
           home-dwl-guile-shepherd-service)
-        (service-extension
-          home-shell-profile-service-type
-          home-dwl-guile-run-on-tty-service)
+        ; (service-extension
+        ;   home-shell-profile-service-type
+        ;   home-dwl-guile-run-on-tty-service)
         (service-extension
           home-run-on-change-service-type
           home-dwl-guile-on-change-service)))
