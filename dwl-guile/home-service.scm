@@ -69,7 +69,11 @@
     ("MOZ_ENABLE_WAYLAND" . "1")
     ("ELM_ENGINE" . "wayland_egl")
     ("ECORE_EVAS_ENGINE" . "wayland-egl")
-    ("_JAVA_AWT_WM_NONREPARENTING" . "1")))
+    ("_JAVA_AWT_WM_NONREPARENTING" . "1")
+    ; TODO: This is a temporary fix to prevent dwl from crashing whenever
+    ;       a GTK application is launched. It can also be fixed by manually providing
+    ;       the correct $DISPLAY using input arguments, e.g. "emacs -d $DISPLAY".
+    ("GDK_BACKEND" . "x11")))
 
 ; dwl service type configuration
 (define-configuration
