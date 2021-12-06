@@ -13,7 +13,7 @@ index 058f82b..274dc9c 100644
  }
  
 diff --git a/dwl.c b/dwl.c
-index a73d684..6199b15 100644
+index 5d65b02..71ab093 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -104,6 +104,8 @@ typedef struct {
@@ -49,7 +49,7 @@ index a73d684..6199b15 100644
  static void chvt(const Arg *arg);
  static void cleanup(void);
  static void cleanupkeyboard(struct wl_listener *listener, void *data);
-@@ -372,6 +377,7 @@ static Atom netatom[NetLast];
+@@ -375,6 +380,7 @@ static Atom netatom[NetLast];
  #include "dscm-utils.h"
  #include "dscm-config.h"
  #include "dscm-bindings.h"
@@ -57,7 +57,7 @@ index a73d684..6199b15 100644
  
  /* compile-time check if all tags fit into an unsigned int bit array. */
  struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
-@@ -469,6 +475,7 @@ applyrules(Client *c)
+@@ -472,6 +478,7 @@ applyrules(Client *c)
  		if ((!r.title || strstr(title, r.title))
  				&& (!r.id || strstr(appid, r.id))) {
  			c->isfloating = r.isfloating;
@@ -65,7 +65,7 @@ index a73d684..6199b15 100644
  			newtags |= r.tags;
  			j = 0;
  			wl_list_for_each(m, &mons, link)
-@@ -678,6 +685,21 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -681,6 +688,21 @@ buttonpress(struct wl_listener *listener, void *data)
  			event->time_msec, event->button, event->state);
  }
  
@@ -87,7 +87,7 @@ index a73d684..6199b15 100644
  void
  chvt(const Arg *arg)
  {
-@@ -901,6 +923,7 @@ createnotify(struct wl_listener *listener, void *data)
+@@ -904,6 +926,7 @@ createnotify(struct wl_listener *listener, void *data)
  	c = xdg_surface->data = calloc(1, sizeof(*c));
  	c->surface.xdg = xdg_surface;
  	c->bw = borderpx;
@@ -95,7 +95,7 @@ index a73d684..6199b15 100644
  
  	/* Tell the client not to try anything fancy */
  	wlr_xdg_toplevel_set_tiled(c->surface.xdg, WLR_EDGE_TOP |
-@@ -1066,6 +1089,8 @@ setfullscreen(Client *c, int fullscreen)
+@@ -1069,6 +1092,8 @@ setfullscreen(Client *c, int fullscreen)
  		c->prevy = c->geom.y;
  		c->prevheight = c->geom.height;
  		c->prevwidth = c->geom.width;
@@ -104,7 +104,7 @@ index a73d684..6199b15 100644
  		resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height, 0);
  		wl_list_remove(&c->slink);
  		wl_list_insert(&stack, &c->slink);
-@@ -1073,6 +1098,7 @@ setfullscreen(Client *c, int fullscreen)
+@@ -1076,6 +1101,7 @@ setfullscreen(Client *c, int fullscreen)
  	} else {
  		/* restore previous size instead of arrange for floating windows since
  		 * client positions are set by the user and cannot be recalculated */
@@ -112,7 +112,7 @@ index a73d684..6199b15 100644
  		resize(c, c->prevx, c->prevy, c->prevwidth, c->prevheight, 0);
  		if (!c->isfloating) {
  			wl_list_remove(&c->slink);
-@@ -1680,7 +1706,7 @@ render(struct wlr_surface *surface, int sx, int sy, void *data)
+@@ -1684,7 +1710,7 @@ render(struct wlr_surface *surface, int sx, int sy, void *data)
  
  	/* This takes our matrix, the texture, and an alpha, and performs the actual
  	 * rendering on the GPU. */
@@ -121,7 +121,7 @@ index a73d684..6199b15 100644
  
  	/* This lets the client know that we've displayed that frame and it can
  	 * prepare another one now if it likes. */
-@@ -1735,6 +1761,7 @@ renderclients(Monitor *m, struct timespec *now)
+@@ -1739,6 +1765,7 @@ renderclients(Monitor *m, struct timespec *now)
  		rdata.when = now;
  		rdata.x = c->geom.x + c->bw;
  		rdata.y = c->geom.y + c->bw;
@@ -129,7 +129,7 @@ index a73d684..6199b15 100644
  		client_for_each_surface(c, render, &rdata);
  	}
  }
-@@ -1749,6 +1776,7 @@ renderlayer(struct wl_list *layer_surfaces, struct timespec *now)
+@@ -1753,6 +1780,7 @@ renderlayer(struct wl_list *layer_surfaces, struct timespec *now)
  			.when = now,
  			.x = layersurface->geo.x,
  			.y = layersurface->geo.y,
@@ -137,7 +137,7 @@ index a73d684..6199b15 100644
  		};
  
  		wlr_surface_for_each_surface(layersurface->layer_surface->surface,
-@@ -2483,6 +2511,7 @@ createnotifyx11(struct wl_listener *listener, void *data)
+@@ -2528,6 +2556,7 @@ createnotifyx11(struct wl_listener *listener, void *data)
  	c->type = xwayland_surface->override_redirect ? X11Unmanaged : X11Managed;
  	c->bw = borderpx;
  	c->isfullscreen = 0;
@@ -145,7 +145,7 @@ index a73d684..6199b15 100644
  
  	/* Listen to the various events it can emit */
  	LISTEN(&xwayland_surface->events.map, &c->map, mapnotify);
-@@ -2530,6 +2559,8 @@ renderindependents(struct wlr_output *output, struct timespec *now)
+@@ -2575,6 +2604,8 @@ renderindependents(struct wlr_output *output, struct timespec *now)
  		rdata.when = now;
  		rdata.x = c->surface.xwayland->x;
  		rdata.y = c->surface.xwayland->y;
@@ -154,14 +154,14 @@ index a73d684..6199b15 100644
  		wlr_surface_for_each_surface(c->surface.xwayland->surface, render, &rdata);
  	}
  }
-@@ -2614,7 +2645,9 @@ main(int argc, char *argv[])
+@@ -2659,7 +2690,9 @@ main(int argc, char *argv[])
                  BARF("error: config path must be set using '-c'");
          scm_init_guile();
          dscm_register();
 +        patch_alpha_register();
          dscm_config_parse(config_file);
 +        patch_alpha_config_parse();
- 	setup();
+ 	setup(config_file);
  	run(startup_cmd);
          dscm_config_cleanup();
 diff --git a/patch-alpha.h b/patch-alpha.h
