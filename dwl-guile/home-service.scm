@@ -10,11 +10,12 @@
                #:use-module (gnu packages wm)
                #:use-module (gnu packages qt)
                #:use-module (gnu packages freedesktop)
+               #:use-module ((gnu packages linux) #:select(procps))
+               #:use-module ((gnu packages admin) #:select(shepherd))
                #:use-module (gnu home services)
                #:use-module (gnu home services shells)
                #:use-module (gnu home services shepherd)
                #:use-module (gnu services configuration)
-               #:use-module ((gnu packages admin) #:select(shepherd))
                #:use-module (dwl-guile utils)
                #:use-module (dwl-guile patches)
                #:use-module (dwl-guile packages)
@@ -142,7 +143,7 @@
   "Return a <shepherd-service> for the dwl-guile service"
   (list
     (shepherd-service
-      (documentation "Run dwl-guile")
+      (documentation "Run dwl-guile.")
       (provision '(dwl-guile))
       (auto-start? #f)
       (start
@@ -164,13 +165,10 @@
             (home-dwl-guile-configuration-tty-number config))))
 
 ; TODO: Add option to disable this.
-;       Use signals instead? Killing dwl-guile is inefficient and
-;       it will close all of your windows. Perhaps we could even
-;       attach a file listener directly to dwl and re-parse the config
-;       when changed?
+; TODO: Use sheperd action for this?
 (define (home-dwl-guile-on-change-service config)
   `(("files/config/dwl-guile/config.scm"
-     ,#~(system* #$(file-append shepherd "/bin/herd") "restart" "dwl-guile"))))
+     ,#~(system* #$(file-append procps "/bin/pkill") "-RTMIN" "dwl-guile"))))
 
 (define (home-dwl-guile-files-service config)
   (let ((startup (home-dwl-guile-configuration-startup-commands config)))
