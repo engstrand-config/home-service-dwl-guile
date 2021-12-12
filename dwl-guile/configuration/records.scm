@@ -65,6 +65,9 @@
   (focus
     (rgb-color '(1.0 0.0 0.0 1.0))
     "Border focus color in RGBA format.")
+  (text
+    (rgb-color '(1.0 1.0 1.0 1.0))
+    "Text color in RGBA format.")
   (no-serialization))
 
 ; Application rule configuration
