@@ -92,6 +92,12 @@
   (alpha
     (number 0.9)
     "Default window transparency (0-1) for the application. Requires the @code{%patch-alpha} patch.")
+  (no-swallow
+    (boolean #f)
+    "If true, the application will NOT be swallowed. Requires the @code{%patch-swallow} patch.")
+  (terminal
+    (boolean #f)
+    "If true, this application can swallow child processes. Requires the @code{%patch-swallow} patch.")
   (no-serialization))
 
 ; https://xkbcommon.org/doc/current/structxkb__rule__names.html
