@@ -10,6 +10,9 @@
                          %patch-vanitygaps
                          %patch-monitor-config
                          %patch-focusmonpointer
+                         %patch-cyclelayouts
+                         %patch-movestack
+                         %patch-swallow
                          make-patch
                          list-of-local-files?))
 
@@ -32,3 +35,6 @@
 (define %patch-vanitygaps (make-patch "vanitygaps"))
 (define %patch-monitor-config (make-patch "monitor-config"))
 (define %patch-focusmonpointer (make-patch "focusmonpointer"))
+(define %patch-cyclelayouts (make-patch "cyclelayouts"))
+(define %patch-movestack (make-patch "movestack"))
+(define %patch-swallow (make-patch "swallow"))

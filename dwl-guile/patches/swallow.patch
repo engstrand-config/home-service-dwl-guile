@@ -1,0 +1,323 @@
+diff --git a/dscm-config.h b/dscm-config.h
+index ba586d1..953f2d6 100644
+--- a/dscm-config.h
++++ b/dscm-config.h
+@@ -79,7 +79,9 @@ dscm_parse_rule(unsigned int index, SCM rule, void *data)
+                 .title = dscm_alist_get_string(rule, "title"),
+                 .tags = dscm_alist_get_unsigned_int(rule, "tag", -1),
+                 .isfloating = dscm_alist_get_int(rule, "floating"),
+-                .monitor = dscm_alist_get_int(rule, "monitor")
++                .monitor = dscm_alist_get_int(rule, "monitor"),
++                .isterminal = dscm_alist_get_int(rule, "terminal"),
++                .noswallow = dscm_alist_get_int(rule, "no-swallow")
+          };
+ }
+ 
+diff --git a/dwl.c b/dwl.c
+index 0ef7a35..b9a1a2c 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -90,7 +90,8 @@ typedef struct {
+ } Button;
+ 
+ typedef struct Monitor Monitor;
+-typedef struct {
++typedef struct Client Client;
++struct Client {
+ 	struct wl_list link;
+ 	struct wl_list flink;
+ 	struct wl_list slink;
+@@ -121,7 +122,11 @@ typedef struct {
+ 	int prevwidth;
+ 	int prevheight;
+ 	int isfullscreen;
+-} Client;
++        int isterminal, noswallow;
++        pid_t pid;
++        Client *swallowing;
++        Client *swallowedby;
++};
+ 
+ typedef struct {
+ 	struct wl_list link;
+@@ -227,6 +232,7 @@ typedef struct {
+ 	char *title;
+ 	unsigned int tags;
+ 	int isfloating;
++	int isterminal, noswallow;
+ 	int monitor;
+ } Rule;
+ 
+@@ -259,7 +265,7 @@ static void applybounds(Client *c, struct wlr_box *bbox);
+ static void applyexclusive(struct wlr_box *usable_area, uint32_t anchor,
+ 		int32_t exclusive, int32_t margin_top, int32_t margin_right,
+ 		int32_t margin_bottom, int32_t margin_left);
+-static void applyrules(Client *c);
++static void applyrules(Client *c, int dosetmon);
+ static void arrange(Monitor *m);
+ static void arrangelayer(Monitor *m, struct wl_list *list,
+ 		struct wlr_box *usable_area, int exclusive);
+@@ -357,6 +363,10 @@ static void zoom(const Arg *arg);
+ /* signal actions */
+ static int reloadconfig(int signal, void *data);
+ 
++static pid_t getparentprocess(pid_t p);
++static int isdescprocess(pid_t p, pid_t c);
++static Client *termforwin(const Client *c);
++
+ /* variables */
+ static const char broken[] = "broken";
+ static struct wl_display *dpy;
+@@ -522,7 +532,7 @@ applyexclusive(struct wlr_box *usable_area,
+ }
+ 
+ void
+-applyrules(Client *c)
++applyrules(Client *c, int dosetmon)
+ {
+ 	/* rule matching */
+ 	const char *appid, *title;
+@@ -541,6 +551,8 @@ applyrules(Client *c)
+ 		if ((!r.title || strstr(title, r.title))
+ 				&& (!r.id || strstr(appid, r.id))) {
+ 			c->isfloating = r.isfloating;
++                        c->isterminal = r.isterminal;
++                        c->noswallow = r.noswallow;
+ 			newtags |= r.tags;
+ 			j = 0;
+ 			wl_list_for_each(m, &mons, link)
+@@ -549,7 +561,8 @@ applyrules(Client *c)
+ 		}
+ 	}
+ 	wl_list_insert(c->isfloating ? &stack : stack.prev, &c->slink);
+-	setmon(c, mon, newtags);
++        if (dosetmon)
++	        setmon(c, mon, newtags);
+ }
+ 
+ void
+@@ -981,7 +994,8 @@ createnotify(struct wl_listener *listener, void *data)
+ 	/* This event is raised when wlr_xdg_shell receives a new xdg surface from a
+ 	 * client, either a toplevel (application window) or popup. */
+ 	struct wlr_xdg_surface *xdg_surface = data;
+-	Client *c;
++	Client *c, *term;
++	void *tmpptr;
+ 
+ 	if (xdg_surface->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
+                 c = selclient();
+@@ -1001,16 +1015,41 @@ createnotify(struct wl_listener *listener, void *data)
+ 	c = xdg_surface->data = calloc(1, sizeof(*c));
+ 	c->surface.xdg = xdg_surface;
+ 	c->bw = borderpx;
+-
+-	/* LISTEN(&xdg_surface->surface->events.commit, &c->commit, commitnotify); */
+-	LISTEN(&xdg_surface->surface->events.new_subsurface, &c->new_sub, new_subnotify);
+-	LISTEN(&xdg_surface->events.map, &c->map, mapnotify);
+-	LISTEN(&xdg_surface->events.unmap, &c->unmap, unmapnotify);
+-	LISTEN(&xdg_surface->events.destroy, &c->destroy, destroynotify);
+-	LISTEN(&xdg_surface->toplevel->events.set_title, &c->set_title, updatetitle);
+-	LISTEN(&xdg_surface->toplevel->events.request_fullscreen, &c->fullscreen,
+-			fullscreennotify);
+ 	c->isfullscreen = 0;
++
++	wl_client_get_credentials(c->surface.xdg->client->client, &c->pid, NULL, NULL);
++	term = termforwin(c);
++
++	if (term) {
++		term->swallowing = c;
++		c->swallowedby = term;
++		c->mon = term->mon;
++
++		tmpptr = term->surface.xdg;
++		term->surface = c->surface;
++		c->surface.xdg = tmpptr;
++
++		wl_list_remove(&term->commit.link);
++		wl_list_remove(&term->unmap.link);
++		wl_list_remove(&term->destroy.link);
++
++                wl_signal_add(&xdg_surface->surface->events.commit, &term->commit);
++                wl_signal_add(&xdg_surface->events.unmap, &term->unmap);
++                wl_signal_add(&xdg_surface->events.destroy, &term->destroy);
++		wl_signal_add(&c->surface.xdg->events.destroy, &c->destroy);
++
++                resize(term, term->geom.x, term->geom.y, term->geom.width, term->geom.height, 0);
++		arrange(term->mon);
++	} else {
++                LISTEN(&xdg_surface->surface->events.commit, &c->commit, commitnotify);
++                LISTEN(&xdg_surface->events.map, &c->map, mapnotify);
++                LISTEN(&xdg_surface->surface->events.new_subsurface, &c->new_sub, new_subnotify);
++                LISTEN(&xdg_surface->events.unmap, &c->unmap, unmapnotify);
++                LISTEN(&xdg_surface->events.destroy, &c->destroy, destroynotify);
++                LISTEN(&xdg_surface->toplevel->events.set_title, &c->set_title, updatetitle);
++                LISTEN(&xdg_surface->toplevel->events.request_fullscreen, &c->fullscreen,
++                                fullscreennotify);
++	}
+ }
+ 
+ void
+@@ -1115,9 +1154,19 @@ destroynotify(struct wl_listener *listener, void *data)
+ 	if (c->mon)
+ 		wlr_output_damage_add_whole(c->mon->damage);
+ 
+-	wl_list_remove(&c->map.link);
++        if (c->swallowedby) {
++                c->swallowedby->swallowing = NULL;
++                wl_list_remove(&c->destroy.link);
++                free(c);
++                return;
++        }
++
++        if (!c->swallowing)
++                wl_list_remove(&c->map.link);
++
+ 	wl_list_remove(&c->unmap.link);
+ 	wl_list_remove(&c->destroy.link);
++
+ 	if (client_is_unmanaged(c)) {
+ #ifdef XWAYLAND
+ 		wl_list_remove(&c->configure.link);
+@@ -1130,9 +1179,22 @@ destroynotify(struct wl_listener *listener, void *data)
+ 	} else {
+ 		wl_list_remove(&c->commit.link);
+ 	}
+-	wl_list_remove(&c->set_title.link);
+-	wl_list_remove(&c->fullscreen.link);
+-	free(c);
++
++        if (c->swallowing) {
++		wl_list_remove(&c->swallowing->destroy.link);
++		c->surface.xdg = c->swallowing->surface.xdg;
++		free(c->swallowing);
++		c->swallowing = NULL;
++
++		resize(c, c->geom.x, c->geom.y, c->geom.width, c->geom.height, 0);
++		wl_signal_add(&c->surface.xdg->surface->events.commit, &c->commit);
++		wl_signal_add(&c->surface.xdg->surface->events.destroy, &c->destroy);
++		wl_signal_add(&c->surface.xdg->events.unmap, &c->unmap);
++        } else {
++                wl_list_remove(&c->set_title.link);
++                wl_list_remove(&c->fullscreen.link);
++	        free(c);
++        }
+ }
+ 
+ void
+@@ -1446,7 +1508,7 @@ mapnotify(struct wl_listener *listener, void *data)
+ 	client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT | WLR_EDGE_RIGHT);
+ 
+ 	/* Set initial monitor, tags, floating status, and focus */
+-	applyrules(c);
++	applyrules(c, 1);
+ 
+ 	// Damage the whole screen
+ 	wlr_output_damage_add_whole(c->mon->damage);
+@@ -2145,6 +2207,7 @@ setmon(Client *c, Monitor *m, unsigned int newtags)
+ 		c->tags = newtags ? newtags : m->tagset[m->seltags]; /* assign tags of target monitor */
+ 		arrange(m);
+ 	}
++
+ 	focusclient(focustop(selmon), 1);
+ }
+ 
+@@ -2505,6 +2568,9 @@ unmapnotify(struct wl_listener *listener, void *data)
+ 	/* Called when the surface is unmapped, and should no longer be shown. */
+ 	Client *c = wl_container_of(listener, c, unmap);
+ 
++        if (c->swallowing)
++                return;
++
+ 	// Damage the whole screen
+ 	if (c->mon)
+ 		wlr_output_damage_add_whole(c->mon->damage);
+@@ -2620,6 +2686,48 @@ virtualkeyboard(struct wl_listener *listener, void *data)
+ 	createkeyboard(device);
+ }
+ 
++pid_t
++getparentprocess(pid_t p)
++{
++        unsigned int v = 0;
++
++        FILE *f;
++        char buf[256];
++        snprintf(buf, sizeof(buf) - 1, "/proc/%u/stat", (unsigned)p);
++
++        if (!(f = fopen(buf, "r")))
++                return 0;
++
++        fscanf(f, "%*u %*s %*c %u", &v);
++        fclose(f);
++
++        return (pid_t)v;
++}
++
++int
++isdescprocess(pid_t p, pid_t c)
++{
++        while (p != c && c != 0)
++                c = getparentprocess(c);
++
++        return (int)c;
++}
++
++Client *
++termforwin(const Client *w)
++{
++        Client *c;
++
++        if (!w->pid || w->isterminal || w->noswallow)
++                return NULL;
++
++        wl_list_for_each(c, &stack, slink)
++                if (c->isterminal && !c->swallowing && c->pid && isdescprocess(c->pid, w->pid))
++                        return c;
++
++        return NULL;
++}
++
+ Client *
+ xytoclient(double x, double y)
+ {
+@@ -2735,23 +2843,23 @@ createnotifyx11(struct wl_listener *listener, void *data)
+ 	c->bw = borderpx;
+ 	c->isfullscreen = 0;
+ 
+-	/* Listen to the various events it can emit */
+-	if (c->type == X11Managed) {
+-		LISTEN(&xwayland_surface->events.map, &c->map, mapnotify);
+-		LISTEN(&xwayland_surface->events.request_activate, &c->activate,
+-				activatex11);
+-		LISTEN(&xwayland_surface->events.set_title, &c->set_title, updatetitle);
+-		LISTEN(&xwayland_surface->events.request_fullscreen, &c->fullscreen,
+-				fullscreennotify);
+-	}
+-	else {
+-		LISTEN(&xwayland_surface->events.map, &c->map, mapnotify_unmanaged);
+-	}
+-	LISTEN(&xwayland_surface->events.unmap, &c->unmap, unmapnotify);
+-	LISTEN(&xwayland_surface->events.request_configure, &c->configure,
+-			configurex11);
+-	LISTEN(&xwayland_surface->events.set_title, &c->set_title, updatetitle);
+-	LISTEN(&xwayland_surface->events.destroy, &c->destroy, destroynotify);
++        /* Listen to the various events it can emit */
++        if (c->type == X11Managed) {
++                LISTEN(&xwayland_surface->events.map, &c->map, mapnotify);
++                LISTEN(&xwayland_surface->events.request_activate, &c->activate,
++                                activatex11);
++                LISTEN(&xwayland_surface->events.set_title, &c->set_title, updatetitle);
++                LISTEN(&xwayland_surface->events.request_fullscreen, &c->fullscreen,
++                                fullscreennotify);
++        }
++        else {
++                LISTEN(&xwayland_surface->events.map, &c->map, mapnotify_unmanaged);
++        }
++        LISTEN(&xwayland_surface->events.unmap, &c->unmap, unmapnotify);
++        LISTEN(&xwayland_surface->events.request_configure, &c->configure,
++                        configurex11);
++        LISTEN(&xwayland_surface->events.set_title, &c->set_title, updatetitle);
++        LISTEN(&xwayland_surface->events.destroy, &c->destroy, destroynotify);
+ }
+ 
+ void

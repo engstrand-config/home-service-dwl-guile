@@ -1,0 +1,75 @@
+diff --git a/dwl.c b/dwl.c
+index 0ef7a35..c61ed93 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -280,6 +280,7 @@ static void createnotify(struct wl_listener *listener, void *data);
+ static void createlayersurface(struct wl_listener *listener, void *data);
+ static void createpointer(struct wlr_input_device *device);
+ static void cursorframe(struct wl_listener *listener, void *data);
++static void cyclelayout(const Arg *arg);
+ static void destroylayersurfacenotify(struct wl_listener *listener, void *data);
+ static void destroynotify(struct wl_listener *listener, void *data);
+ static void destroynotify_sub(struct wl_listener *listener, void *data);
+@@ -446,6 +447,7 @@ static Atom netatom[NetLast];
+ #include "dscm-utils.h"
+ #include "dscm-config.h"
+ #include "dscm-bindings.h"
++#include "patch-cyclelayouts.h"
+ 
+ /* function implementations */
+ void
+@@ -1082,6 +1084,25 @@ cursorframe(struct wl_listener *listener, void *data)
+ 	wlr_seat_pointer_notify_frame(seat);
+ }
+ 
++void
++cyclelayout(const Arg *arg)
++{
++	Layout *l;
++        unsigned int index = 0;
++	for (l = (Layout *)layouts; l != selmon->lt[selmon->sellt]; l++, index++);
++        if (arg->i > 0) {
++            if (index < (numlayouts - 1))
++                    setlayout(&((Arg) {.v = (l + 1)}));
++            else
++                    setlayout(&((Arg) {.v = layouts}));
++        } else {
++            if (index > 0)
++                    setlayout(&((Arg) {.v = (l - 1)}));
++            else
++                    setlayout(&((Arg) {.v = &layouts[numlayouts - 1]}));
++        }
++}
++
+ void
+ destroylayersurfacenotify(struct wl_listener *listener, void *data)
+ {
+@@ -3108,6 +3129,7 @@ main(int argc, char *argv[])
+                 BARF("error: config path must be set using '-c'");
+         scm_init_guile();
+         dscm_register();
++        patch_cyclelayouts_register();
+         dscm_config_parse(config_file);
+ 	setup(config_file);
+ 	run(startup_cmd);
+diff --git a/patch-cyclelayouts.h b/patch-cyclelayouts.h
+new file mode 100644
+index 0000000..22d57f8
+--- /dev/null
++++ b/patch-cyclelayouts.h
+@@ -0,0 +1,15 @@
++static inline SCM
++dscm_binding_cyclelayout(SCM direction)
++{
++        Arg a = {.i = 1};
++        if (scm_is_number(direction))
++                a.i = scm_to_int(direction);
++        cyclelayout(&a);
++        return SCM_BOOL_T;
++}
++
++static inline void
++patch_cyclelayouts_register()
++{
++        scm_c_define_gsubr("dwl:cycle-layout", 0, 1, 0, &dscm_binding_cyclelayout);
++}
