@@ -24,8 +24,7 @@
 ; Default layouts
 (define-public %dwl-base-layouts
                (list %dwl-layout-tile
-                     %dwl-layout-monocle
-                     %dwl-layout-floating))
+                     %dwl-layout-monocle))
 
 ; Default monitor rules
 (define-public %dwl-base-monitor-rules
