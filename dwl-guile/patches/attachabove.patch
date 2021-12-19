@@ -1,18 +1,13 @@
 diff --git a/dwl.c b/dwl.c
-index 5d65b02..80172a7 100644
+index 0ef7a35..47a96a0 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -1341,7 +1341,7 @@ void
+@@ -1432,11 +1432,16 @@ void
  mapnotify(struct wl_listener *listener, void *data)
  {
  	/* Called when the surface is mapped, or ready to display on-screen. */
 -	Client *c = wl_container_of(listener, c, map);
 +	Client *c = wl_container_of(listener, c, map), *oldfocus = selclient();
- 
- 	if (client_is_unmanaged(c)) {
- 		/* Insert this independent into independents lists. */
-@@ -1350,8 +1350,13 @@ mapnotify(struct wl_listener *listener, void *data)
- 	}
  
  	/* Insert this client into client lists. */
 -	wl_list_insert(&clients, &c->link);

@@ -1,8 +1,8 @@
 diff --git a/dwl.c b/dwl.c
-index 5d65b02..e8b6c56 100644
+index 0ef7a35..5f0331f 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -1172,6 +1172,7 @@ focusmon(const Arg *arg)
+@@ -1271,6 +1271,7 @@ focusmon(const Arg *arg)
  		selmon = dirtomon(arg->i);
  	while (!selmon->wlr_output->enabled);
  	focusclient(focustop(selmon), 1);

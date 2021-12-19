@@ -11,10 +11,10 @@ index 0dde90e..b261fc3 100644
 +*.patch
 +patches
 diff --git a/Makefile b/Makefile
-index a0d1cc3..691ec14 100644
+index a0d1cc3..99d36a0 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -1,12 +1,12 @@
+@@ -1,16 +1,27 @@
  include config.mk
  
 -CFLAGS += -I. -DWLR_USE_UNSTABLE -std=c99
@@ -25,23 +25,54 @@ index a0d1cc3..691ec14 100644
  
 -PKGS = wlroots wayland-server xcb xkbcommon libinput
 -CFLAGS += $(foreach p,$(PKGS),$(shell pkg-config --cflags $(p)))
-+PKGS = wlroots wayland-server xcb xkbcommon libinput guile-3.0
-+CFLAGS += $(foreach p,$(PKGS),$(shell pkg-config --cflags $(p))) -DWLR_USE_UNSTABLE
++PKGS = wlroots wayland-server xcb xkbcommon libinput guile-3.0 pixman-1
++CFLAGS += $(foreach p,$(PKGS),$(shell pkg-config --cflags $(p))) -DWLR_USE_UNSTABLE -Wno-error=implicit-function-declaration
  LDLIBS += $(foreach p,$(PKGS),$(shell pkg-config --libs $(p)))
  
  all: dwl
-@@ -44,10 +44,7 @@ idle-protocol.c:
+ 
++clean:
++	rm -f dwl *.o *-protocol.h *-protocol.c
++
++install: dwl
++	install -D dwl $(PREFIX)/bin/dwl
++
++uninstall:
++	rm -f $(PREFIX)/bin/dwl
++
++.PHONY: all clean install uninstall
++
+ # wayland-scanner is a tool which generates C headers and rigging for Wayland
+ # protocols, which are specified in XML. wlroots requires you to rig these up
+ # to your build system yourself and provide them in the include path.
+@@ -44,18 +55,16 @@ idle-protocol.c:
  
  idle-protocol.o: idle-protocol.h
  
 -config.h: | config.def.h
 -	cp config.def.h $@
--
++dscm-unstable-v1-protocol.h:
++	$(WAYLAND_SCANNER) server-header \
++		protocols/dscm-unstable-v1.xml $@
+ 
 -dwl.o: config.h client.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h idle-protocol.h
-+dwl.o: dscm-utils.h dscm-bindings.h dscm-config.h client.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h idle-protocol.h
++dscm-unstable-v1-protocol.c:
++	$(WAYLAND_SCANNER) private-code \
++		protocols/dscm-unstable-v1.xml $@
  
- dwl: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o idle-protocol.o
+-dwl: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o idle-protocol.o
++dscm-unstable-v1-protocol.o: dscm-unstable-v1-protocol.h
  
+-clean:
+-	rm -f dwl *.o *-protocol.h *-protocol.c
+-
+-install: dwl
+-	install -D dwl $(PREFIX)/bin/dwl
++dwl.o: dscm-utils.h dscm-bindings.h dscm-config.h client.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h idle-protocol.h dscm-unstable-v1-protocol.h
+ 
+-.DEFAULT_GOAL=dwl
+-.PHONY: clean
++dwl: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o idle-protocol.o dscm-unstable-v1-protocol.o
 diff --git a/README.md b/README.md
 index 22dfa07..43346d1 100644
 --- a/README.md
@@ -128,6 +159,28 @@ index 22dfa07..43346d1 100644
 +dwl-guile is a patch to dwl that adds dynamic configuration using Guile. It
 +integrates with GNU Guix as a home service (see
 +[home-service-dwl-guile](https://github.com/engstrand-config/home-service-dwl-guile)).
+diff --git a/client.h b/client.h
+index f4735c2..56e3089 100644
+--- a/client.h
++++ b/client.h
+@@ -141,6 +141,17 @@ client_set_size(Client *c, uint32_t width, uint32_t height)
+ 	return wlr_xdg_toplevel_set_size(c->surface.xdg, width, height);
+ }
+ 
++static inline void
++client_set_tiled(Client *c, uint32_t edges)
++{
++#ifdef XWAYLAND
++	if (client_is_x11(c))
++		return;
++#endif
++	wlr_xdg_toplevel_set_tiled(c->surface.xdg, WLR_EDGE_TOP |
++			WLR_EDGE_BOTTOM | WLR_EDGE_LEFT | WLR_EDGE_RIGHT);
++}
++
+ static inline struct wlr_surface *
+ client_surface(Client *c)
+ {
 diff --git a/config.def.h b/config.def.h
 deleted file mode 100644
 index 089aa37..0000000
@@ -252,10 +305,10 @@ index 089aa37..0000000
 -};
 diff --git a/dscm-bindings.h b/dscm-bindings.h
 new file mode 100644
-index 0000000..9d104f5
+index 0000000..10489d2
 --- /dev/null
 +++ b/dscm-bindings.h
-@@ -0,0 +1,268 @@
+@@ -0,0 +1,276 @@
 +static inline SCM
 +dscm_binding_monocle(SCM monitor)
 +{
@@ -410,6 +463,13 @@ index 0000000..9d104f5
 +}
 +
 +static inline SCM
++dscm_binding_viewprev(SCM value)
++{
++        viewprev(NULL);
++        return SCM_BOOL_T;
++}
++
++static inline SCM
 +dscm_binding_toggleview(SCM value)
 +{
 +        Arg a = {.ui = dscm_get_tag(value, numtags)};
@@ -507,6 +567,7 @@ index 0000000..9d104f5
 +        scm_c_define_gsubr("dwl:monocle", 1, 0, 0, &dscm_binding_monocle);
 +        scm_c_define_gsubr("dwl:spawn", 0, 0, 1, &dscm_binding_spawn);
 +        scm_c_define_gsubr("dwl:view", 1, 0, 0, &dscm_binding_view);
++        scm_c_define_gsubr("dwl:view-previous", 0, 0, 0, &dscm_binding_viewprev);
 +        scm_c_define_gsubr("dwl:toggle-view", 1, 0, 0, &dscm_binding_toggleview);
 +        scm_c_define_gsubr("dwl:tag", 1, 0, 0, &dscm_binding_tag);
 +        scm_c_define_gsubr("dwl:toggle-tag", 1, 0, 0, &dscm_binding_toggletag);
@@ -526,10 +587,10 @@ index 0000000..9d104f5
 +}
 diff --git a/dscm-config.h b/dscm-config.h
 new file mode 100644
-index 0000000..058f82b
+index 0000000..ba586d1
 --- /dev/null
 +++ b/dscm-config.h
-@@ -0,0 +1,196 @@
+@@ -0,0 +1,200 @@
 +#pragma once
 +
 +SCM config;
@@ -545,6 +606,7 @@ index 0000000..058f82b
 +static float *rootcolor         = NULL;
 +static float *bordercolor       = NULL;
 +static float *focuscolor        = NULL;
++static float *textcolor         = NULL;
 +static char **tags              = NULL;
 +static char **termcmd           = NULL;
 +static char **menucmd           = NULL;
@@ -676,6 +738,8 @@ index 0000000..058f82b
 +                sizeof(float), 0, &dscm_parse_color, NULL);
 +        focuscolor = dscm_iterate_list(dscm_alist_get(colors, "focus"),
 +                sizeof(float), 0, &dscm_parse_color, NULL);
++        textcolor = dscm_iterate_list(dscm_alist_get(colors, "text"),
++                sizeof(float), 0, &dscm_parse_color, NULL);
 +        tags = dscm_iterate_list(dscm_alist_get(config, "tags"),
 +                sizeof(char*), 0, &dscm_parse_string, &numtags);
 +        termcmd = dscm_iterate_list(dscm_alist_get(config, "terminal"),
@@ -719,6 +783,7 @@ index 0000000..058f82b
 +        free(rootcolor);
 +        free(bordercolor);
 +        free(focuscolor);
++        free(textcolor);
 +        free((char*)xkb_rules->rules);
 +        free((char*)xkb_rules->model);
 +        free((char*)xkb_rules->layout);
@@ -895,18 +960,45 @@ index 0000000..57800d6
 +        scm_c_with_continuation_barrier(func, &proc_data);
 +}
 diff --git a/dwl.c b/dwl.c
-index 0deae84..5d65b02 100644
+index 0deae84..0ef7a35 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -42,6 +42,7 @@
+@@ -26,27 +26,34 @@
+ #include <wlr/types/wlr_keyboard.h>
+ #include <wlr/types/wlr_matrix.h>
+ #include <wlr/types/wlr_output.h>
++#include <wlr/types/wlr_output_damage.h>
+ #include <wlr/types/wlr_output_layout.h>
+ #include <wlr/types/wlr_output_management_v1.h>
+ #include <wlr/types/wlr_pointer.h>
++#include <wlr/types/wlr_presentation_time.h>
+ #include <wlr/types/wlr_primary_selection.h>
+ #include <wlr/types/wlr_primary_selection_v1.h>
+ #include <wlr/types/wlr_screencopy_v1.h>
++#include <wlr/types/wlr_server_decoration.h>
+ #include <wlr/types/wlr_seat.h>
+ #include <wlr/types/wlr_viewporter.h>
+ #include <wlr/types/wlr_virtual_keyboard_v1.h>
+ #include <wlr/types/wlr_xcursor_manager.h>
++#include <wlr/types/wlr_xdg_activation_v1.h>
+ #include <wlr/types/wlr_xdg_decoration_v1.h>
+ #include <wlr/types/wlr_xdg_output_v1.h>
+ #include <wlr/types/wlr_xdg_shell.h>
  #include <wlr/backend/libinput.h>
  #include <wlr/util/log.h>
  #include <xkbcommon/xkbcommon.h>
 +#include <libguile.h>
++#include "dscm-unstable-v1-protocol.h"
  #ifdef XWAYLAND
  #include <X11/Xlib.h>
  #include <wlr/xwayland.h>
-@@ -55,8 +56,6 @@
+ #endif
+ 
++
+ /* macros */
+ #define BARF(fmt, ...)		do { fprintf(stderr, fmt "\n", ##__VA_ARGS__); exit(EXIT_FAILURE); } while (0)
+ #define EBARF(fmt, ...)		BARF(fmt ": %s", ##__VA_ARGS__, strerror(errno))
+@@ -55,11 +62,12 @@
  #define CLEANMASK(mask)         (mask & ~WLR_MODIFIER_CAPS)
  #define VISIBLEON(C, M)         ((C)->mon == (M) && ((C)->tags & (M)->tagset[(M)->seltags]))
  #define LENGTH(X)               (sizeof X / sizeof X[0])
@@ -915,7 +1007,13 @@ index 0deae84..5d65b02 100644
  #define ROUND(X)                ((int)((X)+0.5))
  #define LISTEN(E, L, H)         wl_signal_add((E), ((L)->notify = (H), (L)))
  
-@@ -72,14 +71,13 @@ typedef union {
++/* constants */
++#define HEXLENGTH                9
++
+ /* enums */
+ enum { CurNormal, CurMove, CurResize }; /* cursor */
+ #ifdef XWAYLAND
+@@ -72,14 +80,13 @@ typedef union {
  	int i;
  	unsigned int ui;
  	float f;
@@ -932,7 +1030,45 @@ index 0deae84..5d65b02 100644
  } Button;
  
  typedef struct Monitor Monitor;
-@@ -121,9 +119,8 @@ typedef struct {
+@@ -92,9 +99,11 @@ typedef struct {
+ 		struct wlr_xwayland_surface *xwayland;
+ 	} surface;
+ 	struct wl_listener commit;
++	struct wl_listener new_sub;
+ 	struct wl_listener map;
+ 	struct wl_listener unmap;
+ 	struct wl_listener destroy;
++	struct wl_listener set_title;
+ 	struct wl_listener fullscreen;
+ 	struct wlr_box geom;  /* layout-relative, includes border */
+ 	Monitor *mon;
+@@ -105,7 +114,7 @@ typedef struct {
+ #endif
+ 	int bw;
+ 	unsigned int tags;
+-	int isfloating;
++	int isfloating, isurgent;
+ 	uint32_t resize; /* configure serial of a pending resize */
+ 	int prevx;
+ 	int prevy;
+@@ -114,6 +123,16 @@ typedef struct {
+ 	int isfullscreen;
+ } Client;
+ 
++typedef struct {
++	struct wl_list link;
++	struct wl_listener commit;
++	struct wl_listener map;
++	struct wl_listener unmap;
++	struct wl_listener destroy;
++	struct wlr_subsurface *subsurface;
++	Client *c;
++} Subsurface;
++
+ typedef struct {
+ 	struct wl_listener request_mode;
+ 	struct wl_listener destroy;
+@@ -121,9 +140,8 @@ typedef struct {
  
  typedef struct {
  	uint32_t mod;
@@ -944,7 +1080,15 @@ index 0deae84..5d65b02 100644
  } Key;
  
  typedef struct {
-@@ -157,8 +154,9 @@ typedef struct {
+@@ -146,6 +164,7 @@ typedef struct {
+ 
+ 	struct wlr_box geo;
+ 	enum zwlr_layer_shell_v1_layer layer;
++	Monitor *mon;
+ } LayerSurface;
+ 
+ typedef struct {
+@@ -157,10 +176,22 @@ typedef struct {
  } Edge;
  
  typedef struct {
@@ -955,8 +1099,33 @@ index 0deae84..5d65b02 100644
 +        char *id;
  } Layout;
  
++typedef struct {
++	struct wl_list link;
++	struct wl_resource *resource;
++} DscmClient;
++
++typedef struct {
++	struct wl_list link;
++	struct wl_resource *resource;
++	struct Monitor *monitor;
++} DscmMonitor;
++
  struct Monitor {
-@@ -178,7 +176,7 @@ struct Monitor {
+ 	struct wl_list link;
+ 	struct wlr_output *wlr_output;
+@@ -169,16 +200,19 @@ struct Monitor {
+ 	struct wlr_box m;      /* monitor area, layout-relative */
+ 	struct wlr_box w;      /* window area, layout-relative */
+ 	struct wl_list layers[4]; // LayerSurface::link
++	struct wl_list dscm;
+ 	const Layout *lt[2];
+ 	unsigned int seltags;
+ 	unsigned int sellt;
+ 	unsigned int tagset[2];
++        unsigned int prevtagset;
+ 	double mfact;
+ 	int nmaster;
++	struct wlr_output_damage *damage;
  };
  
  typedef struct {
@@ -965,7 +1134,7 @@ index 0deae84..5d65b02 100644
  	float mfact;
  	int nmaster;
  	float scale;
-@@ -189,8 +187,8 @@ typedef struct {
+@@ -189,8 +223,8 @@ typedef struct {
  } MonitorRule;
  
  typedef struct {
@@ -976,8 +1145,52 @@ index 0deae84..5d65b02 100644
  	unsigned int tags;
  	int isfloating;
  	int monitor;
-@@ -242,7 +240,7 @@ static Client *focustop(Monitor *m);
- static void getxdecomode(struct wl_listener *listener, void *data);
+@@ -204,6 +238,22 @@ struct render_data {
+ 	int x, y; /* layout-relative */
+ };
+ 
++/* dscm protocol */
++static void dscm_sendevents(void);
++static void dscm_sendeventsclient(DscmClient *c);
++static void dscm_rgbatostr(char *buf, float *color);
++static void dscm_closemon(struct wl_client *client, struct wl_resource *resource);
++static void dscm_destroymon(struct wl_resource *resource);
++static void dscm_printstatusmon(Monitor *m, const DscmMonitor *mon);
++static void dscm_printstatus(Monitor *m);
++static void dscm_settags(struct wl_client *client, struct wl_resource *resource, uint32_t t, uint32_t toggle_tagset);
++static void dscm_setlayout(struct wl_client *client, struct wl_resource *resource, uint32_t layout);
++static void dscm_setclient(struct wl_client *client, struct wl_resource *resource, uint32_t and, uint32_t xor);
++static void dscm_release(struct wl_client *client, struct wl_resource *resource);
++static void dscm_getmon(struct wl_client *client, struct wl_resource *resource, uint32_t id, struct wl_resource *output);
++static void dscm_destroy(struct wl_resource *resource);
++static void dscm_bind(struct wl_client *client, void *data, uint32_t version, uint32_t id);
++
+ /* function declarations */
+ static void applybounds(Client *c, struct wlr_box *bbox);
+ static void applyexclusive(struct wlr_box *usable_area, uint32_t anchor,
+@@ -223,36 +273,37 @@ static void cleanupmon(struct wl_listener *listener, void *data);
+ static void closemon(Monitor *m);
+ static void commitlayersurfacenotify(struct wl_listener *listener, void *data);
+ static void commitnotify(struct wl_listener *listener, void *data);
++static void commitnotify_sub(struct wl_listener *listener, void *data);
+ static void createkeyboard(struct wlr_input_device *device);
+ static void createmon(struct wl_listener *listener, void *data);
+ static void createnotify(struct wl_listener *listener, void *data);
+ static void createlayersurface(struct wl_listener *listener, void *data);
+ static void createpointer(struct wlr_input_device *device);
+-static void createxdeco(struct wl_listener *listener, void *data);
+ static void cursorframe(struct wl_listener *listener, void *data);
+ static void destroylayersurfacenotify(struct wl_listener *listener, void *data);
+ static void destroynotify(struct wl_listener *listener, void *data);
+-static void destroyxdeco(struct wl_listener *listener, void *data);
++static void destroynotify_sub(struct wl_listener *listener, void *data);
+ static Monitor *dirtomon(enum wlr_direction dir);
+ static void focusclient(Client *c, int lift);
+ static void focusmon(const Arg *arg);
+ static void focusstack(const Arg *arg);
+ static void fullscreennotify(struct wl_listener *listener, void *data);
+ static Client *focustop(Monitor *m);
+-static void getxdecomode(struct wl_listener *listener, void *data);
  static void incnmaster(const Arg *arg);
  static void inputdevice(struct wl_listener *listener, void *data);
 -static int keybinding(uint32_t mods, xkb_keysym_t sym);
@@ -985,7 +1198,27 @@ index 0deae84..5d65b02 100644
  static void keypress(struct wl_listener *listener, void *data);
  static void keypressmod(struct wl_listener *listener, void *data);
  static void killclient(const Arg *arg);
-@@ -276,7 +274,7 @@ static void setfullscreen(Client *c, int fullscreen);
+ static void maplayersurfacenotify(struct wl_listener *listener, void *data);
+ static void mapnotify(struct wl_listener *listener, void *data);
++static void mapnotify_sub(struct wl_listener *listener, void *data);
+ static void monocle(Monitor *m);
+ static void motionabsolute(struct wl_listener *listener, void *data);
+ static void motionnotify(uint32_t time);
+ static void motionrelative(struct wl_listener *listener, void *data);
+ static void moveresize(const Arg *arg);
++static void new_subnotify(struct wl_listener *listener, void *data);
+ static void outputmgrapply(struct wl_listener *listener, void *data);
+ static void outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test);
+ static void outputmgrtest(struct wl_listener *listener, void *data);
+@@ -260,6 +311,7 @@ static void pointerfocus(Client *c, struct wlr_surface *surface,
+ 		double sx, double sy, uint32_t time);
+ static void printstatus(void);
+ static void quit(const Arg *arg);
++static void quitsignal(int signo);
+ static void render(struct wlr_surface *surface, int sx, int sy, void *data);
+ static void renderclients(Monitor *m, struct timespec *now);
+ static void renderlayer(struct wl_list *layer_surfaces, struct timespec *now);
+@@ -276,7 +328,7 @@ static void setfullscreen(Client *c, int fullscreen);
  static void setlayout(const Arg *arg);
  static void setmfact(const Arg *arg);
  static void setmon(Client *c, Monitor *m, unsigned int newtags);
@@ -994,7 +1227,20 @@ index 0deae84..5d65b02 100644
  static void sigchld(int unused);
  static void spawn(const Arg *arg);
  static void tag(const Arg *arg);
-@@ -298,6 +296,9 @@ static struct wlr_surface *xytolayersurface(struct wl_list *layer_surfaces,
+@@ -289,8 +341,12 @@ static void toggleview(const Arg *arg);
+ static void unmaplayersurface(LayerSurface *layersurface);
+ static void unmaplayersurfacenotify(struct wl_listener *listener, void *data);
+ static void unmapnotify(struct wl_listener *listener, void *data);
++static void unmapnotify_sub(struct wl_listener *listener, void *data);
+ static void updatemons(struct wl_listener *listener, void *data);
++static void updatetitle(struct wl_listener *listener, void *data);
++static void urgent(struct wl_listener *listener, void *data);
+ static void view(const Arg *arg);
++static void viewprev(const Arg *arg);
+ static void virtualkeyboard(struct wl_listener *listener, void *data);
+ static Client *xytoclient(double x, double y);
+ static struct wlr_surface *xytolayersurface(struct wl_list *layer_surfaces,
+@@ -298,6 +354,9 @@ static struct wlr_surface *xytolayersurface(struct wl_list *layer_surfaces,
  static Monitor *xytomon(double x, double y);
  static void zoom(const Arg *arg);
  
@@ -1004,7 +1250,70 @@ index 0deae84..5d65b02 100644
  /* variables */
  static const char broken[] = "broken";
  static struct wl_display *dpy;
-@@ -367,12 +368,14 @@ static struct wlr_xwayland *xwayland;
+@@ -306,22 +365,21 @@ static struct wlr_renderer *drw;
+ static struct wlr_compositor *compositor;
+ 
+ static struct wlr_xdg_shell *xdg_shell;
++static struct wlr_xdg_activation_v1 *activation;
+ static struct wl_list clients; /* tiling order */
+ static struct wl_list fstack;  /* focus order */
+ static struct wl_list stack;   /* stacking z-order */
+ static struct wl_list independents;
++static struct wl_list subsurfaces;
++static struct wl_list dscm_clients;
+ static struct wlr_idle *idle;
+ static struct wlr_layer_shell_v1 *layer_shell;
+-static struct wlr_xdg_decoration_manager_v1 *xdeco_mgr;
+ static struct wlr_output_manager_v1 *output_mgr;
++static struct wlr_presentation *presentation;
+ static struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard_mgr;
+ 
+ static struct wlr_cursor *cursor;
+ static struct wlr_xcursor_manager *cursor_mgr;
+-#ifdef XWAYLAND
+-static struct wlr_xcursor *xcursor;
+-static struct wlr_xcursor_manager *xcursor_mgr;
+-#endif
+ 
+ static struct wlr_seat *seat;
+ static struct wl_list keyboards;
+@@ -344,20 +402,34 @@ static struct wl_listener layout_change = {.notify = updatemons};
+ static struct wl_listener new_input = {.notify = inputdevice};
+ static struct wl_listener new_virtual_keyboard = {.notify = virtualkeyboard};
+ static struct wl_listener new_output = {.notify = createmon};
+-static struct wl_listener new_xdeco = {.notify = createxdeco};
+ static struct wl_listener new_xdg_surface = {.notify = createnotify};
+ static struct wl_listener new_layer_shell_surface = {.notify = createlayersurface};
+ static struct wl_listener output_mgr_apply = {.notify = outputmgrapply};
+ static struct wl_listener output_mgr_test = {.notify = outputmgrtest};
++static struct wl_listener request_activate = {.notify = urgent};
+ static struct wl_listener request_cursor = {.notify = setcursor};
+ static struct wl_listener request_set_psel = {.notify = setpsel};
+ static struct wl_listener request_set_sel = {.notify = setsel};
+ 
++/* dscm event handlers */
++static struct dscm_monitor_v1_interface dscm_monitor_implementation = {
++	.release = dscm_closemon,
++	.set_tags = dscm_settags,
++	.set_layout = dscm_setlayout,
++	.set_client_tags = dscm_setclient,
++};
++static struct dscm_v1_interface dscm_implementation = {
++	.release = dscm_release,
++	.get_monitor = dscm_getmon,
++};
++
+ #ifdef XWAYLAND
+ static void activatex11(struct wl_listener *listener, void *data);
+ static void configurex11(struct wl_listener *listener, void *data);
+ static void createnotifyx11(struct wl_listener *listener, void *data);
++void commitnotifyx11(struct wl_listener *listener, void *data);
+ static Atom getatom(xcb_connection_t *xc, const char *name);
++static void mapnotify_unmanaged(struct wl_listener *listener, void *data);
+ static void renderindependents(struct wlr_output *output, struct timespec *now);
+ static void xwaylandready(struct wl_listener *listener, void *data);
+ static Client *xytoindependent(double x, double y);
+@@ -367,14 +439,13 @@ static struct wlr_xwayland *xwayland;
  static Atom netatom[NetLast];
  #endif
  
@@ -1014,15 +1323,26 @@ index 0deae84..5d65b02 100644
  /* attempt to encapsulate suck into one file */
  #include "client.h"
  
+-/* compile-time check if all tags fit into an unsigned int bit array. */
+-struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
 +/* include guile config and bindings */
 +#include "dscm-utils.h"
 +#include "dscm-config.h"
 +#include "dscm-bindings.h"
-+
- /* compile-time check if all tags fit into an unsigned int bit array. */
- struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
  
-@@ -454,8 +457,8 @@ applyrules(Client *c)
+ /* function implementations */
+ void
+@@ -398,7 +469,8 @@ void
+ applyexclusive(struct wlr_box *usable_area,
+ 		uint32_t anchor, int32_t exclusive,
+ 		int32_t margin_top, int32_t margin_right,
+-		int32_t margin_bottom, int32_t margin_left) {
++		int32_t margin_bottom, int32_t margin_left)
++{
+ 	Edge edges[] = {
+ 		{ // Top
+ 			.singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP,
+@@ -454,8 +526,8 @@ applyrules(Client *c)
  {
  	/* rule matching */
  	const char *appid, *title;
@@ -1033,7 +1353,7 @@ index 0deae84..5d65b02 100644
  	Monitor *mon = selmon, *m;
  
  	c->isfloating = client_is_float_type(c);
-@@ -464,32 +467,34 @@ applyrules(Client *c)
+@@ -464,32 +536,35 @@ applyrules(Client *c)
  	if (!(title = client_get_title(c)))
  		title = broken;
  
@@ -1068,6 +1388,7 @@ index 0deae84..5d65b02 100644
 +        if (m->lt[m->sellt]->arrange)
 +                dscm_safe_call(DSCM_CALL_ARRANGE, m->lt[m->sellt]->arrange, m);
  	/* TODO recheck pointer focus here... or in resize()? */
++	wlr_output_damage_add_whole(m->damage);
  }
  
  void
@@ -1078,7 +1399,7 @@ index 0deae84..5d65b02 100644
  	struct wlr_box full_area = m->m;
  
  	wl_list_for_each(layersurface, list, link) {
-@@ -635,7 +640,7 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -635,7 +710,7 @@ buttonpress(struct wl_listener *listener, void *data)
  	struct wlr_keyboard *keyboard;
  	uint32_t mods;
  	Client *c;
@@ -1087,7 +1408,7 @@ index 0deae84..5d65b02 100644
  
  	wlr_idle_notify_activity(idle, seat);
  
-@@ -647,10 +652,11 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -647,10 +722,11 @@ buttonpress(struct wl_listener *listener, void *data)
  
  		keyboard = wlr_seat_get_keyboard(seat);
  		mods = wlr_keyboard_get_modifiers(keyboard);
@@ -1103,27 +1424,89 @@ index 0deae84..5d65b02 100644
  				return;
  			}
  		}
-@@ -788,7 +794,7 @@ createkeyboard(struct wlr_input_device *device)
+@@ -714,6 +790,7 @@ void
+ cleanupmon(struct wl_listener *listener, void *data)
+ {
+ 	struct wlr_output *wlr_output = data;
++	DscmMonitor *mon, *montmp;
+ 	Monitor *m = wlr_output->data;
+ 	int nmons, i = 0;
+ 
+@@ -721,11 +798,18 @@ cleanupmon(struct wl_listener *listener, void *data)
+ 	wl_list_remove(&m->frame.link);
+ 	wl_list_remove(&m->link);
+ 	wlr_output_layout_remove(output_layout, m->wlr_output);
++	wl_list_for_each_safe(mon, montmp, &m->dscm, link) {
++		wl_resource_set_user_data(mon->resource, NULL);
++		free(mon);
++	}
++
++        // Fix crash when disconnecting the last monitor
++        if ((nmons = wl_list_length(&mons))) {
++                do // don't switch to disabled mons
++                        selmon = wl_container_of(mons.prev, selmon, link);
++                while (!selmon->wlr_output->enabled && i++ < nmons);
++        }
+ 
+-	nmons = wl_list_length(&mons);
+-	do // don't switch to disabled mons
+-		selmon = wl_container_of(mons.prev, selmon, link);
+-	while (!selmon->wlr_output->enabled && i++ < nmons);
+ 	focusclient(focustop(selmon), 1);
+ 	closemon(m);
+ 	free(m);
+@@ -766,6 +850,9 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
+ 			&layersurface->link);
+ 		layersurface->layer = wlr_layer_surface->current.layer;
+ 	}
++
++	// Damage the whole screen
++	wlr_output_damage_add_whole(m->damage);
+ }
+ 
+ void
+@@ -776,6 +863,18 @@ commitnotify(struct wl_listener *listener, void *data)
+ 	/* mark a pending resize as completed */
+ 	if (c->resize && c->resize <= c->surface.xdg->configure_serial)
+ 		c->resize = 0;
++
++	// Damage the whole screen
++	if (c->mon)
++		wlr_output_damage_add_whole(c->mon->damage);
++}
++
++void
++commitnotify_sub(struct wl_listener *listener, void *data)
++{
++	Subsurface *s = wl_container_of(listener, s, commit);
++	if (s->c->mon)
++		wlr_output_damage_add_whole(s->c->mon->damage);
+ }
+ 
+ void
+@@ -788,7 +887,7 @@ createkeyboard(struct wlr_input_device *device)
  
  	/* Prepare an XKB keymap and assign it to the keyboard. */
  	context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 -	keymap = xkb_map_new_from_names(context, &xkb_rules,
-+	keymap = xkb_map_new_from_names(context, xkb_rules,
++	keymap = xkb_keymap_new_from_names(context, xkb_rules,
  		XKB_KEYMAP_COMPILE_NO_FLAGS);
  
  	wlr_keyboard_set_keymap(device->keyboard, keymap);
-@@ -813,7 +819,7 @@ createmon(struct wl_listener *listener, void *data)
+@@ -813,22 +912,25 @@ createmon(struct wl_listener *listener, void *data)
  	/* This event is raised by the backend when a new output (aka a display or
  	 * monitor) becomes available. */
  	struct wlr_output *wlr_output = data;
 -	const MonitorRule *r;
 +	MonitorRule r;
  	Monitor *m = wlr_output->data = calloc(1, sizeof(*m));
++	wl_list_init(&m->dscm);
  	m->wlr_output = wlr_output;
  
-@@ -821,14 +827,15 @@ createmon(struct wl_listener *listener, void *data)
+ 	/* Initialize monitor state using configured rules */
  	for (size_t i = 0; i < LENGTH(m->layers); i++)
  		wl_list_init(&m->layers[i]);
++	m->damage = wlr_output_damage_create(wlr_output);
  	m->tagset[0] = m->tagset[1] = 1;
 -	for (r = monrules; r < END(monrules); r++) {
 -		if (!r->name || strstr(wlr_output->name, r->name)) {
@@ -1145,7 +1528,21 @@ index 0deae84..5d65b02 100644
  			break;
  		}
  	}
-@@ -855,7 +862,7 @@ createmon(struct wl_listener *listener, void *data)
+@@ -844,18 +946,20 @@ createmon(struct wl_listener *listener, void *data)
+ 	LISTEN(&wlr_output->events.frame, &m->frame, rendermon);
+ 	LISTEN(&wlr_output->events.destroy, &m->destroy, cleanupmon);
+ 
+-	wl_list_insert(&mons, &m->link);
+ 	wlr_output_enable(wlr_output, 1);
+ 	if (!wlr_output_commit(wlr_output))
+ 		return;
+ 
++	wl_list_insert(&mons, &m->link);
++	printstatus();
++
+ 	/* Adds this to the output layout in the order it was configured in.
+ 	 *
+ 	 * The output layout utility automatically adds a wl_output global to the
  	 * display, which Wayland clients can see to find out information about the
  	 * output (such as DPI, scale factor, manufacturer, etc).
  	 */
@@ -1154,7 +1551,7 @@ index 0deae84..5d65b02 100644
  	sgeom = *wlr_output_layout_get_box(output_layout, NULL);
  
  	/* When adding monitors, the geometries of all monitors must be updated */
-@@ -879,8 +886,19 @@ createnotify(struct wl_listener *listener, void *data)
+@@ -879,22 +983,31 @@ createnotify(struct wl_listener *listener, void *data)
  	struct wlr_xdg_surface *xdg_surface = data;
  	Client *c;
  
@@ -1175,7 +1572,106 @@ index 0deae84..5d65b02 100644
  
  	/* Allocate a Client for this surface */
  	c = xdg_surface->data = calloc(1, sizeof(*c));
-@@ -1052,10 +1070,17 @@ setfullscreen(Client *c, int fullscreen)
+ 	c->surface.xdg = xdg_surface;
+ 	c->bw = borderpx;
+ 
+-	/* Tell the client not to try anything fancy */
+-	wlr_xdg_toplevel_set_tiled(c->surface.xdg, WLR_EDGE_TOP |
+-			WLR_EDGE_BOTTOM | WLR_EDGE_LEFT | WLR_EDGE_RIGHT);
+-
+-	LISTEN(&xdg_surface->surface->events.commit, &c->commit, commitnotify);
++	/* LISTEN(&xdg_surface->surface->events.commit, &c->commit, commitnotify); */
++	LISTEN(&xdg_surface->surface->events.new_subsurface, &c->new_sub, new_subnotify);
+ 	LISTEN(&xdg_surface->events.map, &c->map, mapnotify);
+ 	LISTEN(&xdg_surface->events.unmap, &c->unmap, unmapnotify);
+ 	LISTEN(&xdg_surface->events.destroy, &c->destroy, destroynotify);
++	LISTEN(&xdg_surface->toplevel->events.set_title, &c->set_title, updatetitle);
+ 	LISTEN(&xdg_surface->toplevel->events.request_fullscreen, &c->fullscreen,
+ 			fullscreennotify);
+ 	c->isfullscreen = 0;
+@@ -958,18 +1071,6 @@ createpointer(struct wlr_input_device *device)
+ 	wlr_cursor_attach_input_device(cursor, device);
+ }
+ 
+-void
+-createxdeco(struct wl_listener *listener, void *data)
+-{
+-	struct wlr_xdg_toplevel_decoration_v1 *wlr_deco = data;
+-	Decoration *d = wlr_deco->data = calloc(1, sizeof(*d));
+-
+-	LISTEN(&wlr_deco->events.request_mode, &d->request_mode, getxdecomode);
+-	LISTEN(&wlr_deco->events.destroy, &d->destroy, destroyxdeco);
+-
+-	getxdecomode(&d->request_mode, wlr_deco);
+-}
+-
+ void
+ cursorframe(struct wl_listener *listener, void *data)
+ {
+@@ -995,8 +1096,10 @@ destroylayersurfacenotify(struct wl_listener *listener, void *data)
+ 	wl_list_remove(&layersurface->surface_commit.link);
+ 	if (layersurface->layer_surface->output) {
+ 		Monitor *m = layersurface->layer_surface->output->data;
+-		if (m)
++		if (m) {
+ 			arrangelayers(m);
++			wlr_output_damage_add_whole(m->damage);
++		}
+ 		layersurface->layer_surface->output = NULL;
+ 	}
+ 	free(layersurface);
+@@ -1007,28 +1110,40 @@ destroynotify(struct wl_listener *listener, void *data)
+ {
+ 	/* Called when the surface is destroyed and should never be shown again. */
+ 	Client *c = wl_container_of(listener, c, destroy);
++
++	// Damage the whole screen
++	if (c->mon)
++		wlr_output_damage_add_whole(c->mon->damage);
++
+ 	wl_list_remove(&c->map.link);
+ 	wl_list_remove(&c->unmap.link);
+ 	wl_list_remove(&c->destroy.link);
+-	wl_list_remove(&c->fullscreen.link);
++	if (client_is_unmanaged(c)) {
+ #ifdef XWAYLAND
+-	if (c->type == X11Managed)
++		wl_list_remove(&c->configure.link);
++		free(c);
++		return;
++	} else if (c->type == X11Managed) {
+ 		wl_list_remove(&c->activate.link);
+-	else if (c->type == XDGShell)
++		wl_list_remove(&c->configure.link);
+ #endif
++	} else {
+ 		wl_list_remove(&c->commit.link);
++	}
++	wl_list_remove(&c->set_title.link);
++	wl_list_remove(&c->fullscreen.link);
+ 	free(c);
+ }
+ 
+ void
+-destroyxdeco(struct wl_listener *listener, void *data)
++destroynotify_sub(struct wl_listener *listener, void *data)
+ {
+-	struct wlr_xdg_toplevel_decoration_v1 *wlr_deco = data;
+-	Decoration *d = wlr_deco->data;
+-
+-	wl_list_remove(&d->destroy.link);
+-	wl_list_remove(&d->request_mode.link);
+-	free(d);
++	Subsurface *s = wl_container_of(listener, s, destroy);
++	wl_list_remove(&s->commit.link);
++	wl_list_remove(&s->map.link);
++	wl_list_remove(&s->unmap.link);
++	wl_list_remove(&s->destroy.link);
++	free(s);
+ }
+ 
+ void
+@@ -1052,10 +1167,17 @@ setfullscreen(Client *c, int fullscreen)
  		c->prevheight = c->geom.height;
  		c->prevwidth = c->geom.width;
  		resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height, 0);
@@ -1193,7 +1689,7 @@ index 0deae84..5d65b02 100644
  		arrange(c->mon);
  	}
  }
-@@ -1088,7 +1113,7 @@ focusclient(Client *c, int lift)
+@@ -1088,7 +1210,7 @@ focusclient(Client *c, int lift)
  	struct wlr_keyboard *kb;
  
  	/* Raise client in stacking order if requested */
@@ -1202,7 +1698,41 @@ index 0deae84..5d65b02 100644
  		wl_list_remove(&c->slink);
  		wl_list_insert(&stack, &c->slink);
  	}
-@@ -1231,7 +1256,7 @@ inputdevice(struct wl_listener *listener, void *data)
+@@ -1101,8 +1223,8 @@ focusclient(Client *c, int lift)
+ 		wl_list_remove(&c->flink);
+ 		wl_list_insert(&fstack, &c->flink);
+ 		selmon = c->mon;
++		c->isurgent = 0;
+ 	}
+-	printstatus();
+ 
+ 	/* Deactivate old client if focus is changing */
+ 	if (old && (!c || client_surface(c) != old)) {
+@@ -1125,6 +1247,8 @@ focusclient(Client *c, int lift)
+ 		}
+ 	}
+ 
++	printstatus();
++
+ 	if (!c) {
+ 		/* With no client, all we have left is to clear focus */
+ 		wlr_seat_keyboard_notify_clear_focus(seat);
+@@ -1185,14 +1309,6 @@ focustop(Monitor *m)
+ 	return NULL;
+ }
+ 
+-void
+-getxdecomode(struct wl_listener *listener, void *data)
+-{
+-	struct wlr_xdg_toplevel_decoration_v1 *wlr_deco = data;
+-	wlr_xdg_toplevel_decoration_v1_set_mode(wlr_deco,
+-			WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+-}
+-
+ void
+ incnmaster(const Arg *arg)
+ {
+@@ -1231,7 +1347,7 @@ inputdevice(struct wl_listener *listener, void *data)
  }
  
  int
@@ -1211,7 +1741,7 @@ index 0deae84..5d65b02 100644
  {
  	/*
  	 * Here we handle compositor keybindings. This is when the compositor is
-@@ -1239,32 +1264,27 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
+@@ -1239,32 +1355,27 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
  	 * processing.
  	 */
  	int handled = 0;
@@ -1251,7 +1781,7 @@ index 0deae84..5d65b02 100644
  	int handled = 0;
  	uint32_t mods = wlr_keyboard_get_modifiers(kb->device->keyboard);
  
-@@ -1272,8 +1292,7 @@ keypress(struct wl_listener *listener, void *data)
+@@ -1272,8 +1383,7 @@ keypress(struct wl_listener *listener, void *data)
  
  	/* On _press_, attempt to process a compositor keybinding. */
  	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED)
@@ -1261,7 +1791,16 @@ index 0deae84..5d65b02 100644
  
  	if (!handled) {
  		/* Pass unhandled keycodes along to the client. */
-@@ -1333,7 +1352,6 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1324,25 +1434,41 @@ mapnotify(struct wl_listener *listener, void *data)
+ 	/* Called when the surface is mapped, or ready to display on-screen. */
+ 	Client *c = wl_container_of(listener, c, map);
+ 
+-	if (client_is_unmanaged(c)) {
+-		/* Insert this independent into independents lists. */
+-		wl_list_insert(&independents, &c->link);
+-		return;
+-	}
+-
  	/* Insert this client into client lists. */
  	wl_list_insert(&clients, &c->link);
  	wl_list_insert(&fstack, &c->flink);
@@ -1269,7 +1808,39 @@ index 0deae84..5d65b02 100644
  
  	client_get_geometry(c, &c->geom);
  	c->geom.width += 2 * c->bw;
-@@ -1353,6 +1371,13 @@ monocle(Monitor *m)
+ 	c->geom.height += 2 * c->bw;
+ 
++	/* Tell the client not to try anything fancy */
++	client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT | WLR_EDGE_RIGHT);
++
+ 	/* Set initial monitor, tags, floating status, and focus */
+ 	applyrules(c);
++
++	// Damage the whole screen
++	wlr_output_damage_add_whole(c->mon->damage);
++
++#ifdef XWAYLAND
++	if (c->type != XDGShell)
++		LISTEN(&c->surface.xwayland->surface->events.commit, &c->commit, commitnotifyx11);
++	else
++#endif
++		LISTEN(&c->surface.xdg->surface->events.commit, &c->commit, commitnotify);
+ }
+ 
++void
++mapnotify_sub(struct wl_listener *listener, void *data)
++{
++	Subsurface *s = wl_container_of(listener, s, map);
++	wl_list_insert(&subsurfaces, &s->link);
++	wlr_output_damage_add_whole(s->c->mon->damage);
++	LISTEN(&s->subsurface->surface->events.commit, &s->commit, commitnotify_sub);
++}
++
++
+ void
+ monocle(Monitor *m)
+ {
+@@ -1353,6 +1479,13 @@ monocle(Monitor *m)
  			continue;
  		resize(c, m->w.x, m->w.y, m->w.width, m->w.height, 0);
  	}
@@ -1283,7 +1854,180 @@ index 0deae84..5d65b02 100644
  }
  
  void
-@@ -1809,6 +1834,16 @@ resize(Client *c, int x, int y, int w, int h, int interact)
+@@ -1477,6 +1610,19 @@ moveresize(const Arg *arg)
+ 	}
+ }
+ 
++void
++new_subnotify(struct wl_listener *listener, void *data) {
++	struct wlr_subsurface *subsurface = data;
++	Subsurface *s = subsurface->data = calloc(1, sizeof(*s));
++	s->subsurface = subsurface;
++	s->c = wl_container_of(listener, s->c, new_sub);
++
++	LISTEN(&s->subsurface->events.map, &s->map, mapnotify_sub);
++	LISTEN(&s->subsurface->events.unmap, &s->unmap, unmapnotify_sub);
++	LISTEN(&s->subsurface->events.destroy, &s->destroy, destroynotify_sub);
++}
++
++
+ void
+ outputmgrapply(struct wl_listener *listener, void *data)
+ {
+@@ -1581,23 +1727,31 @@ void
+ printstatus(void)
+ {
+ 	Monitor *m = NULL;
+-	Client *c = NULL;
+-	unsigned int activetags;
++	Client *c;
++	unsigned int occ, urg, sel;
+ 
+ 	wl_list_for_each(m, &mons, link) {
+-		activetags=0;
++		occ = urg = 0;
+ 		wl_list_for_each(c, &clients, link) {
+-			if (c->mon == m)
+-				activetags |= c->tags;
++			if (c->mon != m)
++				continue;
++			occ |= c->tags;
++			if (c->isurgent)
++				urg |= c->tags;
+ 		}
+-		if (focustop(m))
++		if ((c = focustop(m))) {
+ 			printf("%s title %s\n", m->wlr_output->name, client_get_title(focustop(m)));
+-		else
++			sel = c->tags;
++		} else {
+ 			printf("%s title \n", m->wlr_output->name);
++			sel = 0;
++		}
+ 
+ 		printf("%s selmon %u\n", m->wlr_output->name, m == selmon);
+-		printf("%s tags %u %u\n", m->wlr_output->name, activetags, m->tagset[m->seltags]);
++		printf("%s tags %u %u %u %u\n", m->wlr_output->name, occ, m->tagset[m->seltags],
++				sel, urg);
+ 		printf("%s layout %s\n", m->wlr_output->name, m->lt[m->sellt]->symbol);
++		dscm_printstatus(m);
+ 	}
+ 	fflush(stdout);
+ }
+@@ -1608,6 +1762,12 @@ quit(const Arg *arg)
+ 	wl_display_terminate(dpy);
+ }
+ 
++void
++quitsignal(int signo)
++{
++	quit(NULL);
++}
++
+ void
+ render(struct wlr_surface *surface, int sx, int sy, void *data)
+ {
+@@ -1664,6 +1824,8 @@ render(struct wlr_surface *surface, int sx, int sy, void *data)
+ 	/* This lets the client know that we've displayed that frame and it can
+ 	 * prepare another one now if it likes. */
+ 	wlr_surface_send_frame_done(surface, rdata->when);
++
++	wlr_presentation_surface_sampled_on_output(presentation, surface, output);
+ }
+ 
+ void
+@@ -1739,7 +1901,9 @@ void
+ rendermon(struct wl_listener *listener, void *data)
+ {
+ 	Client *c;
+-	int render = 1;
++	int render;
++	bool needs_frame;
++	pixman_region32_t damage;
+ 
+ 	/* This function is called every time an output is ready to display a frame,
+ 	 * generally at the output's refresh rate (e.g. 60Hz). */
+@@ -1748,45 +1912,51 @@ rendermon(struct wl_listener *listener, void *data)
+ 	struct timespec now;
+ 	clock_gettime(CLOCK_MONOTONIC, &now);
+ 
+-	/* Do not render if any XDG clients have an outstanding resize. */
++	/* If there is any XDG client which is awaiting resize, request a new
++	 * frame from that client, and do not render anything new until there
++	 * are no pending resizes remaining. */
+ 	wl_list_for_each(c, &stack, slink) {
+ 		if (c->resize) {
+ 			wlr_surface_send_frame_done(client_surface(c), &now);
+-			render = 0;
++			return;
+ 		}
+ 	}
+ 
+-	/* wlr_output_attach_render makes the OpenGL context current. */
+-	if (!wlr_output_attach_render(m->wlr_output, NULL))
++	/* Do not render if no new frame is needed */
++	pixman_region32_init(&damage);
++	render = wlr_output_damage_attach_render(m->damage, &needs_frame, &damage);
++	pixman_region32_fini(&damage);
++	if (!render || !needs_frame) {
++		/* Rollback is needed because attach_render is double-buffered */
++		wlr_output_rollback(m->wlr_output);
+ 		return;
++	}
+ 
+-	if (render) {
+-		/* Begin the renderer (calls glViewport and some other GL sanity checks) */
+-		wlr_renderer_begin(drw, m->wlr_output->width, m->wlr_output->height);
+-		wlr_renderer_clear(drw, rootcolor);
++	/* Begin the renderer (calls glViewport and some other GL sanity checks) */
++	wlr_renderer_begin(drw, m->wlr_output->width, m->wlr_output->height);
++	wlr_renderer_clear(drw, rootcolor);
+ 
+-		renderlayer(&m->layers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &now);
+-		renderlayer(&m->layers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &now);
+-		renderclients(m, &now);
++	renderlayer(&m->layers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &now);
++	renderlayer(&m->layers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &now);
++	renderclients(m, &now);
+ #ifdef XWAYLAND
+-		renderindependents(m->wlr_output, &now);
++	renderindependents(m->wlr_output, &now);
+ #endif
+-		renderlayer(&m->layers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &now);
+-		renderlayer(&m->layers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &now);
+-
+-		/* Hardware cursors are rendered by the GPU on a separate plane, and can be
+-		 * moved around without re-rendering what's beneath them - which is more
+-		 * efficient. However, not all hardware supports hardware cursors. For this
+-		 * reason, wlroots provides a software fallback, which we ask it to render
+-		 * here. wlr_cursor handles configuring hardware vs software cursors for you,
+-		 * and this function is a no-op when hardware cursors are in use. */
+-		wlr_output_render_software_cursors(m->wlr_output, NULL);
+-
+-		/* Conclude rendering and swap the buffers, showing the final frame
+-		 * on-screen. */
+-		wlr_renderer_end(drw);
+-	}
+-
++	renderlayer(&m->layers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &now);
++	renderlayer(&m->layers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &now);
++
++	/* Hardware cursors are rendered by the GPU on a separate plane, and can be
++	 * moved around without re-rendering what's beneath them - which is more
++	 * efficient. However, not all hardware supports hardware cursors. For this
++	 * reason, wlroots provides a software fallback, which we ask it to render
++	 * here. wlr_cursor handles configuring hardware vs software cursors for you,
++	 * and this function is a no-op when hardware cursors are in use. */
++	wlr_output_render_software_cursors(m->wlr_output, NULL);
++
++	/* Conclude rendering and swap the buffers, showing the final frame
++	 * on-screen. */
++	wlr_renderer_end(drw);
++	wlr_output_set_damage(m->wlr_output, &m->damage->current);
+ 	wlr_output_commit(m->wlr_output);
+ }
+ 
+@@ -1809,6 +1979,16 @@ resize(Client *c, int x, int y, int w, int h, int interact)
  			c->geom.height - 2 * c->bw);
  }
  
@@ -1300,12 +2044,13 @@ index 0deae84..5d65b02 100644
  void
  run(char *startup_cmd)
  {
-@@ -1818,6 +1853,27 @@ run(char *startup_cmd)
+@@ -1818,6 +1998,28 @@ run(char *startup_cmd)
  	const char *socket = wl_display_add_socket_auto(dpy);
  	if (!socket)
  		BARF("startup: display_add_socket_auto");
-+        setenv("WAYLAND_DISPLAY", socket, 1);
++	setenv("WAYLAND_DISPLAY", socket, 1);
 +
++	/* Now that the socket exists, run the startup command */
 +	if (startup_cmd) {
 +		int piperw[2];
 +		pipe(piperw);
@@ -1328,7 +2073,7 @@ index 0deae84..5d65b02 100644
  
  	/* Start the backend. This will enumerate outputs and inputs, become the DRM
  	 * master, etc */
-@@ -1835,21 +1891,6 @@ run(char *startup_cmd)
+@@ -1835,21 +2037,6 @@ run(char *startup_cmd)
  	wlr_cursor_warp_closest(cursor, NULL, cursor->x, cursor->y);
  	wlr_xcursor_manager_set_cursor_image(cursor_mgr, "left_ptr", cursor);
  
@@ -1350,7 +2095,7 @@ index 0deae84..5d65b02 100644
  	/* Run the Wayland event loop. This does not return until you exit the
  	 * compositor. Starting the backend rigged up all of the necessary event
  	 * loop configuration to listen to libinput events, DRM events, generate
-@@ -1902,6 +1943,10 @@ setcursor(struct wl_listener *listener, void *data)
+@@ -1902,6 +2089,10 @@ setcursor(struct wl_listener *listener, void *data)
  void
  setfloating(Client *c, int floating)
  {
@@ -1361,7 +2106,7 @@ index 0deae84..5d65b02 100644
  	c->isfloating = floating;
  	arrange(c->mon);
  }
-@@ -1979,16 +2024,41 @@ setsel(struct wl_listener *listener, void *data)
+@@ -1979,15 +2170,45 @@ setsel(struct wl_listener *listener, void *data)
  	wlr_seat_set_selection(seat, event->source, event->serial);
  }
  
@@ -1384,6 +2129,9 @@ index 0deae84..5d65b02 100644
 +        wl_list_for_each(m, &mons, link)
 +                arrange(m);
 +
++        /* Send events to observing clients, notifying of possible changes */
++        dscm_sendevents();
++
 +        return 0;
 +}
 +
@@ -1396,16 +2144,52 @@ index 0deae84..5d65b02 100644
  	dpy = wl_display_create();
  
 -	/* clean up child processes immediately */
-+	/* Clean up child processes immediately */
++	/* Set up signal handlers */
  	sigchld(0);
- 
++	signal(SIGINT, quitsignal);
++	signal(SIGTERM, quitsignal);
++
 +        /* Block user signals so that they can be handled */
 +        setupsignals();
-+
+ 
  	/* The backend is a wlroots feature which abstracts the underlying input and
  	 * output hardware. The autocreate option will choose the most suitable
- 	 * backend based on the current environment, such as opening an X11 window
-@@ -2109,6 +2179,12 @@ setup(void)
+@@ -2021,6 +2242,10 @@ setup(void)
+ 	wlr_primary_selection_v1_device_manager_create(dpy);
+ 	wlr_viewporter_create(dpy);
+ 
++	/* Initializes the interface used to implement urgency hints */
++	activation = wlr_xdg_activation_v1_create(dpy);
++	wl_signal_add(&activation->events.request_activate, &request_activate);
++
+ 	/* Creates an output layout, which a wlroots utility for working with an
+ 	 * arrangement of screens in a physical layout. */
+ 	output_layout = wlr_output_layout_create();
+@@ -2042,6 +2267,8 @@ setup(void)
+ 	wl_list_init(&fstack);
+ 	wl_list_init(&stack);
+ 	wl_list_init(&independents);
++	wl_list_init(&subsurfaces);
++        wl_list_init(&dscm_clients);
+ 
+ 	idle = wlr_idle_create(dpy);
+ 
+@@ -2051,9 +2278,11 @@ setup(void)
+ 	xdg_shell = wlr_xdg_shell_create(dpy);
+ 	wl_signal_add(&xdg_shell->events.new_surface, &new_xdg_surface);
+ 
+-	/* Use xdg_decoration protocol to negotiate server-side decorations */
+-	xdeco_mgr = wlr_xdg_decoration_manager_v1_create(dpy);
+-	wl_signal_add(&xdeco_mgr->events.new_toplevel_decoration, &new_xdeco);
++	/* Use decoration protocols to negotiate server-side decorations */
++	wlr_server_decoration_manager_set_default_mode(
++			wlr_server_decoration_manager_create(dpy),
++			WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
++	wlr_xdg_decoration_manager_v1_create(dpy);
+ 
+ 	/*
+ 	 * Creates a cursor, which is a wlroots utility for tracking the cursor
+@@ -2109,6 +2338,15 @@ setup(void)
  	wl_signal_add(&output_mgr->events.apply, &output_mgr_apply);
  	wl_signal_add(&output_mgr->events.test, &output_mgr_test);
  
@@ -1415,10 +2199,413 @@ index 0deae84..5d65b02 100644
 +        /* TODO: Add config option for adding custom handlers to signal. */
 +        wl_event_loop_add_signal(loop, SIGRTMIN, &reloadconfig, config_file);
 +
++	presentation = wlr_presentation_create(dpy, backend);
++	wl_global_create(dpy, &dscm_v1_interface, 1, NULL, dscm_bind);
++
  #ifdef XWAYLAND
  	/*
  	 * Initialise the XWayland X server.
-@@ -2561,11 +2637,14 @@ int
+@@ -2119,18 +2357,6 @@ setup(void)
+ 		wl_signal_add(&xwayland->events.ready, &xwayland_ready);
+ 		wl_signal_add(&xwayland->events.new_surface, &new_xwayland_surface);
+ 
+-		/*
+-		 * Create the XWayland cursor manager at scale 1, setting its default
+-		 * pointer to match the rest of dwl.
+-		 */
+-		xcursor_mgr = wlr_xcursor_manager_create(NULL, 24);
+-		wlr_xcursor_manager_load(xcursor_mgr, 1);
+-		if ((xcursor = wlr_xcursor_manager_get_xcursor(xcursor_mgr, "left_ptr", 1)))
+-			wlr_xwayland_set_cursor(xwayland,
+-					xcursor->images[0]->buffer, xcursor->images[0]->width * 4,
+-					xcursor->images[0]->width, xcursor->images[0]->height,
+-					xcursor->images[0]->hotspot_x, xcursor->images[0]->hotspot_y);
+-
+ 		setenv("DISPLAY", xwayland->display_name, 1);
+ 	} else {
+ 		fprintf(stderr, "failed to setup XWayland X server, continuing without it\n");
+@@ -2278,6 +2504,11 @@ unmapnotify(struct wl_listener *listener, void *data)
+ {
+ 	/* Called when the surface is unmapped, and should no longer be shown. */
+ 	Client *c = wl_container_of(listener, c, unmap);
++
++	// Damage the whole screen
++	if (c->mon)
++		wlr_output_damage_add_whole(c->mon->damage);
++
+ 	wl_list_remove(&c->link);
+ 	if (client_is_unmanaged(c))
+ 		return;
+@@ -2287,6 +2518,13 @@ unmapnotify(struct wl_listener *listener, void *data)
+ 	wl_list_remove(&c->slink);
+ }
+ 
++void
++unmapnotify_sub(struct wl_listener *listener, void *data)
++{
++	Subsurface *s = wl_container_of(listener, s, unmap);
++	wl_list_remove(&s->link);
++}
++
+ void
+ updatemons(struct wl_listener *listener, void *data)
+ {
+@@ -2324,11 +2562,37 @@ updatemons(struct wl_listener *listener, void *data)
+ 	wlr_output_manager_v1_set_configuration(output_mgr, config);
+ }
+ 
++void
++updatetitle(struct wl_listener *listener, void *data)
++{
++	Client *c = wl_container_of(listener, c, set_title);
++	if (c == focustop(c->mon))
++		printstatus();
++}
++
++void
++urgent(struct wl_listener *listener, void *data)
++{
++	struct wlr_xdg_activation_v1_request_activate_event *event = data;
++	Client *c;
++
++	if (!wlr_surface_is_xdg_surface(event->surface))
++		return;
++	c = wlr_xdg_surface_from_wlr_surface(event->surface)->data;
++	if (c != selclient()) {
++		c->isurgent = 1;
++		printstatus();
++	}
++}
++
++
+ void
+ view(const Arg *arg)
+ {
+-	if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
++        unsigned int currtagset = selmon->tagset[selmon->seltags];
++	if ((arg->ui & TAGMASK) == currtagset)
+ 		return;
++        selmon->prevtagset = currtagset;
+ 	selmon->seltags ^= 1; /* toggle sel tagset */
+ 	if (arg->ui & TAGMASK)
+ 		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
+@@ -2337,6 +2601,17 @@ view(const Arg *arg)
+ 	printstatus();
+ }
+ 
++void
++viewprev(const Arg *arg)
++{
++        unsigned int tagset = selmon->tagset[selmon->seltags];
++        selmon->tagset[selmon->seltags] = selmon->prevtagset;
++        selmon->prevtagset = tagset;
++        focusclient(focustop(selmon), 1);
++        arrange(selmon);
++        printstatus();
++}
++
+ void
+ virtualkeyboard(struct wl_listener *listener, void *data)
+ {
+@@ -2348,12 +2623,19 @@ virtualkeyboard(struct wl_listener *listener, void *data)
+ Client *
+ xytoclient(double x, double y)
+ {
+-	/* Find the topmost visible client (if any) at point (x, y), including
++	/* Find the topmost visible client (if any) at point (x, y), excluding
+ 	 * borders. This relies on stack being ordered from top to bottom. */
+ 	Client *c;
+-	wl_list_for_each(c, &stack, slink)
+-		if (VISIBLEON(c, c->mon) && wlr_box_contains_point(&c->geom, x, y))
++        wl_list_for_each(c, &stack, slink) {
++		struct wlr_box p = {
++			.y = c->geom.y + borderpx,
++			.x = c->geom.x + borderpx,
++			.height = c->geom.height - 2 * borderpx,
++			.width = c->geom.width - 2 * borderpx,
++		};
++		if (VISIBLEON(c, c->mon) && wlr_box_contains_point(&p, x, y))
+ 			return c;
++	}
+ 	return NULL;
+ }
+ 
+@@ -2454,15 +2736,31 @@ createnotifyx11(struct wl_listener *listener, void *data)
+ 	c->isfullscreen = 0;
+ 
+ 	/* Listen to the various events it can emit */
+-	LISTEN(&xwayland_surface->events.map, &c->map, mapnotify);
++	if (c->type == X11Managed) {
++		LISTEN(&xwayland_surface->events.map, &c->map, mapnotify);
++		LISTEN(&xwayland_surface->events.request_activate, &c->activate,
++				activatex11);
++		LISTEN(&xwayland_surface->events.set_title, &c->set_title, updatetitle);
++		LISTEN(&xwayland_surface->events.request_fullscreen, &c->fullscreen,
++				fullscreennotify);
++	}
++	else {
++		LISTEN(&xwayland_surface->events.map, &c->map, mapnotify_unmanaged);
++	}
+ 	LISTEN(&xwayland_surface->events.unmap, &c->unmap, unmapnotify);
+-	LISTEN(&xwayland_surface->events.request_activate, &c->activate,
+-			activatex11);
+ 	LISTEN(&xwayland_surface->events.request_configure, &c->configure,
+ 			configurex11);
++	LISTEN(&xwayland_surface->events.set_title, &c->set_title, updatetitle);
+ 	LISTEN(&xwayland_surface->events.destroy, &c->destroy, destroynotify);
+-	LISTEN(&xwayland_surface->events.request_fullscreen, &c->fullscreen,
+-			fullscreennotify);
++}
++
++void
++commitnotifyx11(struct wl_listener *listener, void *data)
++{
++	Client *c = wl_container_of(listener, c, commit);
++
++	// Damage the whole screen
++	wlr_output_damage_add_whole(c->mon->damage);
+ }
+ 
+ Atom
+@@ -2478,6 +2776,18 @@ getatom(xcb_connection_t *xc, const char *name)
+ 	return atom;
+ }
+ 
++void
++mapnotify_unmanaged(struct wl_listener *listener, void *data)
++{
++	Client *c = wl_container_of(listener, c, map);
++	wl_list_insert(&independents, &c->link);
++	client_get_geometry(c, &c->geom);
++	c->mon = xytomon(c->geom.x, c->geom.y);
++	LISTEN(&c->surface.xwayland->surface->events.commit, &c->commit, commitnotifyx11);
++	wlr_output_damage_add_whole(c->mon->damage);
++}
++
++
+ void
+ renderindependents(struct wlr_output *output, struct timespec *now)
+ {
+@@ -2557,15 +2867,233 @@ xytoindependent(double x, double y)
+ }
+ #endif
+ 
++void
++dscm_sendeventsclient(DscmClient *c)
++{
++        char root[HEXLENGTH], border[HEXLENGTH],
++             focus[HEXLENGTH], text[HEXLENGTH];
++
++        for (int i = 0; i < numtags; i++)
++                dscm_v1_send_tag(c->resource, tags[i]);
++        for (int i = 0; i < numlayouts; i++)
++                dscm_v1_send_layout(c->resource, layouts[i].symbol);
++
++        dscm_rgbatostr(root, rootcolor);
++        dscm_rgbatostr(border, bordercolor);
++        dscm_rgbatostr(focus, focuscolor);
++        dscm_rgbatostr(text, textcolor);
++        dscm_v1_send_colorscheme(c->resource, root, border, focus, text);
++}
++
++void
++dscm_sendevents(void)
++{
++	DscmClient *c;
++	wl_list_for_each(c, &dscm_clients, link)
++                dscm_sendeventsclient(c);
++}
++
++void
++dscm_rgbatostr(char *buf, float *color)
++{
++        if (!color)
++                return;
++
++        unsigned int r, g, b, a;
++        r = MAX(0, MIN(255, (int)ROUND(color[0] * 256.0)));
++        g = MAX(0, MIN(255, (int)ROUND(color[1] * 256.0)));
++        b = MAX(0, MIN(255, (int)ROUND(color[2] * 256.0)));
++        a = MAX(0, MIN(255, (int)ROUND(color[3] * 256.0)));
++        snprintf(buf, HEXLENGTH, "%02X%02X%02X%02X", r, g, b, a);
++}
++
++void
++dscm_closemon(struct wl_client *client, struct wl_resource *resource)
++{
++	wl_resource_destroy(resource);
++}
++
++void
++dscm_destroymon(struct wl_resource *resource) {
++	DscmMonitor *mon = wl_resource_get_user_data(resource);
++	if (mon) {
++		wl_list_remove(&mon->link);
++		free(mon);
++	}
++}
++
++void
++dscm_printstatusmon(Monitor *m, const DscmMonitor *mon)
++{
++	Client *c, *focused;
++	int tagmask, state, numclients, focusedclient;
++	focused = focustop(m);
++	dscm_monitor_v1_send_selected(mon->resource, m == selmon);
++
++	for (int tag = 0; tag < numtags; tag++) {
++		numclients = state = 0;
++		focusedclient = -1;
++		tagmask = 1 << tag;
++		if ((tagmask & m->tagset[m->seltags]) != 0)
++			state = state | DSCM_MONITOR_V1_TAG_STATE_ACTIVE;
++		wl_list_for_each(c, &clients, link) {
++			if (c->mon != m)
++				continue;
++			if (!(c->tags & tagmask))
++				continue;
++			if (c == focused)
++				focusedclient = numclients;
++			numclients++;
++			if (c->isurgent)
++				state = state | DSCM_MONITOR_V1_TAG_STATE_URGENT;
++		}
++		dscm_monitor_v1_send_tag(mon->resource, tag, state, numclients, focusedclient);
++	}
++	dscm_monitor_v1_send_layout(mon->resource, m->lt[m->sellt] - layouts);
++	dscm_monitor_v1_send_title(mon->resource, focused ? client_get_title(focused) : "");
++	dscm_monitor_v1_send_frame(mon->resource);
++}
++
++void
++dscm_printstatus(Monitor *m)
++{
++	DscmMonitor *mon;
++	wl_list_for_each(mon, &m->dscm, link)
++		dscm_printstatusmon(m, mon);
++}
++
++void
++dscm_settags(struct wl_client *client, struct wl_resource *resource,
++	uint32_t t, uint32_t toggletagset)
++{
++	DscmMonitor *mon;
++	Monitor *m;
++	mon = wl_resource_get_user_data(resource);
++	if (!mon)
++		return;
++	m = mon->monitor;
++	if ((t & TAGMASK) == m->tagset[m->seltags])
++		return;
++	if (toggletagset)
++		m->seltags ^= 1;
++	if (t & TAGMASK)
++		m->tagset[m->seltags] = t & TAGMASK;
++
++	focusclient(focustop(m), 1);
++	arrange(m);
++	printstatus();
++}
++
++void
++dscm_setlayout(struct wl_client *client, struct wl_resource *resource,
++	uint32_t layout)
++{
++	DscmMonitor *mon;
++	Monitor *m;
++	mon = wl_resource_get_user_data(resource);
++	if (!mon)
++		return;
++	m = mon->monitor;
++	if (layout >= numlayouts)
++		return;
++	if (layout != m->lt[m->sellt] - layouts)
++		m->sellt ^= 1;
++
++	m->lt[m->sellt] = &layouts[layout];
++	arrange(m);
++	printstatus();
++}
++
++void
++dscm_setclient(struct wl_client *client, struct wl_resource *resource,
++	uint32_t and, uint32_t xor)
++{
++	DscmMonitor *mon;
++	Client *sel;
++	unsigned int newtags;
++	mon = wl_resource_get_user_data(resource);
++	if (!mon)
++		return;
++	sel = focustop(mon->monitor);
++	if (!sel)
++		return;
++	newtags = (sel->tags & and) ^ xor;
++	if (newtags) {
++		sel->tags = newtags;
++		focusclient(focustop(selmon), 1);
++		arrange(selmon);
++		printstatus();
++	}
++}
++
++void
++dscm_release(struct wl_client *client, struct wl_resource *resource)
++{
++	wl_resource_destroy(resource);
++}
++
++void
++dscm_getmon(struct wl_client *client, struct wl_resource *resource,
++	uint32_t id, struct wl_resource *output)
++{
++	DscmMonitor *mon;
++	struct wlr_output *wlr_output = wlr_output_from_resource(output);
++	struct Monitor *m = wlr_output->data;
++	struct wl_resource *dscm_monitor_resource = wl_resource_create(client,
++		&dscm_monitor_v1_interface, wl_resource_get_version(resource), id);
++	if (!resource) {
++		wl_client_post_no_memory(client);
++		return;
++	}
++	mon = calloc(1, sizeof(DscmMonitor));
++	mon->resource = dscm_monitor_resource;
++	mon->monitor = m;
++	wl_resource_set_implementation(dscm_monitor_resource, &dscm_monitor_implementation,
++                mon, dscm_destroymon);
++	wl_list_insert(&m->dscm, &mon->link);
++	dscm_printstatusmon(m, mon);
++}
++
++void
++dscm_destroy(struct wl_resource *resource)
++{
++	DscmClient *c = wl_resource_get_user_data(resource);
++	if (c) {
++		wl_list_remove(&c->link);
++		free(c);
++	}
++}
++
++void
++dscm_bind(struct wl_client *client, void *data, uint32_t version, uint32_t id)
++{
++        DscmClient *c;
++        struct wl_resource *resource = wl_resource_create(client,
++                &dscm_v1_interface, version, id);
++	if (!resource) {
++		wl_client_post_no_memory(client);
++		return;
++	}
++
++        c = calloc(1, sizeof(DscmClient));
++        c->resource = resource;
++	wl_resource_set_implementation(resource, &dscm_implementation, c, dscm_destroy);
++        wl_list_insert(&dscm_clients, &c->link);
++        dscm_sendevents();
++}
++
+ int
  main(int argc, char *argv[])
  {
  	char *startup_cmd = NULL;
@@ -1434,7 +2621,7 @@ index 0deae84..5d65b02 100644
  		else
  			goto usage;
  	}
-@@ -2576,11 +2655,16 @@ main(int argc, char *argv[])
+@@ -2576,11 +3104,16 @@ main(int argc, char *argv[])
  	// socket
  	if (!getenv("XDG_RUNTIME_DIR"))
  		BARF("XDG_RUNTIME_DIR must be set");
@@ -1456,7 +2643,7 @@ index 0deae84..5d65b02 100644
  }
 diff --git a/guix.scm b/guix.scm
 new file mode 100644
-index 0000000..63cb2e7
+index 0000000..cc679c5
 --- /dev/null
 +++ b/guix.scm
 @@ -0,0 +1,38 @@
@@ -1482,7 +2669,7 @@ index 0000000..63cb2e7
 +  (name "dwl-guile-devel")
 +  (inputs
 +    `(("guile-3.0" ,guile-3.0)
-+      ("wlroots-0.13.0" ,wlroots-0.13.0)))
++      ("wlroots-0.14.0" ,wlroots-0.14.0)))
 +  (arguments
 +    (substitute-keyword-arguments
 +      (package-arguments dwl)
@@ -1498,12 +2685,195 @@ index 0000000..63cb2e7
 +                  (rename-file (string-append bin "/dwl")
 +                               (string-append bin "/dwl-guile-devel"))
 +                  #t))))))))
+diff --git a/protocols/dscm-unstable-v1.xml b/protocols/dscm-unstable-v1.xml
+new file mode 100644
+index 0000000..c8fd797
+--- /dev/null
++++ b/protocols/dscm-unstable-v1.xml
+@@ -0,0 +1,177 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<protocol name="dscm_unstable_v1">
++    <copyright>
++        Copyright (c) 2021 Raphael Robatsch
++        Copyright (c) 2021 Fredrik Engstrand
++
++        Permission is hereby granted, free of charge, to any person obtaining a
++        copy of this software and associated documentation files (the
++        "Software"), to deal in the Software without restriction, including
++        without limitation the rights to use, copy, modify, merge, publish,
++        distribute, sublicense, and/or sell copies of the Software, and to
++        permit persons to whom the Software is furnished to do so, subject to
++        the following conditions:
++
++        The above copyright notice and this permission notice (including the
++        next paragraph) shall be included in all copies or substantial portions
++        of the Software.
++
++        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
++        OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++        IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
++        CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
++        TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
++        SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++    </copyright>
++
++    <interface name="dscm_v1" version="1">
++        <description summary="control the dwl state">
++            This interface is exposed as a global in the wl_registry.
++
++            Clients can use this protocol to receive updates of the window manager
++            state (active tags, active layout, and focused window).
++            Clients can also control this state.
++
++            After binding, the client will receive the available tags and layouts
++            with the 'tag' and 'layout' events. These can be used in subsequent
++            dscm_monitor_v1.set_tags/set_layout requests, and to interpret the
++            dscm_monitor_v1.layout/tag events.
++        </description>
++
++        <request name="release" type="destructor">
++            <description summary="release dscm">
++                This request indicates that the client will not use the dscm
++                object any more. Objects that have been created through this instance
++                are not affected.
++            </description>
++        </request>
++
++        <request name="get_monitor">
++            <description summary="gets a dwl monitor from an output">
++                Gets a dscm monitor for the specified output. The window manager
++                state on the output can be controlled using the monitor.
++            </description>
++            <arg name="id" type="new_id" interface="dscm_monitor_v1" />
++            <arg name="output" type="object" interface="wl_output" />
++        </request>
++
++        <event name="tag">
++            <description summary="announces the presence of a tag">
++                This event is sent immediately after binding.
++                A roundtrip after binding guarantees that the client has received all tags.
++            </description>
++            <arg name="name" type="string"/>
++        </event>
++
++        <event name="layout">
++            <description summary="announces the presence of a layout">
++                This event is sent immediately after binding.
++                A roundtrip after binding guarantees that the client has received all layouts.
++            </description>
++            <arg name="name" type="string"/>
++        </event>
++
++        <event name="colorscheme">
++            <description summary="announces the current colorscheme">
++                This event is sent immediately after binding and will be resent
++                everytime the colorscheme changes. A roundtrip after binding
++                guarantees that the client has received the colorscheme.
++            </description>
++            <arg name="root" type="string" />
++            <arg name="border" type="string" />
++            <arg name="focus" type="string" />
++            <arg name="text" type="string" />
++        </event>
++    </interface>
++
++    <interface name="dscm_monitor_v1" version="1">
++        <description summary="control one monitor">
++            Observes and controls one monitor.
++
++            Events are double-buffered: Clients should cache all events and only
++            redraw themselves once the 'frame' event is sent.
++
++            Requests are not double-buffered: The compositor will update itself
++            immediately.
++        </description>
++
++        <enum name="tag_state">
++            <entry name="none" value="0" summary="no state"/>
++            <entry name="active" value="1" summary="tag is active"/>
++            <entry name="urgent" value="2" summary="tag has at least one urgent client"/>
++        </enum>
++
++        <request name="release" type="destructor">
++            <description summary="release dscm_monitor">
++                This request indicates that the client is done with this dscm_monitor.
++                All further requests are ignored.
++            </description>
++        </request>
++
++        <event name="selected">
++            <description summary="updates the selected state of the monitor">
++                If 'selected' is nonzero, this monitor is the currently selected one.
++            </description>
++            <arg name="selected" type="uint"/>
++        </event>
++
++        <event name="tag">
++            <description summary="updates the state of one tag">
++                Announces the update of a tag. num_clients and focused_client can be
++                used to draw client indicators.
++            </description>
++            <arg name="tag" type="uint" summary="index of a tag received by the dscm_v1.tag event." />
++            <arg name="state" type="uint" enum="tag_state"/>
++            <arg name="num_clients" type="uint" summary="number of clients on this tag"/>
++            <arg name="focused_client" type="int" summary="out of num_clients. -1 if there is no focused client"/>
++        </event>
++
++        <event name="layout">
++            <description summary="updates the selected layout">
++                Announces the update of the selected layout.
++            </description>
++            <arg name="layout" type="uint" summary="index of a layout received by the dscm_v1.layout event."/>
++        </event>
++
++        <event name="title">
++            <description summary="updates the focused client">
++                Announces the update of the selected client.
++            </description>
++            <arg name="title" type="string"/>
++        </event>
++
++        <event name="frame">
++            <description summary="end of status update sequence">
++                Sent after all other events belonging to the status update has been sent.
++                Clients should redraw themselves now.
++            </description>
++        </event>
++
++        <request name="set_tags">
++            <description summary="sets the active tags on this monitor.">
++                Changes are applied immediately.
++            </description>
++            <arg name="tagmask" type="uint" summary="bitmask of the tags that should be set."/>
++            <arg name="toggle_tagset" type="uint"/>
++        </request>
++
++        <request name="set_client_tags">
++            <description summary="updates the tags of the focused client.">
++                tags are updated as follows:
++                new_tags = (current_tags AND and_tags) XOR xor_tags
++
++                Changes are applied immediately.
++            </description>
++            <arg name="and_tags" type="uint"/>
++            <arg name="xor_tags" type="uint"/>
++        </request>
++
++        <request name="set_layout">
++            <description summary="sets the active layout on this monitor.">
++                Changes are applied immediately.
++            </description>
++            <arg name="layout" type="uint" summary="index of a layout received by the dscm_v1.layout event."/>
++        </request>
++    </interface>
++</protocol>
 diff --git a/scripts/create-patches.sh b/scripts/create-patches.sh
 new file mode 100755
-index 0000000..12426c8
+index 0000000..a94b5b7
 --- /dev/null
 +++ b/scripts/create-patches.sh
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,26 @@
 +#!/bin/sh
 +# $1 = dwl-guile patch tag to diff patches to
 +
@@ -1517,7 +2887,8 @@ index 0000000..12426c8
 +[ -z $DIFF_ORIGIN ] && DIFF_ORIGIN="main"
 +
 +for patch in xwayland alpha smartborders attachabove \
-+    vanitygaps monitor-config focusmonpointer
++    vanitygaps monitor-config focusmonpointer swallow \
++    cyclelayouts movestack
 +do
 +    git fetch origin patch/$patch
 +    git diff $DIFF_ORIGIN patch/$patch \

@@ -9,7 +9,7 @@ index cd4e821..9a886cc 100644
 -#CFLAGS += -DXWAYLAND
 +CFLAGS += -DXWAYLAND
 diff --git a/guix.scm b/guix.scm
-index 63cb2e7..0e25a90 100644
+index cc679c5..6b70252 100644
 --- a/guix.scm
 +++ b/guix.scm
 @@ -4,6 +4,7 @@
@@ -20,13 +20,11 @@ index 63cb2e7..0e25a90 100644
               (gnu packages guile))
  
  (define this-directory
-@@ -20,7 +21,8 @@
+@@ -20,6 +21,7 @@
    (name "dwl-guile-devel")
    (inputs
      `(("guile-3.0" ,guile-3.0)
--      ("wlroots-0.13.0" ,wlroots-0.13.0)))
-+      ("wlroots-0.13.0" ,wlroots-0.13.0)
-+      ("xorg-server-xwayland" ,xorg-server-xwayland)))
++      ("xorg-server-xwayland" ,xorg-server-xwayland)
+       ("wlroots-0.14.0" ,wlroots-0.14.0)))
    (arguments
      (substitute-keyword-arguments
-       (package-arguments dwl)
