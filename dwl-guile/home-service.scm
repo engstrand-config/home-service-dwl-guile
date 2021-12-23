@@ -30,7 +30,7 @@
                          home-dwl-guile-configuration-config
                          home-dwl-guile-configuration-patches
                          home-dwl-guile-configuration-package
-                         home-dwl-guile-configuration-tty-number
+                         home-dwl-guile-configuration-auto-start?
                          home-dwl-guile-configuration-startup-commands
                          home-dwl-guile-environment-variables-service
                          home-dwl-guile-configuration-package-transform?
@@ -87,9 +87,9 @@
 
     If you want to use a custom dwl package, set @code{(package-transform #f)}
     in your dwl-guile configuration.")
-  (tty-number
-    (number 2)
-    "Launch dwl on specified tty upon user login. Defaults to 2.")
+  (auto-start?
+    (boolean #t)
+    "Launch dwl automatically upon user login. Defaults to #t.")
   (patches
     (list-of-local-files '())
     "Additional patch files to apply to package.")
@@ -145,7 +145,7 @@
     (shepherd-service
       (documentation "Run dwl-guile.")
       (provision '(dwl-guile))
-      (auto-start? #f)
+      (auto-start? (home-dwl-guile-configuration-auto-start? config))
       (start
         (let ((config-dir (string-append (getenv "HOME") "/.config/dwl-guile")))
           #~(make-forkexec-constructor
@@ -156,13 +156,6 @@
               #:log-file #$(string-append (or (getenv "XDG_LOG_HOME") (getenv "HOME"))
                                           "/dwl-guile.log"))))
       (stop #~(make-kill-destructor)))))
-
-; Automatically start dwl-guile on the selected tty after login
-; TODO: Skip this step if @code{tty-number} is set to #f.
-(define (home-dwl-guile-run-on-tty-service config)
-  (list
-    (format #f "[ $(tty) = /dev/tty~a ] && herd start dwl-guile"
-            (home-dwl-guile-configuration-tty-number config))))
 
 ; TODO: Add option to disable this.
 ; TODO: Use sheperd action for this?
@@ -191,17 +184,6 @@
 ; the old configuration and returns an updated configuration.
 ; To reduce the amount of boilerplate needed, you can use one of
 ; the included syntax macro's:
-;
-; @example
-; (simple-service
-;   'change-dwl-guile-tty
-;   home-dwl-guile-service-type
-;   (modify-dwl-guile
-;     (config =>
-;             (home-dwl-guile-configuration
-;               (inherit config)
-;               (tty-number 3)))))
-; @end example
 ;
 ; @example
 ; (simple-service
@@ -256,9 +238,6 @@
         (service-extension
           home-shepherd-service-type
           home-dwl-guile-shepherd-service)
-        ; (service-extension
-        ;   home-shell-profile-service-type
-        ;   home-dwl-guile-run-on-tty-service)
         (service-extension
           home-run-on-change-service-type
           home-dwl-guile-on-change-service)))
