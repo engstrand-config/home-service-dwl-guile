@@ -1,8 +1,8 @@
 diff --git a/dwl.c b/dwl.c
-index 0ef7a35..dcb6ee6 100644
+index bb4b826..504218c 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -316,7 +316,7 @@ static void render(struct wlr_surface *surface, int sx, int sy, void *data);
+@@ -326,7 +326,7 @@ static void render(struct wlr_surface *surface, int sx, int sy, void *data);
  static void renderclients(Monitor *m, struct timespec *now);
  static void renderlayer(struct wl_list *layer_surfaces, struct timespec *now);
  static void rendermon(struct wl_listener *listener, void *data);
@@ -11,7 +11,7 @@ index 0ef7a35..dcb6ee6 100644
  static void run(char *startup_cmd);
  static void scalebox(struct wlr_box *box, float scale);
  static Client *selclient(void);
-@@ -446,6 +446,7 @@ static Atom netatom[NetLast];
+@@ -468,6 +468,7 @@ static Atom netatom[NetLast];
  #include "dscm-utils.h"
  #include "dscm-config.h"
  #include "dscm-bindings.h"
@@ -19,7 +19,7 @@ index 0ef7a35..dcb6ee6 100644
  
  /* function implementations */
  void
-@@ -824,7 +825,7 @@ closemon(Monitor *m)
+@@ -862,7 +863,7 @@ closemon(Monitor *m)
  	wl_list_for_each(c, &clients, link) {
  		if (c->isfloating && c->geom.x > m->m.width)
  			resize(c, c->geom.x - m->w.width, c->geom.y,
@@ -28,7 +28,7 @@ index 0ef7a35..dcb6ee6 100644
  		if (c->mon == m)
  			setmon(c, selmon, c->tags);
  	}
-@@ -969,7 +970,7 @@ createmon(struct wl_listener *listener, void *data)
+@@ -1011,7 +1012,7 @@ createmon(struct wl_listener *listener, void *data)
  		wl_list_for_each(c, &clients, link) {
  			if (c->isfloating)
  				resize(c, c->geom.x + m->w.width, c->geom.y,
@@ -37,25 +37,26 @@ index 0ef7a35..dcb6ee6 100644
  		}
  		return;
  	}
-@@ -1166,14 +1167,15 @@ setfullscreen(Client *c, int fullscreen)
- 		c->prevy = c->geom.y;
- 		c->prevheight = c->geom.height;
+@@ -1230,7 +1231,8 @@ setfullscreen(Client *c, int fullscreen)
  		c->prevwidth = c->geom.width;
+                 c->prevalpha = c->alpha;
+                 c->alpha = 1;
 -		resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height, 0);
-+
-+		resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height, 0, !smartborders);
++		resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height,
++                        0, !smartborders);
  		wl_list_remove(&c->slink);
  		wl_list_insert(&stack, &c->slink);
  		motionnotify(0);
- 	} else {
+@@ -1238,7 +1240,7 @@ setfullscreen(Client *c, int fullscreen)
  		/* restore previous size instead of arrange for floating windows since
  		 * client positions are set by the user and cannot be recalculated */
+                 c->alpha = c->prevalpha;
 -		resize(c, c->prevx, c->prevy, c->prevwidth, c->prevheight, 0);
 +		resize(c, c->prevx, c->prevy, c->prevwidth, c->prevheight, 0, 1);
  		if (!c->isfloating) {
  			wl_list_remove(&c->slink);
  			wl_list_insert(stack.prev, &c->slink);
-@@ -1477,7 +1479,10 @@ monocle(Monitor *m)
+@@ -1542,7 +1544,10 @@ monocle(Monitor *m)
  	wl_list_for_each(c, &clients, link) {
  		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
  			continue;
@@ -67,7 +68,7 @@ index 0ef7a35..dcb6ee6 100644
  	}
  
          /* Lift selected client */
-@@ -1522,12 +1527,12 @@ motionnotify(uint32_t time)
+@@ -1587,12 +1592,12 @@ motionnotify(uint32_t time)
  	if (cursor_mode == CurMove) {
  		/* Move the grabbed client to the new position. */
  		resize(grabc, cursor->x - grabcx, cursor->y - grabcy,
@@ -82,7 +83,7 @@ index 0ef7a35..dcb6ee6 100644
  		return;
  	}
  
-@@ -1961,7 +1966,7 @@ rendermon(struct wl_listener *listener, void *data)
+@@ -2028,7 +2033,7 @@ rendermon(struct wl_listener *listener, void *data)
  }
  
  void
@@ -91,7 +92,7 @@ index 0ef7a35..dcb6ee6 100644
  {
  	/*
  	 * Note that I took some shortcuts here. In a more fleshed-out
-@@ -1973,6 +1978,7 @@ resize(Client *c, int x, int y, int w, int h, int interact)
+@@ -2040,6 +2045,7 @@ resize(Client *c, int x, int y, int w, int h, int interact)
  	c->geom.y = y;
  	c->geom.width = w;
  	c->geom.height = h;
@@ -99,7 +100,7 @@ index 0ef7a35..dcb6ee6 100644
  	applybounds(c, bbox);
  	/* wlroots makes this a no-op if size hasn't changed */
  	c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
-@@ -2104,6 +2110,15 @@ setlayout(const Arg *arg)
+@@ -2276,6 +2282,15 @@ setlayout(const Arg *arg)
  		selmon->sellt ^= 1;
  	if (arg && arg->v)
  		selmon->lt[selmon->sellt] = (Layout *)arg->v;
@@ -115,7 +116,7 @@ index 0ef7a35..dcb6ee6 100644
  	/* TODO change layout symbol? */
  	arrange(selmon);
  	printstatus();
-@@ -2182,7 +2197,8 @@ reloadconfig(int signal, void *data) {
+@@ -2354,7 +2369,8 @@ reloadconfig(int signal, void *data) {
          wl_list_for_each(c, &clients, link) {
                  if (c->bw > 0)
                          c->bw = borderpx;
@@ -125,40 +126,47 @@ index 0ef7a35..dcb6ee6 100644
          }
  
          /* Rearrange clients on all monitors */
-@@ -2413,7 +2429,7 @@ tagmon(const Arg *arg)
+@@ -2585,7 +2601,8 @@ tagmon(const Arg *arg)
  void
  tile(Monitor *m)
  {
--	unsigned int i, n = 0, h, mw, my, ty;
-+	unsigned int i, n = 0, h, mw, my, ty, draw_borders = 1;
+-	unsigned int i, n = 0, h, r, oe = enablegaps, ie = enablegaps, mw, my, ty;
++	unsigned int i, n = 0, h, r, oe = enablegaps, ie = enablegaps,
++                     mw, my, ty, draw_borders = 1;
  	Client *c;
  
  	wl_list_for_each(c, &clients, link)
-@@ -2422,6 +2438,9 @@ tile(Monitor *m)
+@@ -2594,9 +2611,10 @@ tile(Monitor *m)
  	if (n == 0)
  		return;
  
+-	if (smartgaps == n) {
++	if (smartgaps == n)
+ 		oe = 0; // outer gaps disabled
+-	}
 +	if (n == smartborders)
 +		draw_borders = 0;
-+
+ 
  	if (n > m->nmaster)
- 		mw = m->nmaster ? m->w.width * m->mfact : 0;
- 	else
-@@ -2432,11 +2451,11 @@ tile(Monitor *m)
- 			continue;
+ 		mw = m->nmaster ? (m->w.width + m->gappiv*ie) * m->mfact : 0;
+@@ -2610,12 +2628,14 @@ tile(Monitor *m)
  		if (i < m->nmaster) {
- 			h = (m->w.height - my) / (MIN(n, m->nmaster) - i);
--			resize(c, m->w.x, m->w.y + my, mw, h, 0);
-+			resize(c, m->w.x, m->w.y + my, mw, h, 0, draw_borders);
- 			my += c->geom.height;
+ 			r = MIN(n, m->nmaster) - i;
+ 			h = (m->w.height - my - m->gappoh*oe - m->gappih*ie * (r - 1)) / r;
+-			resize(c, m->w.x + m->gappov*oe, m->w.y + my, mw - m->gappiv*ie, h, 0);
++			resize(c, m->w.x + m->gappov*oe, m->w.y + my, mw - m->gappiv*ie, h,
++                                0, draw_borders);
+ 			my += c->geom.height + m->gappih*ie;
  		} else {
- 			h = (m->w.height - ty) / (n - i);
--			resize(c, m->w.x + mw, m->w.y + ty, m->w.width - mw, h, 0);
-+			resize(c, m->w.x + mw, m->w.y + ty, m->w.width - mw, h, 0, draw_borders);
- 			ty += c->geom.height;
+ 			r = n - i;
+ 			h = (m->w.height - ty - m->gappoh*oe - m->gappih*ie * (r - 1)) / r;
+-			resize(c, m->w.x + mw + m->gappov*oe, m->w.y + ty, m->w.width - mw - 2*m->gappov*oe, h, 0);
++			resize(c, m->w.x + mw + m->gappov*oe, m->w.y + ty,
++                                m->w.width - mw - 2*m->gappov*oe, h, 0, draw_borders);
+ 			ty += c->geom.height + m->gappih*ie;
  		}
  		i++;
-@@ -3109,6 +3128,7 @@ main(int argc, char *argv[])
+@@ -3291,6 +3311,7 @@ main(int argc, char *argv[])
          scm_init_guile();
          dscm_register();
          dscm_config_parse(config_file);

@@ -1,8 +1,8 @@
 diff --git a/dwl.c b/dwl.c
-index 0ef7a35..979b0dd 100644
+index bb4b826..86df3a0 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -299,6 +299,7 @@ static void maplayersurfacenotify(struct wl_listener *listener, void *data);
+@@ -309,6 +309,7 @@ static void maplayersurfacenotify(struct wl_listener *listener, void *data);
  static void mapnotify(struct wl_listener *listener, void *data);
  static void mapnotify_sub(struct wl_listener *listener, void *data);
  static void monocle(Monitor *m);
@@ -10,7 +10,7 @@ index 0ef7a35..979b0dd 100644
  static void motionabsolute(struct wl_listener *listener, void *data);
  static void motionnotify(uint32_t time);
  static void motionrelative(struct wl_listener *listener, void *data);
-@@ -446,6 +447,7 @@ static Atom netatom[NetLast];
+@@ -468,6 +469,7 @@ static Atom netatom[NetLast];
  #include "dscm-utils.h"
  #include "dscm-config.h"
  #include "dscm-bindings.h"
@@ -18,7 +18,7 @@ index 0ef7a35..979b0dd 100644
  
  /* function implementations */
  void
-@@ -1488,6 +1490,33 @@ monocle(Monitor *m)
+@@ -1553,6 +1555,33 @@ monocle(Monitor *m)
          }
  }
  
@@ -52,7 +52,7 @@ index 0ef7a35..979b0dd 100644
  void
  motionabsolute(struct wl_listener *listener, void *data)
  {
-@@ -3108,6 +3137,7 @@ main(int argc, char *argv[])
+@@ -3290,6 +3319,7 @@ main(int argc, char *argv[])
                  BARF("error: config path must be set using '-c'");
          scm_init_guile();
          dscm_register();

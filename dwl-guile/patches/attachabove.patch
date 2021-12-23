@@ -1,8 +1,8 @@
 diff --git a/dwl.c b/dwl.c
-index 0ef7a35..47a96a0 100644
+index bb4b826..f2d7da9 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -1432,11 +1432,16 @@ void
+@@ -1497,11 +1497,16 @@ void
  mapnotify(struct wl_listener *listener, void *data)
  {
  	/* Called when the surface is mapped, or ready to display on-screen. */
