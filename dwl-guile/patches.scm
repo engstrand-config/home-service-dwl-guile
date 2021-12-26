@@ -5,6 +5,7 @@
                          %patch-base
                          %patch-xwayland
                          %patch-attachabove
+                         %patch-smartborders
                          %patch-monitor-config
                          %patch-focusmonpointer
                          %patch-movestack
@@ -26,6 +27,7 @@
 (define %patch-base (make-patch "dwl-guile"))
 (define %patch-xwayland (make-patch "xwayland"))
 (define %patch-attachabove (make-patch "attachabove"))
+(define %patch-smartborders (make-patch "smartborders"))
 (define %patch-monitor-config (make-patch "monitor-config"))
 (define %patch-focusmonpointer (make-patch "focusmonpointer"))
 (define %patch-movestack (make-patch "movestack"))
