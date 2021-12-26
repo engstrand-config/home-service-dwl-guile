@@ -78,7 +78,8 @@
                          dwl-config-gaps-horizontal-inner
                          dwl-config-gaps-horizontal-outer
                          dwl-config-gaps-vertical-inner
-                         dwl-config-gaps-vertical-outer))
+                         dwl-config-gaps-vertical-outer
+                         dwl-config-documentation))
 
 ; Predicates
 (define (list-of-keys? lst) (every dwl-key? lst))
@@ -169,3 +170,8 @@
     (number 10)
     "Outer vertical gaps between windows. Requires the @code{%patch-vanitygaps} patch.")
   (no-serialization))
+
+(define (dwl-config-documentation)
+  (generate-documentation
+   `((dwl-config ,dwl-config-fields))
+  'dwl-config))

@@ -51,7 +51,16 @@
 
                          dwl-rule
                          dwl-rule?
-                         <dwl-rule>))
+                         <dwl-rule>
+
+                         dwl-monitor-rule-documentation
+                         dwl-xkb-rule-documentation
+                         dwl-key-documentation
+                         dwl-button-documentation
+                         dwl-tag-keys-documentation
+                         dwl-layout-documentation
+                         dwl-colors-documentation
+                         dwl-rule-documentation))
 
 ; Color configuration
 (define-configuration
@@ -232,3 +241,43 @@
     (maybe-exp #f)
     "Expression to call when layout is selected.")
   (no-serialization))
+
+(define (dwl-monitor-rule-documentation)
+  (generate-documentation
+   `((dwl-monitor-rule ,dwl-monitor-rule-fields))
+  'dwl-monitor-rule))
+
+(define (dwl-xkb-rule-documentation)
+  (generate-documentation
+   `((dwl-xkb-rule ,dwl-xkb-rule-fields))
+  'dwl-xkb-rule))
+
+(define (dwl-key-documentation)
+  (generate-documentation
+   `((dwl-key ,dwl-key-fields))
+  'dwl-key))
+
+(define (dwl-button-documentation)
+  (generate-documentation
+   `((dwl-button ,dwl-button-fields))
+  'dwl-button))
+
+(define (dwl-tag-keys-documentation)
+  (generate-documentation
+   `((dwl-tag-keys ,dwl-tag-keys-fields))
+  'dwl-tag-keys))
+
+(define (dwl-layout-documentation)
+  (generate-documentation
+   `((dwl-layout ,dwl-layout-fields))
+  'dwl-layout))
+
+(define (dwl-colors-documentation)
+  (generate-documentation
+   `((dwl-colors ,dwl-colors-fields))
+  'dwl-colors))
+
+(define (dwl-rule-documentation)
+  (generate-documentation
+   `((dwl-rule ,dwl-rule-fields))
+  'dwl-rule))

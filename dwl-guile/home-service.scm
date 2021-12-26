@@ -34,6 +34,7 @@
                          home-dwl-guile-configuration-startup-commands
                          home-dwl-guile-environment-variables-service
                          home-dwl-guile-configuration-package-transform?
+                         home-dwl-guile-configuration-documentation
                          %base-environment-variables
 
                          modify-dwl-guile
@@ -259,3 +260,9 @@
     (extend home-dwl-guile-extension)
     (default-value (home-dwl-guile-configuration))
     (description "Configure and install dwl guile")))
+
+(define (home-dwl-guile-configuration-documentation)
+  (generate-documentation
+  `((home-dwl-guile-configuration
+      ,home-dwl-guile-configuration-fields))
+  'home-dwl-guile-configuration))
