@@ -150,25 +150,25 @@
     "List of mouse button bindings, e.g. resizing or moving windows.")
   (default-alpha
     (number 1.0)
-    "Default transparency (0-1) for windows. Requires the @code{%patch-alpha} patch.")
+    "Default transparency (0-1) for windows.")
   (smart-borders?
     (boolean #t)
     "Hide borders if there is only one window. Requires the @code{%patch-smartborders} patch.")
   (smart-gaps?
     (boolean #t)
-    "Remove gaps if there is only one window. Requires the @code{%patch-vanitygaps} patch.")
+    "Remove gaps if there is only one window.")
   (gaps-horizontal-inner
     (number 10)
-    "Inner horizontal gaps between windows. Requires the @code{%patch-vanitygaps} patch.")
+    "Inner horizontal gaps between windows.")
   (gaps-horizontal-outer
     (number 10)
-    "Outer horizontal gaps between windows. Requires the @code{%patch-vanitygaps} patch.")
+    "Outer horizontal gaps between windows.")
   (gaps-vertical-inner
     (number 10)
-    "Inner vertical gaps between windows. Requires the @code{%patch-vanitygaps} patch.")
+    "Inner vertical gaps between windows.")
   (gaps-vertical-outer
     (number 10)
-    "Outer vertical gaps between windows. Requires the @code{%patch-vanitygaps} patch.")
+    "Outer vertical gaps between windows.")
   (no-serialization))
 
 (define (dwl-config-documentation)

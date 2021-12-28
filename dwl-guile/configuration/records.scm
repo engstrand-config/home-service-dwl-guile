@@ -100,7 +100,7 @@
     "The monitor to spawn the application on.")
   (alpha
     (number 0.9)
-    "Default window transparency (0-1) for the application. Requires the @code{%patch-alpha} patch.")
+    "Default window transparency (0-1) for the application.")
   (no-swallow
     (boolean #f)
     "If true, the application will NOT be swallowed. Requires the @code{%patch-swallow} patch.")
