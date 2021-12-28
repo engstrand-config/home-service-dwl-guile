@@ -1,5 +1,5 @@
 diff --git a/dwl.c b/dwl.c
-index bb4b826..86df3a0 100644
+index e7d3dea..b4a2eb9 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -309,6 +309,7 @@ static void maplayersurfacenotify(struct wl_listener *listener, void *data);
@@ -18,7 +18,7 @@ index bb4b826..86df3a0 100644
  
  /* function implementations */
  void
-@@ -1553,6 +1555,33 @@ monocle(Monitor *m)
+@@ -1566,6 +1568,33 @@ monocle(Monitor *m)
          }
  }
  
@@ -52,7 +52,7 @@ index bb4b826..86df3a0 100644
  void
  motionabsolute(struct wl_listener *listener, void *data)
  {
-@@ -3290,6 +3319,7 @@ main(int argc, char *argv[])
+@@ -3303,6 +3332,7 @@ main(int argc, char *argv[])
                  BARF("error: config path must be set using '-c'");
          scm_init_guile();
          dscm_register();

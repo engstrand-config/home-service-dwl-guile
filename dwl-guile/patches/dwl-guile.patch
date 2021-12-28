@@ -1083,7 +1083,7 @@ index 0000000..6c246ae
 +        scm_c_with_continuation_barrier(func, &proc_data);
 +}
 diff --git a/dwl.c b/dwl.c
-index 0deae84..bb4b826 100644
+index 0deae84..e7d3dea 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -26,27 +26,34 @@
@@ -1909,7 +1909,22 @@ index 0deae84..bb4b826 100644
  		arrange(c->mon);
  	}
  }
-@@ -1088,7 +1275,7 @@ focusclient(Client *c, int lift)
+@@ -1064,7 +1251,13 @@ void
+ fullscreennotify(struct wl_listener *listener, void *data)
+ {
+ 	Client *c = wl_container_of(listener, c, fullscreen);
+-	setfullscreen(c, !c->isfullscreen);
++        struct wlr_xdg_toplevel_set_fullscreen_event *event = data;
++	if (!c->mon) {
++		/* if the client is not mapped yet, let mapnotify() call setfullscreen() */
++		c->isfullscreen = event->fullscreen;
++		return;
++	}
++	setfullscreen(c, event->fullscreen);
+ }
+ 
+ Monitor *
+@@ -1088,7 +1281,7 @@ focusclient(Client *c, int lift)
  	struct wlr_keyboard *kb;
  
  	/* Raise client in stacking order if requested */
@@ -1918,7 +1933,7 @@ index 0deae84..bb4b826 100644
  		wl_list_remove(&c->slink);
  		wl_list_insert(&stack, &c->slink);
  	}
-@@ -1101,8 +1288,8 @@ focusclient(Client *c, int lift)
+@@ -1101,8 +1294,8 @@ focusclient(Client *c, int lift)
  		wl_list_remove(&c->flink);
  		wl_list_insert(&fstack, &c->flink);
  		selmon = c->mon;
@@ -1928,7 +1943,7 @@ index 0deae84..bb4b826 100644
  
  	/* Deactivate old client if focus is changing */
  	if (old && (!c || client_surface(c) != old)) {
-@@ -1125,6 +1312,8 @@ focusclient(Client *c, int lift)
+@@ -1125,6 +1318,8 @@ focusclient(Client *c, int lift)
  		}
  	}
  
@@ -1937,7 +1952,16 @@ index 0deae84..bb4b826 100644
  	if (!c) {
  		/* With no client, all we have left is to clear focus */
  		wlr_seat_keyboard_notify_clear_focus(seat);
-@@ -1185,14 +1374,6 @@ focustop(Monitor *m)
+@@ -1154,7 +1349,7 @@ focusstack(const Arg *arg)
+ {
+ 	/* Focus the next or previous client (in tiling order) on selmon */
+ 	Client *c, *sel = selclient();
+-	if (!sel)
++	if (!sel || sel->isfullscreen)
+ 		return;
+ 	if (arg->i > 0) {
+ 		wl_list_for_each(c, &sel->link, link) {
+@@ -1185,14 +1380,6 @@ focustop(Monitor *m)
  	return NULL;
  }
  
@@ -1952,7 +1976,7 @@ index 0deae84..bb4b826 100644
  void
  incnmaster(const Arg *arg)
  {
-@@ -1231,7 +1412,7 @@ inputdevice(struct wl_listener *listener, void *data)
+@@ -1231,7 +1418,7 @@ inputdevice(struct wl_listener *listener, void *data)
  }
  
  int
@@ -1961,7 +1985,7 @@ index 0deae84..bb4b826 100644
  {
  	/*
  	 * Here we handle compositor keybindings. This is when the compositor is
-@@ -1239,32 +1420,27 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
+@@ -1239,32 +1426,27 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
  	 * processing.
  	 */
  	int handled = 0;
@@ -2001,7 +2025,7 @@ index 0deae84..bb4b826 100644
  	int handled = 0;
  	uint32_t mods = wlr_keyboard_get_modifiers(kb->device->keyboard);
  
-@@ -1272,8 +1448,7 @@ keypress(struct wl_listener *listener, void *data)
+@@ -1272,8 +1454,7 @@ keypress(struct wl_listener *listener, void *data)
  
  	/* On _press_, attempt to process a compositor keybinding. */
  	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED)
@@ -2011,16 +2035,19 @@ index 0deae84..bb4b826 100644
  
  	if (!handled) {
  		/* Pass unhandled keycodes along to the client. */
-@@ -1324,25 +1499,41 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1322,27 +1503,50 @@ void
+ mapnotify(struct wl_listener *listener, void *data)
+ {
  	/* Called when the surface is mapped, or ready to display on-screen. */
- 	Client *c = wl_container_of(listener, c, map);
- 
+-	Client *c = wl_container_of(listener, c, map);
+-
 -	if (client_is_unmanaged(c)) {
 -		/* Insert this independent into independents lists. */
 -		wl_list_insert(&independents, &c->link);
 -		return;
 -	}
--
++	Client *c = wl_container_of(listener, c, map), *sel = selclient();
+ 
  	/* Insert this client into client lists. */
  	wl_list_insert(&clients, &c->link);
  	wl_list_insert(&fstack, &c->flink);
@@ -2036,6 +2063,13 @@ index 0deae84..bb4b826 100644
  	/* Set initial monitor, tags, floating status, and focus */
  	applyrules(c);
 +
++        if (c->isfullscreen)
++                setfullscreen(c, 1);
++        /* Prevent new clients from stealing focus from fullscreen client
++         * on same monitor. */
++        else if (sel && sel->isfullscreen && VISIBLEON(sel, c->mon))
++                focusclient(sel, 1);
++
 +	// Damage the whole screen
 +	wlr_output_damage_add_whole(c->mon->damage);
 +
@@ -2045,8 +2079,8 @@ index 0deae84..bb4b826 100644
 +	else
 +#endif
 +		LISTEN(&c->surface.xdg->surface->events.commit, &c->commit, commitnotify);
-+}
-+
+ }
+ 
 +void
 +mapnotify_sub(struct wl_listener *listener, void *data)
 +{
@@ -2054,13 +2088,13 @@ index 0deae84..bb4b826 100644
 +	wl_list_insert(&subsurfaces, &s->link);
 +	wlr_output_damage_add_whole(s->c->mon->damage);
 +	LISTEN(&s->subsurface->surface->events.commit, &s->commit, commitnotify_sub);
- }
- 
++}
++
 +
  void
  monocle(Monitor *m)
  {
-@@ -1353,6 +1544,13 @@ monocle(Monitor *m)
+@@ -1353,6 +1557,13 @@ monocle(Monitor *m)
  			continue;
  		resize(c, m->w.x, m->w.y, m->w.width, m->w.height, 0);
  	}
@@ -2074,7 +2108,7 @@ index 0deae84..bb4b826 100644
  }
  
  void
-@@ -1477,6 +1675,19 @@ moveresize(const Arg *arg)
+@@ -1477,6 +1688,19 @@ moveresize(const Arg *arg)
  	}
  }
  
@@ -2094,7 +2128,7 @@ index 0deae84..bb4b826 100644
  void
  outputmgrapply(struct wl_listener *listener, void *data)
  {
-@@ -1581,23 +1792,31 @@ void
+@@ -1581,23 +1805,31 @@ void
  printstatus(void)
  {
  	Monitor *m = NULL;
@@ -2134,7 +2168,7 @@ index 0deae84..bb4b826 100644
  	}
  	fflush(stdout);
  }
-@@ -1608,6 +1827,12 @@ quit(const Arg *arg)
+@@ -1608,6 +1840,12 @@ quit(const Arg *arg)
  	wl_display_terminate(dpy);
  }
  
@@ -2147,7 +2181,7 @@ index 0deae84..bb4b826 100644
  void
  render(struct wlr_surface *surface, int sx, int sy, void *data)
  {
-@@ -1659,11 +1884,13 @@ render(struct wlr_surface *surface, int sx, int sy, void *data)
+@@ -1659,11 +1897,13 @@ render(struct wlr_surface *surface, int sx, int sy, void *data)
  
  	/* This takes our matrix, the texture, and an alpha, and performs the actual
  	 * rendering on the GPU. */
@@ -2162,7 +2196,7 @@ index 0deae84..bb4b826 100644
  }
  
  void
-@@ -1714,6 +1941,7 @@ renderclients(Monitor *m, struct timespec *now)
+@@ -1714,6 +1954,7 @@ renderclients(Monitor *m, struct timespec *now)
  		rdata.when = now;
  		rdata.x = c->geom.x + c->bw;
  		rdata.y = c->geom.y + c->bw;
@@ -2170,7 +2204,7 @@ index 0deae84..bb4b826 100644
  		client_for_each_surface(c, render, &rdata);
  	}
  }
-@@ -1728,6 +1956,7 @@ renderlayer(struct wl_list *layer_surfaces, struct timespec *now)
+@@ -1728,6 +1969,7 @@ renderlayer(struct wl_list *layer_surfaces, struct timespec *now)
  			.when = now,
  			.x = layersurface->geo.x,
  			.y = layersurface->geo.y,
@@ -2178,7 +2212,7 @@ index 0deae84..bb4b826 100644
  		};
  
  		wlr_surface_for_each_surface(layersurface->layer_surface->surface,
-@@ -1739,7 +1968,9 @@ void
+@@ -1739,7 +1981,9 @@ void
  rendermon(struct wl_listener *listener, void *data)
  {
  	Client *c;
@@ -2189,7 +2223,7 @@ index 0deae84..bb4b826 100644
  
  	/* This function is called every time an output is ready to display a frame,
  	 * generally at the output's refresh rate (e.g. 60Hz). */
-@@ -1748,45 +1979,51 @@ rendermon(struct wl_listener *listener, void *data)
+@@ -1748,45 +1992,51 @@ rendermon(struct wl_listener *listener, void *data)
  	struct timespec now;
  	clock_gettime(CLOCK_MONOTONIC, &now);
  
@@ -2269,7 +2303,7 @@ index 0deae84..bb4b826 100644
  	wlr_output_commit(m->wlr_output);
  }
  
-@@ -1809,6 +2046,16 @@ resize(Client *c, int x, int y, int w, int h, int interact)
+@@ -1809,6 +2059,16 @@ resize(Client *c, int x, int y, int w, int h, int interact)
  			c->geom.height - 2 * c->bw);
  }
  
@@ -2286,7 +2320,7 @@ index 0deae84..bb4b826 100644
  void
  run(char *startup_cmd)
  {
-@@ -1818,6 +2065,28 @@ run(char *startup_cmd)
+@@ -1818,6 +2078,28 @@ run(char *startup_cmd)
  	const char *socket = wl_display_add_socket_auto(dpy);
  	if (!socket)
  		BARF("startup: display_add_socket_auto");
@@ -2315,7 +2349,7 @@ index 0deae84..bb4b826 100644
  
  	/* Start the backend. This will enumerate outputs and inputs, become the DRM
  	 * master, etc */
-@@ -1835,21 +2104,6 @@ run(char *startup_cmd)
+@@ -1835,21 +2117,6 @@ run(char *startup_cmd)
  	wlr_cursor_warp_closest(cursor, NULL, cursor->x, cursor->y);
  	wlr_xcursor_manager_set_cursor_image(cursor_mgr, "left_ptr", cursor);
  
@@ -2337,7 +2371,7 @@ index 0deae84..bb4b826 100644
  	/* Run the Wayland event loop. This does not return until you exit the
  	 * compositor. Starting the backend rigged up all of the necessary event
  	 * loop configuration to listen to libinput events, DRM events, generate
-@@ -1902,10 +2156,119 @@ setcursor(struct wl_listener *listener, void *data)
+@@ -1902,10 +2169,119 @@ setcursor(struct wl_listener *listener, void *data)
  void
  setfloating(Client *c, int floating)
  {
@@ -2457,7 +2491,7 @@ index 0deae84..bb4b826 100644
  void
  setlayout(const Arg *arg)
  {
-@@ -1979,15 +2342,45 @@ setsel(struct wl_listener *listener, void *data)
+@@ -1979,15 +2355,45 @@ setsel(struct wl_listener *listener, void *data)
  	wlr_seat_set_selection(seat, event->source, event->serial);
  }
  
@@ -2505,7 +2539,7 @@ index 0deae84..bb4b826 100644
  
  	/* The backend is a wlroots feature which abstracts the underlying input and
  	 * output hardware. The autocreate option will choose the most suitable
-@@ -2021,6 +2414,10 @@ setup(void)
+@@ -2021,6 +2427,10 @@ setup(void)
  	wlr_primary_selection_v1_device_manager_create(dpy);
  	wlr_viewporter_create(dpy);
  
@@ -2516,7 +2550,7 @@ index 0deae84..bb4b826 100644
  	/* Creates an output layout, which a wlroots utility for working with an
  	 * arrangement of screens in a physical layout. */
  	output_layout = wlr_output_layout_create();
-@@ -2042,6 +2439,8 @@ setup(void)
+@@ -2042,6 +2452,8 @@ setup(void)
  	wl_list_init(&fstack);
  	wl_list_init(&stack);
  	wl_list_init(&independents);
@@ -2525,7 +2559,7 @@ index 0deae84..bb4b826 100644
  
  	idle = wlr_idle_create(dpy);
  
-@@ -2051,9 +2450,11 @@ setup(void)
+@@ -2051,9 +2463,11 @@ setup(void)
  	xdg_shell = wlr_xdg_shell_create(dpy);
  	wl_signal_add(&xdg_shell->events.new_surface, &new_xdg_surface);
  
@@ -2540,7 +2574,7 @@ index 0deae84..bb4b826 100644
  
  	/*
  	 * Creates a cursor, which is a wlroots utility for tracking the cursor
-@@ -2109,6 +2510,15 @@ setup(void)
+@@ -2109,6 +2523,15 @@ setup(void)
  	wl_signal_add(&output_mgr->events.apply, &output_mgr_apply);
  	wl_signal_add(&output_mgr->events.test, &output_mgr_test);
  
@@ -2556,7 +2590,7 @@ index 0deae84..bb4b826 100644
  #ifdef XWAYLAND
  	/*
  	 * Initialise the XWayland X server.
-@@ -2119,18 +2529,6 @@ setup(void)
+@@ -2119,18 +2542,6 @@ setup(void)
  		wl_signal_add(&xwayland->events.ready, &xwayland_ready);
  		wl_signal_add(&xwayland->events.new_surface, &new_xwayland_surface);
  
@@ -2575,7 +2609,7 @@ index 0deae84..bb4b826 100644
  		setenv("DISPLAY", xwayland->display_name, 1);
  	} else {
  		fprintf(stderr, "failed to setup XWayland X server, continuing without it\n");
-@@ -2187,7 +2585,7 @@ tagmon(const Arg *arg)
+@@ -2187,7 +2598,7 @@ tagmon(const Arg *arg)
  void
  tile(Monitor *m)
  {
@@ -2584,7 +2618,7 @@ index 0deae84..bb4b826 100644
  	Client *c;
  
  	wl_list_for_each(c, &clients, link)
-@@ -2196,22 +2594,29 @@ tile(Monitor *m)
+@@ -2196,22 +2607,29 @@ tile(Monitor *m)
  	if (n == 0)
  		return;
  
@@ -2623,7 +2657,7 @@ index 0deae84..bb4b826 100644
  		}
  		i++;
  	}
-@@ -2278,6 +2683,11 @@ unmapnotify(struct wl_listener *listener, void *data)
+@@ -2278,6 +2696,11 @@ unmapnotify(struct wl_listener *listener, void *data)
  {
  	/* Called when the surface is unmapped, and should no longer be shown. */
  	Client *c = wl_container_of(listener, c, unmap);
@@ -2635,7 +2669,7 @@ index 0deae84..bb4b826 100644
  	wl_list_remove(&c->link);
  	if (client_is_unmanaged(c))
  		return;
-@@ -2287,6 +2697,13 @@ unmapnotify(struct wl_listener *listener, void *data)
+@@ -2287,6 +2710,13 @@ unmapnotify(struct wl_listener *listener, void *data)
  	wl_list_remove(&c->slink);
  }
  
@@ -2649,7 +2683,7 @@ index 0deae84..bb4b826 100644
  void
  updatemons(struct wl_listener *listener, void *data)
  {
-@@ -2324,11 +2741,37 @@ updatemons(struct wl_listener *listener, void *data)
+@@ -2324,11 +2754,37 @@ updatemons(struct wl_listener *listener, void *data)
  	wlr_output_manager_v1_set_configuration(output_mgr, config);
  }
  
@@ -2688,7 +2722,7 @@ index 0deae84..bb4b826 100644
  	selmon->seltags ^= 1; /* toggle sel tagset */
  	if (arg->ui & TAGMASK)
  		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
-@@ -2337,6 +2780,17 @@ view(const Arg *arg)
+@@ -2337,6 +2793,17 @@ view(const Arg *arg)
  	printstatus();
  }
  
@@ -2706,7 +2740,7 @@ index 0deae84..bb4b826 100644
  void
  virtualkeyboard(struct wl_listener *listener, void *data)
  {
-@@ -2348,12 +2802,19 @@ virtualkeyboard(struct wl_listener *listener, void *data)
+@@ -2348,12 +2815,19 @@ virtualkeyboard(struct wl_listener *listener, void *data)
  Client *
  xytoclient(double x, double y)
  {
@@ -2729,7 +2763,7 @@ index 0deae84..bb4b826 100644
  	return NULL;
  }
  
-@@ -2452,17 +2913,34 @@ createnotifyx11(struct wl_listener *listener, void *data)
+@@ -2452,17 +2926,34 @@ createnotifyx11(struct wl_listener *listener, void *data)
  	c->type = xwayland_surface->override_redirect ? X11Unmanaged : X11Managed;
  	c->bw = borderpx;
  	c->isfullscreen = 0;
@@ -2769,7 +2803,7 @@ index 0deae84..bb4b826 100644
  }
  
  Atom
-@@ -2478,6 +2956,18 @@ getatom(xcb_connection_t *xc, const char *name)
+@@ -2478,6 +2969,18 @@ getatom(xcb_connection_t *xc, const char *name)
  	return atom;
  }
  
@@ -2788,7 +2822,7 @@ index 0deae84..bb4b826 100644
  void
  renderindependents(struct wlr_output *output, struct timespec *now)
  {
-@@ -2499,6 +2989,8 @@ renderindependents(struct wlr_output *output, struct timespec *now)
+@@ -2499,6 +3002,8 @@ renderindependents(struct wlr_output *output, struct timespec *now)
  		rdata.when = now;
  		rdata.x = c->surface.xwayland->x;
  		rdata.y = c->surface.xwayland->y;
@@ -2797,7 +2831,7 @@ index 0deae84..bb4b826 100644
  		wlr_surface_for_each_surface(c->surface.xwayland->surface, render, &rdata);
  	}
  }
-@@ -2557,15 +3049,233 @@ xytoindependent(double x, double y)
+@@ -2557,15 +3062,233 @@ xytoindependent(double x, double y)
  }
  #endif
  
@@ -3032,7 +3066,7 @@ index 0deae84..bb4b826 100644
  		else
  			goto usage;
  	}
-@@ -2576,11 +3286,16 @@ main(int argc, char *argv[])
+@@ -2576,11 +3299,16 @@ main(int argc, char *argv[])
  	// socket
  	if (!getenv("XDG_RUNTIME_DIR"))
  		BARF("XDG_RUNTIME_DIR must be set");

@@ -14,7 +14,7 @@ index fc00a3f..9fb5c05 100644
  }
  
 diff --git a/dwl.c b/dwl.c
-index bb4b826..e04004c 100644
+index e7d3dea..2d21a43 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -226,6 +226,10 @@ typedef struct {
