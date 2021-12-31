@@ -1,12 +1,12 @@
 (define-module (dwl-guile configuration keycodes)
-               #:use-module (ice-9 match)
-               #:export (string->keycode))
+  #:use-module (ice-9 match)
+  #:export (string->keycode))
 
-; Converts keysyms to the corresponding keycode.
-; Only the most common keysyms are supported.
-;
-; These keycodes have been extracted from the '' dwl patch:
-; https://github.com/djpohly/dwl/compare/main...Sevz17:keycodes.patch
+;; Converts keysyms to the corresponding keycode.
+;; Only the most common keysyms are supported.
+;;
+;; These keycodes have been extracted from the '' dwl patch:
+;; https://github.com/djpohly/dwl/compare/main...Sevz17:keycodes.patch
 (define (string->keycode str)
   (match str
     ("Escape" 9)

@@ -1,19 +1,19 @@
 (define-module (dwl-guile patches)
-               #:use-module (guix gexp)
-               #:use-module (srfi srfi-1)
-               #:export (
-                         %patch-base
-                         %patch-xwayland
-                         %patch-attachabove
-                         %patch-smartborders
-                         %patch-monitor-config
-                         %patch-focusmonpointer
-                         %patch-movestack
-                         %patch-swallow
-                         make-patch
-                         list-of-local-files?))
+  #:use-module (guix gexp)
+  #:use-module (srfi srfi-1)
+  #:export (
+            %patch-base
+            %patch-xwayland
+            %patch-attachabove
+            %patch-smartborders
+            %patch-monitor-config
+            %patch-focusmonpointer
+            %patch-movestack
+            %patch-swallow
+            make-patch
+            list-of-local-files?))
 
-; Find the absolute path to home-dwl-service by looking in the load path.
+;; Find the absolute path to home-dwl-service by looking in the load path.
 (define %dwl-guile-root-dir
   (find (lambda (path)
           (file-exists? (string-append path "/dwl-guile/patches/dwl-guile.patch")))
