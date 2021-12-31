@@ -36,112 +36,87 @@
   (map
    (lambda (v)
      (dwl-key
-      (modifiers '(CTRL ALT))
-      (key (string-append "F" (number->string v)))
+      (key (string-append "C-M-<f" (number->string v) ">"))
       (action `(dwl:chvt ,v))))
    (iota 12 1 1)))
 
 (define-public %dwl-base-keys
   (list
    (dwl-key
-    (modifiers '(SUPER))
-    (key "d")
+    (key "s-d")
     (action '(dwl:spawn-menu)))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "Return")
+    (key "s-<return>")
     (action '(dwl:spawn-terminal)))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "j")
+    (key "s-j")
     (action '(dwl:focus-stack 1)))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "k")
+    (key "s-k")
     (action '(dwl:focus-stack -1)))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "l")
+    (key "s-l")
     (action '(dwl:set-master-factor 0.05)))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "h")
+    (key "s-h")
     (action '(dwl:set-master-factor -0.05)))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "space")
+    (key "s-<space>")
     (action '(dwl:zoom)))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "Tab")
+    (key "s-<tab>")
     (action '(dwl:view)))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "q")
+    (key "s-q")
     (action '(dwl:killclient)))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "t")
+    (key "s-t")
     (action '(dwl:set-layout "tile")))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "m")
+    (key "s-m")
     (action '(dwl:set-layout "monocle")))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "f")
+    (key "s-f")
     (action '(dwl:toggle-fullscreen)))
    (dwl-key
-    (modifiers '(SUPER SHIFT))
-    (key "space")
+    (key "S-s-<space>")
     (action '(dwl:toggle-floating)))
    (dwl-key
-    (modifiers '(SUPER))
-    (key "0")
+    (key "s-0")
     (action '(dwl:view 0)))
    (dwl-key
-    (modifiers '(SUPER SHIFT))
-    (key "Escape")
+    (key "S-s-<escape>")
     (action '(dwl:quit)))
    (dwl-key
-    (modifiers '())
-    (key "XF86PowerOff")
+    (key "<XF86PowerOff>")
     (action '(dwl:quit)))
 
    ;; TODO: Remove these
    (dwl-key
-    (modifiers '())
-    (key "XF86MonBrightnessDown")
+    (key "<XF86MonBrightnessDown>")
     (action '(dwl:shcmd "brightnessctl s 10%-")))
    (dwl-key
-    (modifiers '())
-    (key "XF86MonBrightnessUp")
+    (key "<XF86MonBrightnessUp>")
     (action '(dwl:shcmd "brightnessctl s +10%")))
    (dwl-key
-    (modifiers '())
-    (key "XF86AudioLowerVolume")
+    (key "<XF86AudioLowerVolume>")
     (action '(dwl:shcmd "pamixer -u -d 3")))
    (dwl-key
-    (modifiers '())
-    (key "XF86AudioRaiseVolume")
+    (key "<XF86AudioRaiseVolume>")
     (action '(dwl:shcmd "pamixer -u -i 3")))
    (dwl-key
-    (modifiers '())
-    (key "XF86AudioMute")
+    (key "<XF86AudioMute>")
     (action '(dwl:shcmd "pamixer -t")))))
 
 ;; Default mouse button bindings
 (define-public %dwl-base-buttons
   (list
    (dwl-button
-    (modifiers '(SUPER))
-    (button 'MOUSE-LEFT)
+    (key "s-<mouse-left>")
     (action '(dwl:move-resize CURSOR-MOVE)))
    (dwl-button
-    (modifiers '(SUPER))
-    (button 'MOUSE-MIDDLE)
+    (key "s-<mouse-middle>")
     (action '(dwl:toggle-floating)))
    (dwl-button
-    (modifiers '(SUPER))
-    (button 'MOUSE-RIGHT)
+    (key "s-<mouse-right>")
     (action '(dwl:move-resize CURSOR-RESIZE)))))

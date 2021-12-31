@@ -20,15 +20,13 @@
                dwl-key
                <dwl-key>
                dwl-key?
-               dwl-key-modifiers
                dwl-key-key
                dwl-key-action
 
                dwl-button
                <dwl-button>
                dwl-button?
-               dwl-button-modifiers
-               dwl-button-button
+               dwl-button-key
                dwl-button-action
 
                dwl-tag-keys

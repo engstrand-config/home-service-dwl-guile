@@ -14,15 +14,13 @@
             dwl-key
             <dwl-key>
             dwl-key?
-            dwl-key-modifiers
             dwl-key-key
             dwl-key-action
 
             dwl-button
             <dwl-button>
             dwl-button?
-            dwl-button-modifiers
-            dwl-button-button
+            dwl-button-key
             dwl-button-action
 
             dwl-tag-keys
@@ -70,7 +68,7 @@
     "Root color in RGBA format.")
   (border
    (rgb-color '(0.5 0.5 0.5 1.0))
-   "Border color in RBA format.")
+   "Border color in RGBA format.")
   (focus
    (rgb-color '(1.0 0.0 0.0 1.0))
    "Border focus color in RGBA format.")
@@ -173,12 +171,9 @@
 ;; Keybinding configuration
 (define-configuration
   dwl-key
-  (modifiers
-   (list-of-modifiers '(SUPER))
-   "List of modifiers to use for the keybinding")
   (key
-   (keycode)
-   "Keycode or keysym string to use for this keybinding")
+    (string)
+    "Emacs-like key binding string, e.g. @code{C-s-<tab>}.")
   (action
    (maybe-exp #f)
    "Expression to call when triggered.")
@@ -187,12 +182,9 @@
 ;; Mouse button configuration
 (define-configuration
   dwl-button
-  (modifiers
-   (list-of-modifiers '(SUPER))
-   "List of modifiers to use for the button.")
-  (button
-   (symbol)
-   "Mouse button to use for this binding.")
+  (key
+   (string)
+   "Emacs-like button binding string, e.g. @code{s-<mouse-left>}.")
   (action
    (maybe-exp #f)
    "Expression to call when triggered.")
@@ -202,16 +194,16 @@
 (define-configuration
   dwl-tag-keys
   (view-modifiers
-   (list-of-modifiers '(SUPER))
+   (string "s")
    "Modifier(s) that should be used to view a tag.")
   (tag-modifiers
-   (list-of-modifiers '(SUPER SHIFT))
+   (string "S-s")
    "Modifier(s) that should be used to move windows to a tag.")
   (toggle-view-modifiers
-   (list-of-modifiers '(SUPER CTRL))
+   (string "C-s")
    "Modifier(s) that should be used to toggle the visibilty of a tag.")
   (toggle-tag-modifiers
-   (list-of-modifiers '(SUPER SHIFT CTRL))
+   (string "C-S-s")
    "Modifier(s) that should be used to toggle a tag for a window.")
   (keys
    (list-of-tag-key-pairs `(("1" . 1)

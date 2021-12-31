@@ -10,6 +10,7 @@
   #:export (
             arrange->exp
             binding->exp
+            kbd->modifiers-and-keycode
             dwl-config->alist
             configuration->alist))
 
@@ -27,6 +28,54 @@
    proc
    `(. (lambda () ,proc))))
 
+;; Converts a kbd key sequence into an alist containing
+;; a list of modifiers and a keycode.
+;;
+;; TODO: Support more modifiers?
+(define (kbd->modifiers-and-keycode str field)
+  (define (parse-modifiers mods)
+    (map (lambda (m)
+           (match m
+             ("C" 'CTRL)
+             ("M" 'ALT)
+             ("S" 'SHIFT)
+             ("s" 'SUPER)
+             (_ (raise-exception
+                 (make-exception-with-message
+                  (string-append "dwl: '" m "' is not a valid modifier"))))))
+         mods))
+
+  (define (parse-key key)
+    (let ((first (string-take key 1)))
+      (if (equal? first "[")
+          (string->number (string-trim-both key (char-set #\[ #\])))
+          (string->keycode key))))
+
+  (define (parse-kbd mods k)
+    `(("modifiers" . ,(parse-modifiers mods))
+      (,field . ,(parse-key k))))
+
+  (define (parse-kbd-without-keysym str)
+    (let ((params (string-split str #\-)))
+      (match params
+        ((k) (parse-kbd '() k))
+        ((mods ... k) (parse-kbd mods k))
+        (_ (raise-exception
+            (make-exception-with-message
+             (string-append "dwl: '" str "' is not a valid key sequence")))))))
+
+  (define (parse-kbd-with-keysym str index)
+    (if (eq? index 0)
+        (parse-kbd '() str)
+        (let ((target-index (- index 1)))
+          (parse-kbd (string-split (string-take str target-index) #\-)
+                     (substring str index)))))
+
+  (let ((keysym-index (string-contains str "<")))
+    (if (eq? keysym-index #f)
+        (parse-kbd-without-keysym str)
+        (parse-kbd-with-keysym str keysym-index))))
+
 ;; Converts a configuration into alist to allow the values to easily be
 ;; fetched in C using `scm_assoc_ref(alist, key)`.
 (define*
@@ -42,11 +91,14 @@
    (fold-right
     (lambda (field acc)
       (append
-       (let ((value ((record-accessor type field) config)))
-         `((,(remove-question-mark (symbol->string field)) .
-            ,(if (not transform-value)
-                 value
-                 (transform-value field value source)))))
+       (let* ((value ((record-accessor type field) config))
+              (transformed (if (not transform-value)
+                               value
+                               (transform-value field value source)))
+              (field (remove-question-mark (symbol->string field))))
+         (if (or (equal? field "key") (equal? field "button"))
+             transformed
+             `((,field . ,transformed))))
        acc))
     '()
     (record-type-fields type))))
@@ -76,22 +128,18 @@
     ('arrange (arrange->exp value))
     (_ value)))
 
-(define (transform-binding field value source)
+(define (transform-key field value source)
   (match
       field
-    ('modifiers (delete-duplicates value))
     ('action (binding->exp value))
-    ('key (if (number? value)
-              value
-              (let ((keycode (string->keycode value)))
-                (if (number? keycode)
-                    keycode
-                    (raise-exception
-                     (make-exception-with-message
-                      (string-append
-                       "dwl: no conversion for keysym '"
-                       value
-                       "'. use keycode instead")))))))
+    ('key (kbd->modifiers-and-keycode value "key"))
+    (_ value)))
+
+(define (transform-button field value source)
+  (match
+      field
+    ('action (binding->exp value))
+    ('key (kbd->modifiers-and-keycode value "button"))
     (_ value)))
 
 (define (transform-xkb-rule field value source)
@@ -159,14 +207,14 @@
 
 (define (dwl-key->alist key source)
   (configuration->alist
-   #:transform-value transform-binding
+   #:transform-value transform-key
    #:type <dwl-key>
    #:config key
    #:source source))
 
 (define (dwl-button->alist button source)
   (configuration->alist
-   #:transform-value transform-binding
+   #:transform-value transform-button
    #:type <dwl-button>
    #:config button
    #:source source))
@@ -186,39 +234,31 @@
         (toggle-view-modifiers (dwl-tag-keys-toggle-view-modifiers value))
         (toggle-tag-modifiers (dwl-tag-keys-toggle-tag-modifiers value)))
     (map
-     (lambda
-         (parsed-key)
-       (dwl-key->alist parsed-key source))
+     (lambda (parsed-key) (dwl-key->alist parsed-key source))
      (fold
-      (lambda
-          (pair acc)
-        (let
-            ((key (car pair))
-             (tag (cdr pair)))
+      (lambda (pair acc)
+        (let ((key (car pair))
+              (tag (cdr pair)))
           (cons*
            (dwl-key
-            (modifiers view-modifiers)
-            (key key)
+            (key (string-append view-modifiers "-" key))
             (action `(dwl:view ,tag)))
            (dwl-key
-            (modifiers tag-modifiers)
-            (key key)
+            (key (string-append tag-modifiers "-" key))
             (action `(dwl:tag ,tag)))
            (dwl-key
-            (modifiers toggle-view-modifiers)
-            (key key)
+            (key (string-append toggle-view-modifiers "-" key))
             (action `(dwl:toggle-view ,tag)))
            (dwl-key
-            (modifiers toggle-tag-modifiers)
-            (key key)
+            (key (string-append toggle-tag-modifiers "-" key))
             (action `(dwl:toggle-tag ,tag)))
            acc)))
       '()
       keys))))
 
-                                        ; Converts an operating system keyboard layout into an alist.
-                                        ; This allows us to re-use the same keyboard configuration
-                                        ; that is already being used by the system (optionally).
+;; Converts an operating system keyboard layout into an alist.
+;; This allows us to re-use the same keyboard configuration
+;; that is already being used by the system (optionally).
 (define (keyboard-layout->alist layout)
   (let ((name (keyboard-layout-name layout))
         (variant (keyboard-layout-variant layout))

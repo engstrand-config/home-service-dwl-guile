@@ -7,35 +7,26 @@
             maybe-exp?
             maybe-string?
             maybe-procedure?
-            modifier?
             keycode?
             rgb-color?
             start-parameters?
             list-of-strings?
             list-of-gexps?
-            list-of-modifiers?
             list-of-tag-key-pairs?))
 
 ;; List of available key modifiers
 (define %modifiers
   '(SHIFT
-    CAPS
     CTRL
     ALT
-    MOD2
-    MOD3
-    SUPER
-    MOD5))
+    SUPER))
 
 ;; General predicates
 (define (maybe-exp? val) #t) ;; not sure how to check if val is an expression
 (define (maybe-string? val) (or (string? val) (not val)))
 (define (maybe-procedure? val) (or (procedure? val) (not val)))
-(define (modifier? val) (member val %modifiers))
-(define (keycode? val) (or (string? val) (number? val)))
 (define (list-of-strings? lst) (every string? lst))
 (define (list-of-gexps? lst) (every gexp? lst))
-(define (list-of-modifiers? lst) (every modifier? lst))
 (define (start-parameters? lst) (every (lambda (v) (or (file-append? v) (string? v))) lst))
 
 ;; Validates the format of an RGBA list, e.g.
@@ -58,7 +49,7 @@
   (every
    (lambda
        (pair)
-     (and (keycode? (car pair)) (number? (cdr pair))))
+     (and (string? (car pair)) (number? (cdr pair))))
    lst))
 
 ;; Removes the '?' from the end of a string.
