@@ -10,98 +10,7 @@
   #:use-module (gnu packages build-tools)
   #:use-module (gnu packages freedesktop)
   #:use-module (dwl-guile patches)
-  #:export (
-            wayland-1.19.0
-            libdrm-2.4.105
-            wlroots-0.13.0
-            wlroots-0.14.0
-            make-dwl-package))
-
-;; Required by wlroots-0.13.0
-(define wayland-1.19.0
-  (package
-   (inherit wayland)
-   (version "1.19.0")
-   (source
-    (origin
-     (inherit (package-source wayland))
-     (uri (string-append "https://wayland.freedesktop.org/releases/"
-                         (package-name wayland) "-" version ".tar.xz"))
-     (sha256
-      (base32
-       "05bd2vphyx8qwa1mhsj1zdaiv4m4v94wrlssrn0lad8d601dkk5s"))))))
-
-;; The required wlroots version is not available from the
-;; default guix channel. Maximum available version is 0.12.0,
-;; whereas we need 0.13.0.
-(define wlroots-0.13.0
-  (package
-   (inherit wlroots)
-   (version "0.13.0")
-   (source
-    (origin
-     (inherit (package-source wlroots))
-     (uri (git-reference
-           (url "https://github.com/swaywm/wlroots")
-           (commit version)))
-     (sha256
-      (base32
-       "01plhbnsp5yg18arz0v8fr0pr9l4w4pdzwkg9px486qdvb3s1vgy"))))
-   (propagated-inputs
-    `(("wayland" ,wayland-1.19.0)
-                                        ; TODO: Is there a nicer way of doing this without mutating?
-      ,@(assoc-remove! (package-propagated-inputs wlroots) "wayland")))
-   (arguments
-    (substitute-keyword-arguments
-     (package-arguments wlroots)
-     ((#:meson original) meson-next)))))
-
-(define libdrm-2.4.105
-  (package
-   (inherit libdrm)
-   (name "libdrm")
-   (version "2.4.105")
-   (source (origin
-            (method url-fetch)
-            (uri (string-append
-                  "https://dri.freedesktop.org/libdrm/libdrm-"
-                  version ".tar.xz"))
-            (sha256
-             (base32
-              "0iiamypwdfiz250ki120nh598r48yyacmnndb4mkximdgi5h478x"))))))
-
-(define wayland-protocols-1.21
-  (package
-   (inherit wayland-protocols)
-   (name "wayland-protocols")
-   (version "1.21")
-   (source (origin
-            (method url-fetch)
-            (uri (string-append
-                  "https://wayland.freedesktop.org/releases/"
-                  "wayland-protocols-" version ".tar.xz"))
-            (sha256
-             (base32
-              "1rfdlkzz67qsb955zqb8jbw3m22pl6ppvrvfq8bqiqcb5n24b6dr"))))))
-
-(define wlroots-0.14.0
-  (package
-   (inherit wlroots-0.13.0)
-   (version "0.14.0")
-   (source
-    (origin
-     (inherit (package-source wlroots))
-     (uri (git-reference
-           (url "https://github.com/swaywm/wlroots")
-           (commit version)))
-     (sha256
-      (base32
-       "103sf9bsyqw18kmaih11mlxwqi9ddymm95w1lfxz06pf69xwhd39"))))
-   (propagated-inputs
-    `(("libdrm" ,libdrm-2.4.105)
-      ("wayland-protocols" ,wayland-protocols-1.21)
-      ("seatd" ,seatd)
-      ,@(assoc-remove! (assoc-remove! (package-propagated-inputs wlroots-0.13.0) "libdrm") "wayland-protocols")))))
+  #:export (make-dwl-package))
 
 ;; Create a new package definition based on `dwl-package`.
 ;; This procedure also allows us to modify the package further,
@@ -113,7 +22,7 @@
    (version "0.2.1")
    (inputs
     `(("guile-3.0" ,guile-3.0)
-      ("wlroots" ,wlroots-0.14.0)
+      ("wlroots" ,wlroots)
       ,@(assoc-remove! (package-inputs dwl-package) "wlroots")))
    (source
     (origin
