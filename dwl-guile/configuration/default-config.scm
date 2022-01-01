@@ -89,24 +89,7 @@
     (action '(dwl:quit)))
    (dwl-key
     (key "<XF86PowerOff>")
-    (action '(dwl:quit)))
-
-   ;; TODO: Remove these
-   (dwl-key
-    (key "<XF86MonBrightnessDown>")
-    (action '(dwl:shcmd "brightnessctl s 10%-")))
-   (dwl-key
-    (key "<XF86MonBrightnessUp>")
-    (action '(dwl:shcmd "brightnessctl s +10%")))
-   (dwl-key
-    (key "<XF86AudioLowerVolume>")
-    (action '(dwl:shcmd "pamixer -u -d 3")))
-   (dwl-key
-    (key "<XF86AudioRaiseVolume>")
-    (action '(dwl:shcmd "pamixer -u -i 3")))
-   (dwl-key
-    (key "<XF86AudioMute>")
-    (action '(dwl:shcmd "pamixer -t")))))
+    (action '(dwl:quit)))))
 
 ;; Default mouse button bindings
 (define-public %dwl-base-buttons
