@@ -1,20 +1,20 @@
 diff --git a/dwl.c b/dwl.c
-index e7d3dea..a0e60e7 100644
+index e85e84b..59f0633 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -1506,8 +1506,13 @@ mapnotify(struct wl_listener *listener, void *data)
- 	Client *c = wl_container_of(listener, c, map), *sel = selclient();
+@@ -1558,8 +1558,13 @@ mapnotify(struct wl_listener *listener, void *data)
+         Client *c = wl_container_of(listener, c, map), *sel = selclient();
  
- 	/* Insert this client into client lists. */
--	wl_list_insert(&clients, &c->link);
--	wl_list_insert(&fstack, &c->flink);
-+	if (sel) {
-+		wl_list_insert(sel->link.prev, &c->link);
-+		wl_list_insert(sel->flink.prev, &c->flink);
-+	} else {
-+		wl_list_insert(&clients, &c->link);
-+		wl_list_insert(&fstack, &c->flink);
-+	}
+         /* Insert this client into client lists. */
+-        wl_list_insert(&clients, &c->link);
+-        wl_list_insert(&fstack, &c->flink);
++        if (sel) {
++                wl_list_insert(sel->link.prev, &c->link);
++                wl_list_insert(sel->flink.prev, &c->flink);
++        } else {
++                wl_list_insert(&clients, &c->link);
++                wl_list_insert(&fstack, &c->flink);
++        }
  
- 	client_get_geometry(c, &c->geom);
- 	c->geom.width += 2 * c->bw;
+         client_get_geometry(c, &c->geom);
+         c->geom.width += 2 * c->bw;
