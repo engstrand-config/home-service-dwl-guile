@@ -151,7 +151,7 @@
     "Default transparency (0-1) for windows.")
   (smart-borders?
    (boolean #t)
-   "Hide borders if there is only one window. Requires the @code{%patch-smartborders} patch.")
+   "Hide borders if there is only one window.")
   (smart-gaps?
    (boolean #t)
    "Remove gaps if there is only one window.")
