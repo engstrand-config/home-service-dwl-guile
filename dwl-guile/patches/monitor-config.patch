@@ -14,7 +14,7 @@ index e71ea55..2c4d3c0 100644
  }
  
 diff --git a/dwl.c b/dwl.c
-index e85e84b..d24b715 100644
+index 2e56ed2..bba1334 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -227,6 +227,10 @@ typedef struct {
@@ -28,7 +28,7 @@ index e85e84b..d24b715 100644
  } MonitorRule;
  
  typedef struct {
-@@ -983,12 +987,46 @@ createkeyboard(struct wlr_input_device *device)
+@@ -984,12 +988,46 @@ createkeyboard(struct wlr_input_device *device)
          wl_list_insert(&keyboards, &kb->link);
  }
  
@@ -75,7 +75,7 @@ index e85e84b..d24b715 100644
          MonitorRule r;
          Monitor *m = wlr_output->data = calloc(1, sizeof(*m));
          wl_list_init(&m->dscm);
-@@ -1003,6 +1041,13 @@ createmon(struct wl_listener *listener, void *data)
+@@ -1004,6 +1042,13 @@ createmon(struct wl_listener *listener, void *data)
                  wl_list_init(&m->layers[i]);
          m->damage = wlr_output_damage_create(wlr_output);
          m->tagset[0] = m->tagset[1] = 1;
@@ -89,7 +89,7 @@ index e85e84b..d24b715 100644
          for (int i = 0; i < nummonrules; i++) {
                  r = monrules[i];
                  if (!r.name || strstr(wlr_output->name, r.name)) {
-@@ -1012,6 +1057,13 @@ createmon(struct wl_listener *listener, void *data)
+@@ -1013,17 +1058,17 @@ createmon(struct wl_listener *listener, void *data)
                          wlr_xcursor_manager_load(cursor_mgr, r.scale);
                          m->lt[0] = m->lt[1] = r.lt;
                          wlr_output_set_transform(wlr_output, r.rr);
@@ -103,3 +103,14 @@ index e85e84b..d24b715 100644
                          break;
                  }
          }
+ 
+-        /* The mode is a tuple of (width, height, refresh rate), and each
+-         * monitor supports only a specific set of modes. We just pick the
+-         * monitor's preferred mode; a more sophisticated compositor would let
+-         * the user configure it. */
+-        wlr_output_set_mode(wlr_output, wlr_output_preferred_mode(wlr_output));
+-        wlr_output_enable_adaptive_sync(wlr_output, 1);
+-
+         /* Set up event listeners */
+         LISTEN(&wlr_output->events.frame, &m->frame, rendermon);
+         LISTEN(&wlr_output->events.destroy, &m->destroy, cleanupmon);

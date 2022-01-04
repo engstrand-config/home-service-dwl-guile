@@ -1,8 +1,8 @@
 diff --git a/dwl.c b/dwl.c
-index e85e84b..59f0633 100644
+index 2e56ed2..32e3ce9 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -1558,8 +1558,13 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1559,8 +1559,13 @@ mapnotify(struct wl_listener *listener, void *data)
          Client *c = wl_container_of(listener, c, map), *sel = selclient();
  
          /* Insert this client into client lists. */

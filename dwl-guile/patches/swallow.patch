@@ -1,5 +1,5 @@
 diff --git a/dwl.c b/dwl.c
-index e85e84b..4d64492 100644
+index 2e56ed2..d6758f2 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -91,7 +91,8 @@ typedef struct {
@@ -43,7 +43,7 @@ index e85e84b..4d64492 100644
  static void arrange(Monitor *m);
  static void arrangelayer(Monitor *m, struct wl_list *list,
                           struct wlr_box *usable_area, int exclusive);
-@@ -393,6 +400,10 @@ static void defaultgaps(const Arg *arg);
+@@ -394,6 +401,10 @@ static void defaultgaps(const Arg *arg);
  /* signal actions */
  static int reloadconfig(int signal, void *data);
  
@@ -54,7 +54,7 @@ index e85e84b..4d64492 100644
  /* variables */
  static const char broken[] = "broken";
  static struct wl_display *dpy;
-@@ -492,6 +503,7 @@ static Atom netatom[NetLast];
+@@ -493,6 +504,7 @@ static Atom netatom[NetLast];
  #include "dscm-utils.h"
  #include "dscm-config.h"
  #include "dscm-bindings.h"
@@ -62,7 +62,7 @@ index e85e84b..4d64492 100644
  
  /* function implementations */
  void
-@@ -571,7 +583,30 @@ applyexclusive(struct wlr_box *usable_area,
+@@ -572,7 +584,30 @@ applyexclusive(struct wlr_box *usable_area,
  }
  
  void
@@ -94,7 +94,7 @@ index e85e84b..4d64492 100644
  {
          /* rule matching */
          const char *appid, *title;
-@@ -591,6 +626,8 @@ applyrules(Client *c)
+@@ -592,6 +627,8 @@ applyrules(Client *c)
                      && (!r.id || strstr(appid, r.id))) {
                          c->isfloating = r.isfloating;
                          c->alpha = r.alpha;
@@ -103,7 +103,7 @@ index e85e84b..4d64492 100644
                          newtags |= r.tags;
                          j = 0;
                          wl_list_for_each(m, &mons, link)
-@@ -599,7 +636,8 @@ applyrules(Client *c)
+@@ -600,7 +637,8 @@ applyrules(Client *c)
                  }
          }
          wl_list_insert(c->isfloating ? &stack : stack.prev, &c->slink);
@@ -113,7 +113,7 @@ index e85e84b..4d64492 100644
  }
  
  void
-@@ -1062,7 +1100,8 @@ createnotify(struct wl_listener *listener, void *data)
+@@ -1063,7 +1101,8 @@ createnotify(struct wl_listener *listener, void *data)
          /* This event is raised when wlr_xdg_shell receives a new xdg surface from a
           * client, either a toplevel (application window) or popup. */
          struct wlr_xdg_surface *xdg_surface = data;
@@ -123,7 +123,7 @@ index e85e84b..4d64492 100644
  
          if (xdg_surface->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
                  c = selclient();
-@@ -1084,16 +1123,56 @@ createnotify(struct wl_listener *listener, void *data)
+@@ -1085,16 +1124,56 @@ createnotify(struct wl_listener *listener, void *data)
          c->surface.xdg = xdg_surface;
          c->bw = borderpx;
          c->alpha = default_alpha;
@@ -189,7 +189,7 @@ index e85e84b..4d64492 100644
  }
  
  void
-@@ -1222,15 +1301,27 @@ void
+@@ -1223,15 +1302,27 @@ void
  destroynotify(struct wl_listener *listener, void *data)
  {
          /* Called when the surface is destroyed and should never be shown again. */
@@ -218,7 +218,7 @@ index e85e84b..4d64492 100644
          if (client_is_unmanaged(c)) {
  #ifdef XWAYLAND
                  wl_list_remove(&c->configure.link);
-@@ -1243,9 +1334,27 @@ destroynotify(struct wl_listener *listener, void *data)
+@@ -1244,9 +1335,30 @@ destroynotify(struct wl_listener *listener, void *data)
          } else {
                  wl_list_remove(&c->commit.link);
          }
@@ -241,6 +241,9 @@ index e85e84b..4d64492 100644
 +                kb = wlr_seat_get_keyboard(seat);
 +                wlr_seat_keyboard_notify_enter(seat, client_surface(c),
 +                                kb->keycodes, kb->num_keycodes, &kb->modifiers);
++                /* Make sure that the title of the selected window is updated
++                 * to the title of the swallowing client. */
++                printstatus();
 +        } else {
 +                wl_list_remove(&c->set_title.link);
 +                wl_list_remove(&c->fullscreen.link);
@@ -249,7 +252,7 @@ index e85e84b..4d64492 100644
  }
  
  void
-@@ -1281,8 +1390,8 @@ setfullscreen(Client *c, int fullscreen)
+@@ -1282,8 +1394,8 @@ setfullscreen(Client *c, int fullscreen)
                  c->prevwidth = c->geom.width;
                  c->prevalpha = c->alpha;
                  c->alpha = 1;
@@ -260,7 +263,7 @@ index e85e84b..4d64492 100644
                  wl_list_remove(&c->slink);
                  wl_list_insert(&stack, &c->slink);
                  motionnotify(0);
-@@ -1570,7 +1679,7 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1571,7 +1683,7 @@ mapnotify(struct wl_listener *listener, void *data)
                           WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT | WLR_EDGE_RIGHT);
  
          /* Set initial monitor, tags, floating status, and focus */
@@ -269,7 +272,7 @@ index e85e84b..4d64492 100644
          printstatus();
  
          if (c->isfullscreen)
-@@ -2256,6 +2365,8 @@ setfloating(Client *c, int floating)
+@@ -2257,6 +2369,8 @@ setfloating(Client *c, int floating)
                  wl_list_insert(floating ? &stack : stack.prev, &c->slink);
          }
          c->isfloating = floating;
@@ -278,7 +281,7 @@ index e85e84b..4d64492 100644
          arrange(c->mon);
  }
  
-@@ -2421,6 +2532,7 @@ setmon(Client *c, Monitor *m, unsigned int newtags)
+@@ -2422,6 +2536,7 @@ setmon(Client *c, Monitor *m, unsigned int newtags)
                  c->tags = newtags ? newtags : m->tagset[m->seltags]; /* assign tags of target monitor */
                  arrange(m);
          }
@@ -286,7 +289,7 @@ index e85e84b..4d64492 100644
          focusclient(focustop(selmon), 1);
  }
  
-@@ -2820,6 +2932,9 @@ unmapnotify(struct wl_listener *listener, void *data)
+@@ -2821,6 +2936,9 @@ unmapnotify(struct wl_listener *listener, void *data)
          /* Called when the surface is unmapped, and should no longer be shown. */
          Client *c = wl_container_of(listener, c, unmap);
  
@@ -296,8 +299,8 @@ index e85e84b..4d64492 100644
          // Damage the whole screen
          if (c->mon)
                  wlr_output_damage_add_whole(c->mon->damage);
-@@ -2936,6 +3051,48 @@ virtualkeyboard(struct wl_listener *listener, void *data)
-         createkeyboard(device);
+@@ -2951,6 +3069,48 @@ writepid(const char *runtimedir)
+         fclose(pidfile);
  }
  
 +pid_t
@@ -345,14 +348,14 @@ index e85e84b..4d64492 100644
  Client *
  xytoclient(double x, double y)
  {
-@@ -3436,6 +3593,7 @@ main(int argc, char *argv[])
+@@ -3450,6 +3610,7 @@ main(int argc, char *argv[])
          scm_init_guile();
          dscm_register();
          dscm_config_parse(config_file);
 +        patch_swallow_config_parse();
          setup(config_file);
+         writepid(runtimedir);
          run(startup_cmd);
-         dscm_config_cleanup();
 diff --git a/patch-swallow.h b/patch-swallow.h
 new file mode 100644
 index 0000000..21e943a
