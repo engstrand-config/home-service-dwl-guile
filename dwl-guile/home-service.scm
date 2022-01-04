@@ -151,7 +151,11 @@
            #$(file-append (config->dwl-package config) "/bin/dwl-guile")
            "-c" #$(string-append config-dir "/config.scm")
            "-s" #$(string-append config-dir "/startup.scm"))
-          #:log-file #$(string-append (or (getenv "XDG_LOG_HOME") (getenv "HOME"))
+          #:pid-file #$(string-append (or (getenv "XDG_RUNTIME_DIR")
+                                          (format #f "/run/user/~a" (getuid)))
+                                      "/dwl-guile.pid")
+          #:log-file #$(string-append (or (getenv "XDG_LOG_HOME")
+                                          (getenv "HOME"))
                                       "/dwl-guile.log"))))
     (stop #~(make-kill-destructor)))))
 
