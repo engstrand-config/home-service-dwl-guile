@@ -1,0 +1,136 @@
+* A =dwl-guile= home service for GNU Guix
+This repository contains a [[https://guix.gnu.org/manual/devel/en/html_node/Home-Configuration.html][Guix Home]] service which installs and configures [[https://github.com/engstrand-config/dwl-guile][ =dwl-guile= ]], a patched version of [[https://github.com/djpohly/dwl][ =dwl= ]] that is configured in [[https://www.gnu.org/software/guile/][GNU Guile]].
+You can install our home service with the help of the Guix channel below.
+
+The main goal of =dwl-guile= is to serve as a minimal =dwm=-like Wayland compositor for those who use [[https://guix.gnu.org/][GNU Guix System]] --- a GNU/Linux distribution in which the user can customize and configure their entire system in GNU Guile.
+
+With =dwl-guile=, we can integrate the window manager customization with that of the rest of the system, which allows for a dynamic, programmable and reproducible configuration for our entire computing environment --- all in Guile.
+
+No more =config.h= and no more domain-specific languages!
+
+#+begin_quote
+This is a work in progress --- please report bugs to us and (if applicable) to upstream =dwl=!
+#+end_quote
+
+** Features
+This Guix Home service can:
+- install =dwl= and apply the =dwl-guile= patch
+- automatically start =dwl-guile= when you log in
+- apply (some) other common =dwl= patches dynamically
+- configure WM keybindings (in an Emacs-esque way) and much more with Guile
+
+** Guix channel
+We provide =home-service-dwl-guile= in a Guix channel.
+
+Add the channel to your =~/.config/guix/channels.scm=:
+#+begin_src scheme
+(channel
+  (name 'home-service-dwl-guile)
+  (url "https://github.com/engstrand-config/home-service-dwl-guile")
+  (branch "main")
+  (introduction
+    (make-channel-introduction
+      "314453a87634d67e914cfdf51d357638902dd9fe"
+      (openpgp-fingerprint
+        "C9BE B8A0 4458 FDDF 1268 1B39 029D 8EB7 7E18 D68C"))))
+#+end_src
+Afterwards, run =guix pull=.
+
+** Usage
+Here is an example of how to use =home-service-dwl-guile=:
+#+begin_src scheme
+;; Import the service
+(use-modules (dwl-guile home-service)
+             (dwl-guile patches)) ; import if you want dynamic patches
+
+;; Enable the service and add a configuration
+(service home-dwl-guile-service-type
+  (home-dwl-guile-configuration
+    ;; Optionally specify a custom dwl package.
+    ;; It will automatically be patched with the dwl-guile patch,
+    ;; unless you set (package-transform? #f).
+    (package my-custom-dwl)
+
+    ;; Set this to false if you already have a fully patched dwl
+    (package-transform? #f)
+
+    ;; Optionally pass in a list of dwl patches to
+    ;; apply. Note that some patches will have conflicts.
+    ;; It is generally recommended to create a custom, patched dwl
+    ;; and convert it into a package. You can then set the custom
+    ;; package using the package field above.
+    (patches (list (%patch-xwayland)))
+
+    ;; tty to auto-start dwl on
+    (tty-number 2)
+
+    ;; Environment variables to set.
+    ;; By default, a chunk of different variables will be set to
+    ;; ensure compatibility with many applications.
+    ;;
+    ;; Set it to an empty list to skip setting environment variables:
+    ;; (environment-variables '())
+    ;;
+    ;; Or extend the default environment variables:
+    ;; (environment-variables (cons `(("var" . "value")) %base-environment-variables))
+
+    ;; A list of gexps to be executed after starting dwl-guile.
+    ;; This is the equivalent of specifying a script to the '-s' flag of dwl.
+    ;; The gexp's will be executed in the same order as in the list.
+    ;;
+    ;; You can find the generated script in: @file{$HOME/.config/dwl-guile/startup.scm}.
+    (startup-commands
+      (list
+        #~(system* ...)))
+
+    ;; Enable this to render qt applications natively.
+    ;; This will set QT_QPA_PLATFORM="wayland-egl" and install
+    ;; the "qtwayland" package to enable support for Wayland.
+    (native-qt? #t)
+
+    ;; Create a custom configuration for dwl.
+    (config
+      (dwl-config ...))))
+
+;; You can also use the default configuration
+(service home-dwl-guile-service-type)
+#+end_src
+
+*** Extending the home service
+You can extend the home service in order to alter the configuration. 
+This is especially useful if you use something like [[https://github.com/abcdw/rde][ =rde= ]].
+
+There are two convenient syntax macros that you can use:
+1. =(modify-dwl-guile config)= --- modifies the home service configuration
+  - =config= refers to the =home-dwl-guile-configuration= record
+2. =(modify-dwl-guile-config config)= --- modifies the =dwl= configuration
+   - =config= refers to the =config= field of the =home-dwl-guile-configuration= record
+
+Consider the following example that adds two new keybindings that dismiss notifications from [[https://github.com/emersion/mako)][ =mako= ]]:
+
+#+begin_src scheme
+(simple-service                                                    
+ 'add-mako-dwl-keybindings                                         
+ home-dwl-guile-service-type                                       
+ (modify-dwl-guile-config                                          
+  (config =>                                                       
+          (dwl-config                                              
+           (inherit config)                                        
+           (keys                                                   
+            (append                                                
+             (list                                                 
+              (dwl-key                                             
+               (key "C-s-d")                                   
+               (action `(system* ,(file-append mako "/bin/makoctl")
+                                 "dismiss")))                      
+              (dwl-key                                             
+               (key "C-S-s-d")                               
+               (action `(system* ,(file-append mako "/bin/makoctl")
+                                 "dismiss" "--all"))))             
+             (dwl-config-keys config)))))))                     
+#+end_src
+
+You should always /inherit/ the received =config= in order to not override your previous configuration options. 
+We recursively compose each service extension into a single configuration.
+
+You can find more examples of this in [[https://github.com/engstrand-config/guix-dotfiles][our GNU Guix configuration]], mainly in the =engstrand/features/wayland.scm= file.
