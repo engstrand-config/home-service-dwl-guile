@@ -15,7 +15,7 @@ This is a work in progress --- please report bugs to us and (if applicable) to u
 ** Features
 This Guix Home service can:
 - install =dwl= and apply the =dwl-guile= patch
-- automatically start =dwl-guile= when you log in
+- automatically start =dwl-guile= on the first TTY you log in to
 - apply (some) other common =dwl= patches dynamically
 - configure WM keybindings (in an Emacs-esque way) and much more with Guile
 
@@ -60,9 +60,6 @@ Here is an example of how to use =home-service-dwl-guile=:
     ;; and convert it into a package. You can then set the custom
     ;; package using the package field above.
     (patches (list (%patch-xwayland)))
-
-    ;; tty to auto-start dwl on
-    (tty-number 2)
 
     ;; Environment variables to set.
     ;; By default, a chunk of different variables will be set to
