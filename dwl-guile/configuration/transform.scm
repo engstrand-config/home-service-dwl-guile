@@ -167,6 +167,13 @@
          (_ index))))
     (_ value)))
 
+(define (transform-color field value source)
+  (match
+      field
+    ((or 'root 'border 'focus 'text)
+     (if (string? value) (hex->rgba value) value))
+    (_ value)))
+
 (define (transform-config field value source)
   (match
       field
@@ -188,6 +195,7 @@
 (define (dwl-colors->alist colors source)
   (configuration->alist
    #:type <dwl-colors>
+   #:transform-value transform-color
    #:config colors
    #:source source))
 

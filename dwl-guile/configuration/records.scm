@@ -64,17 +64,17 @@
 (define-configuration
   dwl-colors
   (root
-      (rgb-color '(0.3 0.3 0.3 1.0))
-    "Root color in RGBA format.")
+   (rgba-color "#4D4D4D")
+   "Root color in RGBA or hex format.")
   (border
-   (rgb-color '(0.5 0.5 0.5 1.0))
-   "Border color in RGBA format.")
+   (rgba-color "#7F7F7F")
+   "Border color in RGBA or hex format.")
   (focus
-   (rgb-color '(1.0 0.0 0.0 1.0))
-   "Border focus color in RGBA format.")
+   (rgba-color "#FF0000")
+   "Border focus color in RGBA or hex format.")
   (text
-   (rgb-color '(1.0 1.0 1.0 1.0))
-   "Text color in RGBA format.")
+   (rgba-color "#FFFFFF")
+   "Text color in RGBA or hex format.")
   (no-serialization))
 
 ;; Application rule configuration
@@ -172,8 +172,8 @@
 (define-configuration
   dwl-key
   (key
-    (string)
-    "Emacs-like key binding string, e.g. @code{C-s-<tab>}.")
+   (string)
+   "Emacs-like key binding string, e.g. @code{C-s-<tab>}.")
   (action
    (maybe-exp #f)
    "Expression to call when triggered.")

@@ -3,12 +3,13 @@
   #:use-module (guix gexp)
   #:use-module (srfi srfi-1)
   #:export (
+            hex->rgba
             remove-question-mark
             maybe-exp?
             maybe-string?
             maybe-procedure?
             keycode?
-            rgb-color?
+            rgba-color?
             start-parameters?
             list-of-strings?
             list-of-gexps?
@@ -29,15 +30,28 @@
 (define (list-of-gexps? lst) (every gexp? lst))
 (define (start-parameters? lst) (every (lambda (v) (or (file-append? v) (string? v))) lst))
 
-;; Validates the format of an RGBA list, e.g.
-;; '(0.2 0.5 0.6 1.0). Only values between 0-1 are allowed
-;; and no more than 4 elements may be present.
-(define (rgb-color? lst)
-  (and
-   (equal? (length lst) 4)
-   (every
-    (lambda (v) (and (number? v) (and (>= v 0) (<= v 1))))
-    lst)))
+(define* (rgba-color? lst)
+  "Validates the format of LST as RGBA or hex.
+Hex colors must be prefixed with '#' and can have a length of 6 or 8.
+RGBA format requires a length of 4, where each value is between 0 and 1."
+  (if (string? lst)
+      (and (or (eq? (string-length lst) 7) (eq? (string-length lst) 9))
+           (equal? (string-take lst 1) "#"))
+      (and (equal? (length lst) 4)
+           (every (lambda (v) (and (number? v) (and (>= v 0) (<= v 1)))) lst))))
+
+(define* (hex->rgba str)
+  "Converts a hex color STR into its RGBA color representation.
+If the hex color does not specify the alpha, it will default to 100%."
+  (define (split-rgb acc hex)
+    (if (eq? (string-length hex) 0)
+        acc
+        (split-rgb
+         (cons (exact->inexact (/ (string->number (string-take hex 2) 16) 255)) acc)
+         (string-drop hex 2))))
+  (let* ((hex (substring str 1))
+         (rgb (split-rgb '() hex)))
+    (reverse (if (eq? (length rgb) 3) (cons 1.0 rgb) rgb))))
 
 ;; Defining tag keys requires you to specify a target tag
 ;; for each respective key. For example, you might want to
