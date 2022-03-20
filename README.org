@@ -6,15 +6,13 @@ The main goal of =dwl-guile= is to serve as a minimal =dwm=-like Wayland composi
 
 With =dwl-guile=, we can integrate the window manager customization with that of the rest of the system, which allows for a dynamic, programmable and reproducible configuration for our entire computing environment --- all in Guile.
 
-No more =config.h= and no more domain-specific languages!
-
 #+begin_quote
 This is a work in progress --- please report bugs to us and (if applicable) to upstream =dwl=!
 #+end_quote
 
 ** Features
 This Guix Home service can:
-- install =dwl= and apply the =dwl-guile= patch
+- install =dwl-guile=
 - automatically start =dwl-guile= on the first TTY you log in to
 - apply (some) other common =dwl= patches dynamically
 - configure WM keybindings (in an Emacs-esque way) and much more with Guile
@@ -54,7 +52,7 @@ Afterwards, run =guix pull=.
           ;; Note that the dwl-guile patch requires version v0.2.1 of dwl.
           (package my-custom-dwl)
 
-          ;; Automatically patch the specified package with the dwl-guile patch.
+          ;; Automatically patch the specified package with the patches listed in `patches' below.
           ;; Set this to false if you have a pre-patched/custom version of dwl-guile.
           (package-transform? #f)
 

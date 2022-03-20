@@ -78,11 +78,8 @@
 (define-configuration
   home-dwl-guile-configuration
   (package
-   (package dwl)
-   "The dwl package to use. By default, this package will be
-    automatically patched using the dwl-guile patch. You can
-    find the base package definition for dwl in gnu/packages/wm.scm.
-
+   (package dwl-guile)
+   "The dwl package to use.
     If you want to use a custom dwl package, set @code{(package-transform #f)}
     in your dwl-guile configuration.")
   (auto-start?
