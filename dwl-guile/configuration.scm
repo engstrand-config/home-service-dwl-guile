@@ -61,6 +61,16 @@
             dwl-config?
             <dwl-config>
 
+            dwl-config-border-px
+            dwl-config-repeat-rate
+            dwl-config-repeat-delay
+            dwl-config-sloppy-focus?
+            dwl-config-tap-to-click?
+            dwl-config-lock-fullscreen?
+            dwl-config-natural-scrolling?
+            dwl-config-smart-gaps?
+            dwl-config-smart-borders?
+
             dwl-config-keys
             dwl-config-tags
             dwl-config-colors
@@ -71,8 +81,6 @@
             dwl-config-xkb-rules
             dwl-config-monitor-rules
             dwl-config-default-alpha
-            dwl-config-smart-borders
-            dwl-config-smart-gaps
             dwl-config-gaps-horizontal-inner
             dwl-config-gaps-horizontal-outer
             dwl-config-gaps-vertical-inner
@@ -110,6 +118,9 @@
   (natural-scrolling?
    (boolean #f)
    "If the trackpad should have natural scrolling.")
+  (lock-fullscreen?
+   (boolean #f)
+   "If focus should be automatically changed to fullscreened clients.")
   (terminal
    (start-parameters `(,(file-append foot "/bin/foot")))
    "Default terminal application to use. Will be used when calling @code{dwl:spawn-terminal}.")
