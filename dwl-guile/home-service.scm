@@ -164,12 +164,12 @@
 
 (define (home-dwl-guile-files-service config)
   (let ((startup (home-dwl-guile-configuration-startup-commands config)))
-    `(("config/dwl-guile/config.scm"
+    `((".config/dwl-guile/config.scm"
        ,(scheme-file
          "dwl-config.scm"
          #~(define config
              `(#$@(dwl-config->alist (home-dwl-guile-configuration-config config))))))
-      ("config/dwl-guile/startup.scm"
+      (".config/dwl-guile/startup.scm"
        ,(program-file
          "dwl-startup.scm"
          (if (null? startup)
