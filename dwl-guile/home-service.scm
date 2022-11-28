@@ -159,7 +159,7 @@
 ;; TODO: Add option to disable this.
 ;; TODO: Use sheperd action for this?
 (define (home-dwl-guile-on-change-service config)
-  `(("files/config/dwl-guile/config.scm"
+  `(("files/.config/dwl-guile/config.scm"
      ,#~(system* #$(file-append procps "/bin/pkill") "-RTMIN" "dwl-guile"))))
 
 (define (home-dwl-guile-files-service config)
