@@ -153,8 +153,7 @@
     (_ value)))
 
 (define (transform-monitor-rule field value source)
-  (match
-      field
+  (match field
     ('layout
      (let* ((layouts (dwl-config-layouts source))
             (index (list-index (lambda (l) (equal? (dwl-layout-id l) value)) layouts)))
@@ -168,15 +167,13 @@
     (_ value)))
 
 (define (transform-color field value source)
-  (match
-      field
-    ((or 'root 'border 'focus 'text)
+  (match field
+    ((or 'root 'border 'focus 'text 'fullscreen)
      (if (string? value) (hex->rgba value) value))
     (_ value)))
 
 (define (transform-config field value source)
-  (match
-      field
+  (match field
     ('colors (dwl-colors->alist value source))
     ((or 'keys 'tty-keys) (map (lambda (key) (dwl-key->alist key source)) value))
     ('buttons (map (lambda (button) (dwl-button->alist button source)) value))

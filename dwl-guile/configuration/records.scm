@@ -46,6 +46,8 @@
             dwl-colors-root
             dwl-colors-border
             dwl-colors-focus
+            dwl-colors-text
+            dwl-colors-fullscreen
 
             dwl-rule
             dwl-rule?
@@ -75,6 +77,9 @@
   (text
    (rgba-color "#FFFFFF")
    "Text color in RGBA or hex format.")
+  (fullscreen
+   (rgba-color "#00000000")
+   "Background color for fullscreen.")
   (no-serialization))
 
 ;; Application rule configuration

@@ -52,6 +52,8 @@
                dwl-colors-root
                dwl-colors-border
                dwl-colors-focus
+               dwl-colors-text
+               dwl-colors-fullscreen
 
                dwl-rule
                dwl-rule?
@@ -71,8 +73,27 @@
             dwl-config-xkb-rules
             dwl-config-monitor-rules
             dwl-config-default-alpha
-            dwl-config-smart-borders
-            dwl-config-smart-gaps
+            dwl-config-border-px
+            dwl-config-repeat-rate
+            dwl-config-repeat-delay
+            dwl-config-terminal
+            dwl-config-menu
+            dwl-config-acceleration-speed
+            dwl-config-acceleration-method
+            dwl-config-tap-to-click?
+            dwl-config-tap-and-drag?
+            dwl-config-drag-lock?
+            dwl-config-natural-scrolling?
+            dwl-config-disable-while-typing?
+            dwl-config-left-handed?
+            dwl-config-middle-button-emulation?
+            dwl-config-send-events-mode
+            dwl-config-scroll-method
+            dwl-config-click-method
+            dwl-config-sloppy-focus?
+            dwl-config-bypass-surface-visibility?
+            dwl-config-smart-borders?
+            dwl-config-smart-gaps?
             dwl-config-gaps-horizontal-inner
             dwl-config-gaps-horizontal-outer
             dwl-config-gaps-vertical-inner
@@ -95,6 +116,46 @@
   (sloppy-focus?
    (boolean #t)
    "If focus should follow mouse.")
+  (bypass-surface-visibility?
+   (boolean #f)
+   "If enabled, idle inhibitors will disable idle tracking even if its surface
+is not visible.")
+  (acceleration-speed
+    (number 0.0)
+    "Acceleration speed for the mouse/trackpad.")
+  (acceleration-method
+   (symbol 'ACCEL-PROFILE-ADAPTIVE)
+   "Acceleration method for mouse/trackpad.")
+  (tap-to-click?
+   (boolean #f)
+   "If tapping should be interpreted as a click.")
+  (tap-and-drag?
+   (boolean #f)
+   "If dragging should be possible for tapping.")
+  (drag-lock?
+   (boolean #t)
+   "Unknown.")
+  (natural-scrolling?
+   (boolean #f)
+   "If the trackpad should have natural scrolling.")
+  (disable-while-typing?
+   (boolean #f)
+   "If the trackpad should be disabled while typing.")
+  (left-handed?
+   (boolean #f)
+   "If left handed mode should be enabled.")
+  (middle-button-emulation?
+   (boolean #f)
+   "If middle button emulations should be enabled.")
+  (send-events-mode
+   (symbol 'SEND-EVENTS-ENABLED)
+   "Send events mode.")
+  (scroll-method
+   (symbol 'SCROLL-2FG)
+   "Scroll method.")
+  (click-method
+   (symbol 'CLICK-METHOD-BUTTON-AREAS)
+   "Click method.")
   (border-px
    (number 1)
    "Border width of windows in pixels.")
@@ -104,12 +165,6 @@
   (repeat-delay
    (number 300)
    "Keyboard repeat start delay.")
-  (tap-to-click?
-   (boolean #f)
-   "If tapping on the trackpad should be interpreted as a click.")
-  (natural-scrolling?
-   (boolean #f)
-   "If the trackpad should have natural scrolling.")
   (terminal
    (start-parameters `(,(file-append foot "/bin/foot")))
    "Default terminal application to use. Will be used when calling @code{dwl:spawn-terminal}.")
@@ -124,7 +179,7 @@
    "Default colors of elements, e.g. background, border and focus.")
   (layouts
    (list-of-layouts %dwl-base-layouts)
-   "List of layouts that should be available. A layout can be selected using @code{dwl:set-layout <id>}")
+   "List of layouts that should be available. A layout can be selected using @code{dwl:set-layout <id>}.")
   (rules
    (list-of-rules '())
    "List of application rules.")
