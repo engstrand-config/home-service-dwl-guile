@@ -79,7 +79,7 @@
             dwl-config-terminal
             dwl-config-menu
             dwl-config-acceleration-speed
-            dwl-config-acceleration-method
+            dwl-config-acceleration-profile
             dwl-config-tap-to-click?
             dwl-config-tap-and-drag?
             dwl-config-drag-lock?
@@ -90,6 +90,7 @@
             dwl-config-send-events-mode
             dwl-config-scroll-method
             dwl-config-click-method
+            dwl-config-button-map
             dwl-config-sloppy-focus?
             dwl-config-bypass-surface-visibility?
             dwl-config-smart-borders?
@@ -123,7 +124,7 @@ is not visible.")
   (acceleration-speed
     (number 0.0)
     "Acceleration speed for the mouse/trackpad.")
-  (acceleration-method
+  (acceleration-profile
    (symbol 'ACCEL-PROFILE-ADAPTIVE)
    "Acceleration method for mouse/trackpad.")
   (tap-to-click?
@@ -156,6 +157,9 @@ is not visible.")
   (click-method
    (symbol 'CLICK-METHOD-BUTTON-AREAS)
    "Click method.")
+  (button-map
+   (symbol 'TAP-MAP-LRM)
+   "Button map.")
   (border-px
    (number 1)
    "Border width of windows in pixels.")
