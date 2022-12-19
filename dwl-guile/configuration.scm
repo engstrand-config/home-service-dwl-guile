@@ -52,7 +52,6 @@
                dwl-colors-root
                dwl-colors-border
                dwl-colors-focus
-               dwl-colors-text
                dwl-colors-fullscreen
 
                dwl-rule

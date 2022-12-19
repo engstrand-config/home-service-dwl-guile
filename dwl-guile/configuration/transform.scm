@@ -168,7 +168,7 @@
 
 (define (transform-color field value source)
   (match field
-    ((or 'root 'border 'focus 'text 'fullscreen)
+    ((or 'root 'border 'focus 'fullscreen)
      (if (string? value) (hex->rgba value) value))
     (_ value)))
 

@@ -46,7 +46,6 @@
             dwl-colors-root
             dwl-colors-border
             dwl-colors-focus
-            dwl-colors-text
             dwl-colors-fullscreen
 
             dwl-rule
@@ -74,9 +73,6 @@
   (focus
    (rgba-color "#FF0000")
    "Border focus color in RGBA or hex format.")
-  (text
-   (rgba-color "#FFFFFF")
-   "Text color in RGBA or hex format.")
   (fullscreen
    (rgba-color "#00000000")
    "Background color for fullscreen.")
