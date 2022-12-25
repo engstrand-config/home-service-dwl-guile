@@ -131,7 +131,7 @@
   (package
    (inherit dwl)
    (name "dwl-guile")
-   (version "2.0.0-beta")
+   (version "2.0.0-beta2")
    (inputs
     (modify-inputs (package-inputs dwl)
                    (prepend guile-3.0)
@@ -145,7 +145,7 @@
      (file-name (git-file-name name version))
      (sha256
       (base32
-       "1np8mg7dip94frnfc2hsp6hvvbgb7cr77mmf383r4nbk5rsdz5nz"))))
+       "1f62bz3pwrrjghlrv44wf2znpim2dpc0k15lswfrfal37cw346kh"))))
    (arguments
     (substitute-keyword-arguments
      (package-arguments dwl)
