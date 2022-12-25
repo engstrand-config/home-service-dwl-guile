@@ -1,116 +1,117 @@
 diff --git a/dscm-config.h b/dscm-config.h
-index e71ea55..2c4d3c0 100644
+index e9e8c88..8e26f55 100644
 --- a/dscm-config.h
 +++ b/dscm-config.h
-@@ -75,6 +75,10 @@ dscm_parse_monitor_rule(unsigned int index, SCM rule, void *data)
-                 .rr = (enum wl_output_transform)scm_to_int(eval),
-                 .x = dscm_alist_get_int(rule, "x"),
-                 .y = dscm_alist_get_int(rule, "y"),
-+                .resx = dscm_alist_get_int(rule, "width"),
-+                .resy = dscm_alist_get_int(rule, "height"),
-+                .rate = dscm_alist_get_int(rule, "refresh-rate"),
-+                .adaptive_sync = dscm_alist_get_int(rule, "adaptive-sync")
-         };
+@@ -88,6 +88,10 @@ dscm_parse_monitor_rule(unsigned int index, SCM rule, void *data)
+ 		.rr = rr,
+ 		.x = dscm_alist_get_int(rule, "x"),
+ 		.y = dscm_alist_get_int(rule, "y"),
++		.resx = dscm_alist_get_int(rule, "width"),
++		.resy = dscm_alist_get_int(rule, "height"),
++		.rate = dscm_alist_get_int(rule, "refresh-rate"),
++		.adaptive_sync = dscm_alist_get_int(rule, "adaptive-sync")
+ 	};
  }
  
 diff --git a/dwl.c b/dwl.c
-index 2e56ed2..bba1334 100644
+index a541826..ca46099 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -227,6 +227,10 @@ typedef struct {
-         enum wl_output_transform rr;
-         int x;
-         int y;
-+        int resx;
-+        int resy;
-+        int rate;
-+        int adaptive_sync;
+@@ -218,6 +218,10 @@ typedef struct {
+ 	float scale;
+ 	const Layout *lt;
+ 	enum wl_output_transform rr;
++	int resx;
++	int resy;
++	int rate;
++	int adaptive_sync;
  } MonitorRule;
  
  typedef struct {
-@@ -984,12 +988,46 @@ createkeyboard(struct wlr_input_device *device)
-         wl_list_insert(&keyboards, &kb->link);
+@@ -932,6 +936,38 @@ createkeyboard(struct wlr_keyboard *keyboard)
+ 	wl_list_insert(&keyboards, &kb->link);
  }
  
 +void
 +setmonmode(struct wlr_output *output, int width, int height, float refresh_rate)
 +{
-+        /* Not all floating point integers can be represented exactly
-+         * as (int)(1000 * mHz / 1000.f)
-+         * round() the result to avoid any error */
-+        struct wlr_output_mode *mode, *best = NULL;
-+        int mhz = (int)ROUND(refresh_rate * 1000);
++	/* Not all floating point integers can be represented exactly
++	 * as (int)(1000 * mHz / 1000.f)
++	 * round() the result to avoid any error */
++	struct wlr_output_mode *mode, *best = NULL;
++	int mhz = (int)ROUND(refresh_rate * 1000);
 +
-+        if (wl_list_empty(&output->modes)) {
-+                wlr_output_set_custom_mode(output, width, height,
-+                        refresh_rate > 0 ? mhz : 0);
-+                return;
-+        }
++	if (wl_list_empty(&output->modes)) {
++		wlr_output_set_custom_mode(output, width, height,
++			refresh_rate > 0 ? mhz : 0);
++		return;
++	}
 +
-+        wl_list_for_each(mode, &output->modes, link) {
-+                if (mode->width == width && mode->height == height) {
-+                        if (mode->refresh == mhz) {
-+                                best = mode;
-+                                break;
-+                        }
-+                        if (best == NULL || mode->refresh > best->refresh)
-+                                best = mode;
-+                }
-+        }
++	wl_list_for_each(mode, &output->modes, link) {
++		if (mode->width == width && mode->height == height) {
++			if (mode->refresh == mhz) {
++				best = mode;
++				break;
++			}
++			if (best == NULL || mode->refresh > best->refresh)
++				best = mode;
++		}
++	}
 +
-+        if (!best)
-+                best = wlr_output_preferred_mode(output);
++	if (!best)
++		best = wlr_output_preferred_mode(output);
 +
-+        wlr_output_set_mode(output, best);
++	wlr_output_set_mode(output, best);
 +}
 +
  void
- createmon(struct wl_listener *listener, void *data)
+ createlayersurface(struct wl_listener *listener, void *data)
  {
-         /* This event is raised by the backend when a new output (aka a display or
-          * monitor) becomes available. */
-         struct wlr_output *wlr_output = data;
-+        const struct wlr_output_mode *wlr_output_mode;
-+        int32_t resx, resy, rate;
-         MonitorRule r;
-         Monitor *m = wlr_output->data = calloc(1, sizeof(*m));
-         wl_list_init(&m->dscm);
-@@ -1004,6 +1042,13 @@ createmon(struct wl_listener *listener, void *data)
-                 wl_list_init(&m->layers[i]);
-         m->damage = wlr_output_damage_create(wlr_output);
-         m->tagset[0] = m->tagset[1] = 1;
+@@ -1006,7 +1042,9 @@ createmon(struct wl_listener *listener, void *data)
+ 	/* This event is raised by the backend when a new output (aka a display or
+ 	 * monitor) becomes available. */
+ 	struct wlr_output *wlr_output = data;
++	const struct wlr_output_mode *wlr_output_mode;
+ 	size_t i;
++	int32_t resx, resy, rate;
+ 	MonitorRule r;
+ 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
+ 	wl_list_init(&m->dscm);
+@@ -1023,6 +1061,13 @@ createmon(struct wl_listener *listener, void *data)
+ 	for (i = 0; i < LENGTH(m->layers); i++)
+ 		wl_list_init(&m->layers[i]);
+ 	m->tagset[0] = m->tagset[1] = 1;
 +
-+        /* The mode is a tuple of (width, height, refresh rate), and each
-+         * monitor supports only a specific set of modes. Default to the
-+         * preferred mode, which will be overwritten if the user
-+         * specifies a different one*/
-+        wlr_output_set_mode(wlr_output, wlr_output_preferred_mode(wlr_output));
++	/* The mode is a tuple of (width, height, refresh rate), and each
++	 * monitor supports only a specific set of modes. Default to the
++	 * preferred mode, which will be overwritten if the user
++	 * specifies a different one*/
++	wlr_output_set_mode(wlr_output, wlr_output_preferred_mode(wlr_output));
 +
-         for (int i = 0; i < nummonrules; i++) {
-                 r = monrules[i];
-                 if (!r.name || strstr(wlr_output->name, r.name)) {
-@@ -1013,17 +1058,17 @@ createmon(struct wl_listener *listener, void *data)
-                         wlr_xcursor_manager_load(cursor_mgr, r.scale);
-                         m->lt[0] = m->lt[1] = r.lt;
-                         wlr_output_set_transform(wlr_output, r.rr);
-+                        wlr_output_mode = wlr_output_preferred_mode(wlr_output);
-+                        rate = r.rate ? r.rate : wlr_output_mode->refresh;
-+                        resx = r.resx ? r.resx : wlr_output_mode->width;
-+                        resy = r.resy ? r.resy : wlr_output_mode->height;
-+                        setmonmode(wlr_output, resx, resy, rate);
-+                        if (r.adaptive_sync)
-+                                        wlr_output_enable_adaptive_sync(wlr_output, 1);
-                         break;
-                 }
-         }
+ 	for (int i = 0; i < nummonrules; i++) {
+ 		r = monrules[i];
+ 		if (!r.name || strstr(wlr_output->name, r.name)) {
+@@ -1032,16 +1077,17 @@ createmon(struct wl_listener *listener, void *data)
+ 			wlr_xcursor_manager_load(cursor_mgr, r.scale);
+ 			m->lt[0] = m->lt[1] = r.lt;
+ 			wlr_output_set_transform(wlr_output, r.rr);
++			wlr_output_mode = wlr_output_preferred_mode(wlr_output);
++			rate = r.rate ? r.rate : wlr_output_mode->refresh;
++			resx = r.resx ? r.resx : wlr_output_mode->width;
++			resy = r.resy ? r.resy : wlr_output_mode->height;
++			setmonmode(wlr_output, resx, resy, rate);
++			if (r.adaptive_sync)
++					wlr_output_enable_adaptive_sync(wlr_output, 1);
+ 			break;
+ 		}
+ 	}
  
--        /* The mode is a tuple of (width, height, refresh rate), and each
--         * monitor supports only a specific set of modes. We just pick the
--         * monitor's preferred mode; a more sophisticated compositor would let
--         * the user configure it. */
--        wlr_output_set_mode(wlr_output, wlr_output_preferred_mode(wlr_output));
--        wlr_output_enable_adaptive_sync(wlr_output, 1);
+-	/* The mode is a tuple of (width, height, refresh rate), and each
+-	 * monitor supports only a specific set of modes. We just pick the
+-	 * monitor's preferred mode; a more sophisticated compositor would let
+-	 * the user configure it. */
+-	wlr_output_set_mode(wlr_output, wlr_output_preferred_mode(wlr_output));
 -
-         /* Set up event listeners */
-         LISTEN(&wlr_output->events.frame, &m->frame, rendermon);
-         LISTEN(&wlr_output->events.destroy, &m->destroy, cleanupmon);
+ 	/* Set up event listeners */
+ 	LISTEN(&wlr_output->events.frame, &m->frame, rendermon);
+ 	LISTEN(&wlr_output->events.destroy, &m->destroy, cleanupmon);

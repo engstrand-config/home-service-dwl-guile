@@ -1,20 +1,29 @@
 diff --git a/dwl.c b/dwl.c
-index 2e56ed2..32e3ce9 100644
+index a541826..d644b19 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -1559,8 +1559,13 @@ mapnotify(struct wl_listener *listener, void *data)
-         Client *c = wl_container_of(listener, c, map), *sel = selclient();
+@@ -1616,7 +1616,7 @@ void
+ mapnotify(struct wl_listener *listener, void *data)
+ {
+ 	/* Called when the surface is mapped, or ready to display on-screen. */
+-	Client *p, *w, *c = wl_container_of(listener, c, map);
++	Client *p, *w, *c = wl_container_of(listener, c, map), *sel = focustop(selmon);
+ 	Monitor *m;
+ 	int i;
  
-         /* Insert this client into client lists. */
--        wl_list_insert(&clients, &c->link);
--        wl_list_insert(&fstack, &c->flink);
-+        if (sel) {
-+                wl_list_insert(sel->link.prev, &c->link);
-+                wl_list_insert(sel->flink.prev, &c->flink);
-+        } else {
-+                wl_list_insert(&clients, &c->link);
-+                wl_list_insert(&fstack, &c->flink);
-+        }
+@@ -1662,8 +1662,13 @@ mapnotify(struct wl_listener *listener, void *data)
+ 	c->geom.height += 2 * c->bw;
  
-         client_get_geometry(c, &c->geom);
-         c->geom.width += 2 * c->bw;
+ 	/* Insert this client into client lists. */
+-	wl_list_insert(&clients, &c->link);
+-	wl_list_insert(&fstack, &c->flink);
++	if (sel) {
++		wl_list_insert(sel->link.prev, &c->link);
++		wl_list_insert(sel->flink.prev, &c->flink);
++	} else {
++		wl_list_insert(&clients, &c->link);
++		wl_list_insert(&fstack, &c->flink);
++	}
+ 
+ 	/* Set initial monitor, tags, floating status, and focus:
+ 	 * we always consider floating, clients that have parent and thus

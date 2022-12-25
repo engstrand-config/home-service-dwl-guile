@@ -1,12 +1,12 @@
 diff --git a/dwl.c b/dwl.c
-index 2e56ed2..e13e977 100644
+index a541826..fd0ac30 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -1394,6 +1394,7 @@ focusmon(const Arg *arg)
-                 selmon = dirtomon(arg->i);
-         while (!selmon->wlr_output->enabled);
-         focusclient(focustop(selmon), 1);
-+        wlr_cursor_warp(cursor, NULL, selmon->m.width / 2 + selmon->m.x, selmon->m.height / 2 + selmon->m.y);
+@@ -1417,6 +1417,7 @@ focusmon(const Arg *arg)
+ 			selmon = dirtomon(arg->i);
+ 		while (!selmon->wlr_output->enabled && i++ < nmons);
+ 	focusclient(focustop(selmon), 1);
++	wlr_cursor_warp(cursor, NULL, selmon->m.width / 2 + selmon->m.x, selmon->m.height / 2 + selmon->m.y);
  }
  
  void
