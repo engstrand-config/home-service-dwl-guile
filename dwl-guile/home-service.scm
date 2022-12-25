@@ -28,14 +28,14 @@
             home-dwl-guile-configuration?
             <home-dwl-guile-configuration>
             home-dwl-guile-configuration-config
-            home-dwl-guile-configuration-patches
             home-dwl-guile-configuration-package
+            home-dwl-guile-configuration-native-qt?
             home-dwl-guile-configuration-auto-start?
+            home-dwl-guile-configuration-reload-config-on-change?
             home-dwl-guile-configuration-startup-commands
-            home-dwl-guile-environment-variables-service
-            home-dwl-guile-configuration-package-transform?
+            home-dwl-guile-configuration-environment-variables
             home-dwl-guile-configuration-documentation
-            %base-environment-variables
+            %dwl-guile-base-env-variables
 
             modify-dwl-guile
             modify-dwl-guile-config)
@@ -44,6 +44,9 @@
   ;; available in the home environment without
   ;; having to manually import them.
   #:re-export (
+               dwl-guile
+               patch-dwl-guile-package
+
                dwl-key
                dwl-button
                dwl-config
@@ -65,7 +68,7 @@
 
 ;; Base wayland environment variables
 ;; TODO: Add support for using electron apps natively in wayland?
-(define %base-environment-variables
+(define %dwl-guile-base-env-variables
   `(("XDG_CURRENT_DESKTOP" . "dwl")
     ("XDG_SESSION_TYPE" . "wayland")
     ("MOZ_ENABLE_WAYLAND" . "1")
@@ -85,22 +88,20 @@
   (auto-start?
    (boolean #t)
    "Launch dwl automatically upon user login. Defaults to #t.")
-  (patches
-   (list-of-local-files '())
-   "Additional patch files to apply to package.")
-  (package-transform?
+  (reload-config-on-change?
    (boolean #t)
-   "If package should be dynamically transformed based on your configuration. Defaults to #t.")
+   "Automatically reload your dwl-guile config during a Guix home reconfigure.")
   (environment-variables
-   (list %base-environment-variables)
+   (list %dwl-guile-base-env-variables)
    "Environment variables for enabling wayland support in many different applications.
     Basic environment variables will be added if no value is specified.
 
     You can modify the variables that will be set by extending
-    @code{%base-environment-variables}, or by specifying a custom list.")
+    @code{%dwl-guile-base-env-variables}, or by specifying a custom list.")
   (native-qt?
    (boolean #t)
-   "If qt applications should be rendered natively in Wayland.")
+   "If qt applications should be rendered natively in Wayland.
+This will also install the qtwayland package.")
   (startup-commands
    (list-of-gexps '())
    "A list of gexps to be executed on dwl-guile startup.")
@@ -108,15 +109,6 @@
    (dwl-config (dwl-config))
    "Custom dwl-guile configuration. Replaces config.h.")
   (no-serialization))
-
-;; Helper for creating the custom dwl package.
-;; TODO: Figure out a way to only run this once?
-(define (config->dwl-package config)
-  (let ((package (home-dwl-guile-configuration-package config))
-        (patches (home-dwl-guile-configuration-patches config)))
-    (if (home-dwl-guile-configuration-package-transform? config)
-        (make-dwl-package package patches)
-        package)))
 
 (define (home-dwl-guile-environment-variables-service config)
   (append
@@ -127,7 +119,7 @@
 
 (define (home-dwl-guile-profile-service config)
   (append
-   (list (config->dwl-package config)
+   (list (home-dwl-guile-configuration-package config)
          xdg-desktop-portal
          xdg-desktop-portal-wlr)
    (if (home-dwl-guile-configuration-native-qt? config)
@@ -145,7 +137,7 @@
      (let ((config-dir (string-append (getenv "HOME") "/.config/dwl-guile")))
        #~(make-forkexec-constructor
           (list
-           #$(file-append (config->dwl-package config) "/bin/dwl-guile")
+           #$(file-append (home-dwl-guile-configuration-package config) "/bin/dwl-guile")
            "-c" #$(string-append config-dir "/config.scm")
            "-s" #$(string-append config-dir "/startup.scm"))
           #:pid-file #$(string-append (or (getenv "XDG_RUNTIME_DIR")
@@ -156,11 +148,12 @@
                                       "/dwl-guile.log"))))
     (stop #~(make-kill-destructor)))))
 
-;; TODO: Add option to disable this.
-;; TODO: Use sheperd action for this?
 (define (home-dwl-guile-on-change-service config)
-  `(("files/.config/dwl-guile/config.scm"
-     ,#~(system* #$(file-append procps "/bin/pkill") "-RTMIN" "dwl-guile"))))
+  (if (home-dwl-guile-configuration-reload-config-on-change? config)
+      `(("files/.config/dwl-guile/config.scm"
+         ,#~(system* #$(file-append (home-dwl-guile-configuration-package config) "/bin/dwl-guile")
+                     "-e" "(dwl:reload-config)")))
+      '()))
 
 (define (home-dwl-guile-files-service config)
   (let ((startup (home-dwl-guile-configuration-startup-commands config)))

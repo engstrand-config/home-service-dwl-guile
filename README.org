@@ -40,41 +40,35 @@ Afterwards, run =guix pull=.
 #+begin_src scheme
 ;; Import the service
 (use-modules (dwl-guile home-service)
-             (dwl-guile patches)) ; import if you want dynamic patches
+             (dwl-guile patches)) ; import if you to apply patches dynamically
 
 ;; Create and add the dwl-guile home service to your home configuration.
 (service home-dwl-guile-service-type
          ;; If you wish to configure the home service further, you can pass in
          ;; a configuration to the service. All options listed below are optional.
          (home-dwl-guile-configuration
-          ;; Use a custom dwl package.
-          ;; Often used together with the @code{package-transform?} option.
-          ;; Note that the dwl-guile patch requires version v0.2.1 of dwl.
+          ;; Use a custom dwl-guile package.
           (package my-custom-dwl)
 
-          ;; Automatically patch the specified package with the patches listed in `patches' below.
-          ;; Set this to false if you have a pre-patched/custom version of dwl-guile.
-          (package-transform? #f)
-
-          ;; List of patches to (dynamically) apply to dwl-guile.
-          ;; Note that some patches will have conflicts.
+          ;; If you want to dynamically apply patches, you can create a new
+          ;; modified package definition (multiple patches can be applied).
+          ;; Note that some patches might have conflicts.
           ;;
-          ;; It is generally recommended to create a custom version of dwl-guile
-          ;; and convert it into a package. You can then set the custom
-          ;; package using the package field above.
-          (patches (list (%patch-xwayland)))
+          ;; (package
+          ;;  (patch-dwl-guile-package dwl-guile
+          ;;                           #:patches '(%patch-xwayland)))
 
           ;; Environment variables to set for Wayland compatibility with applications.
           ;; By default, native Wayland rendering will be enabled for most applications.
           ;; Native rendering of QT-applications is enabled using the @code{native-qt?}
-          ;; option. This is because it requires the qtwayland package to render natively.
+          ;; option. This is because it requires the qtwayland package.
           ;;
           ;; Set it to an empty list to skip setting environment variables:
-          (environment-variables '())
+          ;; (environment-variables '())
           ;;
           ;; Or extend the default environment variables:
-          (environment-variables
-           (append `(("var" . "value")) %base-environment-variables))
+          ;; (environment-variables
+          ;;  (append `(("var" . "value")) %dwl-guile-base-env-variables))
 
           ;; A list of gexps to be executed after starting dwl-guile.
           ;; This is the equivalent of specifying a script to the '-s' flag of dwl.
@@ -90,6 +84,11 @@ Afterwards, run =guix pull=.
 
           ;; If dwl-guile should auto-start on first login. Enabled by default.
           (auto-start? #t)
+
+          ;; If the dwl-guile config should be automatically reloaded on change.
+          ;; This will allow you to see (most of) the effects of your config changes
+          ;; dynamically, without restarting dwl-guile.
+          (reload-config-on-change? #t)
 
           ;; Create a custom configuration for dwl.
           (config
@@ -107,6 +106,17 @@ herd restart dwl-guile
 #+END_SRC
 
 Using these commands, dwl-guile will start with the correct options. Logs are available at =$XDG_LOG_HOME/dwl-guile.log=. If the XDG environment variable is not set, the log will be saved to your =HOME= directory.
+
+*** Runtime evaluation of Guile expressions
+As of v2.0.0, you can execute arbitrary GNU Guile expressions in the context of dwl-guile during runtime. This allows for some scripting capabilities, as well as dynamic changes of the config.
+
+Executing an expression is done using the =dwl-guile= executable, like so:
+#+BEGIN_SRC
+dwl-guile -e "(dwl:reload-config)"
+#+END_SRC
+
+The result of the evaluation will be shown in stdout, or in stderr if an error occured.
+These types of evaluations will be executed in their thread, which means that it will not block dwl-guile. In other words, you can safely run commands that run for a longer time. Note that the expression is not evaluated in a shell context, which means that procedures such as =system*= will not work, but you can always use =dwl:shcmd= or =dwl:spawn= instead.
 
 *** Configuring dwl-guile
 Using dwl-guile, all configuration is done in Guile by specifying a custom =dwl-config= record to the =config= field of the home service configuration.
@@ -371,12 +381,12 @@ Consider the following example that adds two new keybindings that dismiss notifi
              (list
               (dwl-key
                (key "C-s-d")
-               (action `(system* ,(file-append mako "/bin/makoctl")
-                                 "dismiss")))
+               (action `(dwl:shcmd ,(file-append mako "/bin/makoctl")
+                                   "dismiss")))
               (dwl-key
                (key "C-S-s-d")
-               (action `(system* ,(file-append mako "/bin/makoctl")
-                                 "dismiss" "--all"))))
+               (action `(dwl:shcmd ,(file-append mako "/bin/makoctl")
+                                   "dismiss" "--all"))))
              (dwl-config-keys config)))))))
 #+end_src
 

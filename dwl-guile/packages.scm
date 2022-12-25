@@ -25,7 +25,7 @@
             xorg-server-xwayland-22.1.5
             wlroots-0.16.0
 
-            make-dwl-package))
+            patch-dwl-guile-package))
 
 (define libdrm-2.4.113
   (package
@@ -131,7 +131,7 @@
   (package
    (inherit dwl)
    (name "dwl-guile")
-   (version "2.0.0")
+   (version "2.0.0-beta")
    (inputs
     (modify-inputs (package-inputs dwl)
                    (prepend guile-3.0)
@@ -145,7 +145,7 @@
      (file-name (git-file-name name version))
      (sha256
       (base32
-       "1yyrsarc702ppcmni6cmp53gzzclyzjkf4jsysgr5rpqzv498wb6"))))
+       "1np8mg7dip94frnfc2hsp6hvvbgb7cr77mmf383r4nbk5rsdz5nz"))))
    (arguments
     (substitute-keyword-arguments
      (package-arguments dwl)
@@ -164,14 +164,15 @@
                           (string-append bin "/dwl-guile"))
              #t)))))))))
 
-;; Create a new package definition based on `dwl-package`.
-;; This procedure also allows us to modify the package further,
-;; e.g. by adding the guile configuration patch, and any other user patches.
-(define (make-dwl-package dwl-package patches)
+(define* (patch-dwl-guile-package pkg #:key (patches '()))
+  "Create a new patched package of PKG with each patch in PATCHES
+applied. This can be used to dynamically apply patches imported from
+@code{(dwl-guile patches)}. Generally, it is recommended to create your
+own package for dwl-guile that already has the patches applied."
   (package
-   (inherit dwl-package)
+   (inherit pkg)
    (source
     (origin
-     (inherit (package-source dwl-package))
+     (inherit (package-source pkg))
      (patch-flags '("-p1" "-F3"))
      (patches patches)))))
