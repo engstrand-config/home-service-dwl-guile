@@ -96,10 +96,10 @@
   (list
    (dwl-button
     (key "s-<mouse-left>")
-    (action '(dwl:move-resize CURSOR-MOVE)))
+    (action '(dwl:move)))
    (dwl-button
     (key "s-<mouse-middle>")
     (action '(dwl:toggle-floating)))
    (dwl-button
     (key "s-<mouse-right>")
-    (action '(dwl:move-resize CURSOR-RESIZE)))))
+    (action '(dwl:resize)))))
