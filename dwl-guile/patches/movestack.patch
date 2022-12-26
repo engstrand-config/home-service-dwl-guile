@@ -1,5 +1,5 @@
 diff --git a/dwl.c b/dwl.c
-index a148125..3fd691f 100644
+index 98a4990..1c0b99c 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -318,6 +318,7 @@ static void maplayersurfacenotify(struct wl_listener *listener, void *data);
@@ -18,7 +18,7 @@ index a148125..3fd691f 100644
  
  /* function implementations */
  void
-@@ -1712,6 +1714,33 @@ monocle(Monitor *m)
+@@ -1710,6 +1712,33 @@ monocle(Monitor *m)
  		wlr_scene_node_raise_to_top(&c->scene->node);
  }
  
@@ -52,25 +52,7 @@ index a148125..3fd691f 100644
  void
  motionabsolute(struct wl_listener *listener, void *data)
  {
-@@ -3296,7 +3325,7 @@ main(int argc, char *argv[])
- 	int c;
- 	char *startup_cmd = NULL, *runtimedir = NULL, *exp = NULL;
- 
--	while ((c = getopt(argc, argv, "s:c:e:hv")) != -1) {
-+	while ((c = getopt(argc, argv, "s:c:e:h:v")) != -1) {
- 		if (c == 's')
- 			startup_cmd = optarg;
- 		else if (c == 'c')
-@@ -3308,6 +3337,8 @@ main(int argc, char *argv[])
- 		else
- 			goto usage;
- 	}
-+	if (optind < argc)
-+		goto usage;
- 
- 	// Wayland requires XDG_RUNTIME_DIR for creating its communications
- 	// socket
-@@ -3317,6 +3348,7 @@ main(int argc, char *argv[])
+@@ -3315,6 +3344,7 @@ main(int argc, char *argv[])
  		die("error: config path must be set using '-c'");
  	scm_init_guile();
  	dscm_register();

@@ -1,8 +1,8 @@
 diff --git a/dscm-config.h b/dscm-config.h
-index e9e8c88..8e26f55 100644
+index c3d9422..e025109 100644
 --- a/dscm-config.h
 +++ b/dscm-config.h
-@@ -88,6 +88,10 @@ dscm_parse_monitor_rule(unsigned int index, SCM rule, void *data)
+@@ -89,6 +89,10 @@ dscm_parse_monitor_rule(unsigned int index, SCM rule, void *data)
  		.rr = rr,
  		.x = dscm_alist_get_int(rule, "x"),
  		.y = dscm_alist_get_int(rule, "y"),
@@ -14,7 +14,7 @@ index e9e8c88..8e26f55 100644
  }
  
 diff --git a/dwl.c b/dwl.c
-index a541826..ca46099 100644
+index 98a4990..d46fcbe 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -218,6 +218,10 @@ typedef struct {
@@ -28,7 +28,7 @@ index a541826..ca46099 100644
  } MonitorRule;
  
  typedef struct {
-@@ -932,6 +936,38 @@ createkeyboard(struct wlr_keyboard *keyboard)
+@@ -930,6 +934,38 @@ createkeyboard(struct wlr_keyboard *keyboard)
  	wl_list_insert(&keyboards, &kb->link);
  }
  
@@ -67,7 +67,7 @@ index a541826..ca46099 100644
  void
  createlayersurface(struct wl_listener *listener, void *data)
  {
-@@ -1006,7 +1042,9 @@ createmon(struct wl_listener *listener, void *data)
+@@ -1004,7 +1040,9 @@ createmon(struct wl_listener *listener, void *data)
  	/* This event is raised by the backend when a new output (aka a display or
  	 * monitor) becomes available. */
  	struct wlr_output *wlr_output = data;
@@ -77,7 +77,7 @@ index a541826..ca46099 100644
  	MonitorRule r;
  	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
  	wl_list_init(&m->dscm);
-@@ -1023,6 +1061,13 @@ createmon(struct wl_listener *listener, void *data)
+@@ -1021,6 +1059,13 @@ createmon(struct wl_listener *listener, void *data)
  	for (i = 0; i < LENGTH(m->layers); i++)
  		wl_list_init(&m->layers[i]);
  	m->tagset[0] = m->tagset[1] = 1;
@@ -91,7 +91,7 @@ index a541826..ca46099 100644
  	for (int i = 0; i < nummonrules; i++) {
  		r = monrules[i];
  		if (!r.name || strstr(wlr_output->name, r.name)) {
-@@ -1032,16 +1077,17 @@ createmon(struct wl_listener *listener, void *data)
+@@ -1030,16 +1075,17 @@ createmon(struct wl_listener *listener, void *data)
  			wlr_xcursor_manager_load(cursor_mgr, r.scale);
  			m->lt[0] = m->lt[1] = r.lt;
  			wlr_output_set_transform(wlr_output, r.rr);
