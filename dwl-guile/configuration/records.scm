@@ -47,6 +47,7 @@
             dwl-colors-border
             dwl-colors-focus
             dwl-colors-fullscreen
+            dwl-colors-lockscreen
 
             dwl-rule
             dwl-rule?
@@ -76,6 +77,9 @@
   (fullscreen
    (rgba-color "#00000000")
    "Background color for fullscreen.")
+  (lockscreen
+   (rgba-color "#000000")
+   "Background color for lockscreen.")
   (no-serialization))
 
 ;; Application rule configuration

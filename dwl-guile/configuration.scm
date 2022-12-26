@@ -53,6 +53,7 @@
                dwl-colors-border
                dwl-colors-focus
                dwl-colors-fullscreen
+               dwl-colors-lockscreen
 
                dwl-rule
                dwl-rule?

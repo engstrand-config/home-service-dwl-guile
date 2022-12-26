@@ -139,7 +139,9 @@ For example:
    ;; Alpha can be changed by extending the hex, i.e. #AABBCCDD, where DD is the alpha.
    (root "#191919")
    (border "#808080")
-   (focus "#FFCC00"))))
+   (focus "#FFCC00")
+   (fullscreen "#000000")
+   (lockscreen "#000000"))))
 
 ;; Using RGBA-format
 (dwl-config
@@ -147,7 +149,9 @@ For example:
   (dwl-colors
    (root '(0.1 0.1 0.1 1.0))
    (border '(0.5 0.5 0.5 1.0))
-   (focus '(1.0 0.8 0.0 1.0)))))
+   (focus '(1.0 0.8 0.0 1.0))
+   (fullscreen '(0.0 0.0 0.0 1.0))
+   (lockscreen '(0.0 0.0 0.0 1.0)))))
 #+END_SRC
 
 **** Keybindings
