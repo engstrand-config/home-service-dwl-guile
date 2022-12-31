@@ -1,6 +1,3 @@
-;; Defines the configuration records for dwl,
-;; as well as procedures for transforming the configuration
-;; into a format that can easily be parsed in C.
 (define-module (dwl-guile home-service)
   #:use-module (guix gexp)
   #:use-module (guix packages)
@@ -19,9 +16,6 @@
   #:use-module (dwl-guile utils)
   #:use-module (dwl-guile patches)
   #:use-module (dwl-guile packages)
-  #:use-module (dwl-guile configuration)
-  #:use-module (dwl-guile configuration transform)
-  #:use-module (dwl-guile configuration default-config)
   #:export (
             home-dwl-guile-service-type
             home-dwl-guile-configuration
@@ -35,36 +29,13 @@
             home-dwl-guile-configuration-startup-commands
             home-dwl-guile-configuration-environment-variables
             home-dwl-guile-configuration-documentation
-            %dwl-guile-base-env-variables
-
-            modify-dwl-guile
-            modify-dwl-guile-config)
+            home-dwl-guile-extension
+            %dwl-guile-base-env-variables)
 
   ;; re-export configurations so that they are
   ;; available in the home environment without
   ;; having to manually import them.
-  #:re-export (
-               dwl-guile
-               patch-dwl-guile-package
-
-               dwl-key
-               dwl-button
-               dwl-config
-               dwl-rule
-               dwl-colors
-               dwl-layout
-               dwl-tag-keys
-               dwl-xkb-rule
-               dwl-monitor-rule
-
-               %dwl-layout-tile
-               %dwl-layout-monocle
-               %dwl-layout-floating
-
-               %dwl-base-keys
-               %dwl-base-buttons
-               %dwl-base-layouts
-               %dwl-base-monitor-rules))
+  #:re-export (dwl-guile patch-dwl-guile-package))
 
 ;; Base wayland environment variables
 ;; TODO: Add support for using electron apps natively in wayland?
@@ -90,23 +61,23 @@
    "Launch dwl automatically upon user login. Defaults to #t.")
   (reload-config-on-change?
    (boolean #t)
-   "Automatically reload your dwl-guile config during a Guix home reconfigure.")
+   "Automatically reload dwl-guile configuration when reconfiguring the home environment.")
   (environment-variables
    (list %dwl-guile-base-env-variables)
-   "Environment variables for enabling wayland support in many different applications.
+   "Environment variables for enabling Wayland support in many different applications.
     Basic environment variables will be added if no value is specified.
 
     You can modify the variables that will be set by extending
     @code{%dwl-guile-base-env-variables}, or by specifying a custom list.")
   (native-qt?
    (boolean #t)
-   "If qt applications should be rendered natively in Wayland.
+   "If Qt applications should be rendered natively in Wayland.
 This will also install the qtwayland package.")
   (startup-commands
    (list-of-gexps '())
    "A list of gexps to be executed on dwl-guile startup.")
   (config
-   (dwl-config (dwl-config))
+   (list-of-gexps '())
    "Custom dwl-guile configuration. Replaces config.h.")
   (no-serialization))
 
@@ -151,7 +122,8 @@ This will also install the qtwayland package.")
 (define (home-dwl-guile-on-change-service config)
   (if (home-dwl-guile-configuration-reload-config-on-change? config)
       `(("files/.config/dwl-guile/config.scm"
-         ,#~(system* #$(file-append (home-dwl-guile-configuration-package config) "/bin/dwl-guile")
+         ,#~(system*
+             #$(file-append (home-dwl-guile-configuration-package config) "/bin/dwl-guile")
                      "-e" "(dwl:reload-config)")))
       '()))
 
@@ -160,58 +132,22 @@ This will also install the qtwayland package.")
     `((".config/dwl-guile/config.scm"
        ,(scheme-file
          "dwl-config.scm"
-         #~(define config
-             `(#$@(dwl-config->alist (home-dwl-guile-configuration-config config))))))
-      (".config/dwl-guile/startup.scm"
-       ,(program-file
-         "dwl-startup.scm"
-         (if (null? startup)
-             #~(exit 0)
-             #~(begin #$@startup)))))))
+         #~(#$@(home-dwl-guile-configuration-config config))))
+       (".config/dwl-guile/startup.scm"
+        ,(program-file
+          "dwl-startup.scm"
+          (if (null? startup)
+              #~(exit 0)
+              #~(begin #$@startup)))))))
 
-;; Allow configuration to be extended by creating a new service
-;; of type @code{home-dwl-guile-service-type}.
-;;
-;; The extension service accepts a procedure that takes in
-;; the old configuration and returns an updated configuration.
-;; To reduce the amount of boilerplate needed, you can use one of
-;; the included syntax macro's:
-;;
-;; @example
-;; (simple-service
-;;   'add-dwl-guile-keybinding
-;;   home-dwl-guile-service-type
-;;   (modify-dwl-guile-config
-;;     (config =>
-;;             (dwl-config
-;;               (inherit config)
-;;               (keys
-;;                 (append
-;;                   (list
-;;                     (dwl-key
-;;                       (modifiers '(SUPER SHIFT))
-;;                       (key "m")
-;;                       (action #f)))
-;;                   (dwl-config-keys config)))))))
-;; @end example
-(define (home-dwl-guile-extension old-config extend-proc)
-  (extend-proc old-config))
-
-(define-syntax modify-dwl-guile
-  (syntax-rules (=>)
-    ((_ (param => new-config))
-     (lambda (old-config)
-       (let ((param old-config))
-         new-config)))))
-
-(define-syntax modify-dwl-guile-config
-  (syntax-rules (=>)
-    ((_ (param => new-config))
-     (lambda (old-config)
-       (let ((param (home-dwl-guile-configuration-config old-config)))
-         (home-dwl-guile-configuration
-          (inherit old-config)
-          (config new-config)))))))
+(define (home-dwl-guile-extension original-config extensions)
+  (let ((extensions (reverse extensions)))
+    (home-dwl-guile-configuration
+     (inherit original-config)
+     (config
+      (append
+       (home-dwl-guile-configuration-config original-config)
+       extensions)))))
 
 (define home-dwl-guile-service-type
   (service-type
@@ -240,17 +176,10 @@ This will also install the qtwayland package.")
    ;; Composing the extensions is done by creating a new procedure
    ;; that accepts the service configuration and then recursively
    ;; call each extension procedure with the result of the previous extension.
-   (compose (lambda (extensions)
-              (match extensions
-                (() identity)
-                ((procs ...)
-                 (lambda (old-config)
-                   (fold-right (lambda (p extended-config) (p extended-config))
-                               old-config
-                               extensions))))))
+   (compose identity)
    (extend home-dwl-guile-extension)
    (default-value (home-dwl-guile-configuration))
-   (description "Configure and install dwl guile")))
+   (description "Configure and install dwl-guile")))
 
 (define (home-dwl-guile-configuration-documentation)
   (generate-documentation
