@@ -16,6 +16,7 @@
   #:use-module (dwl-guile utils)
   #:use-module (dwl-guile patches)
   #:use-module (dwl-guile packages)
+  #:use-module (dwl-guile serializer)
   #:export (
             home-dwl-guile-service-type
             home-dwl-guile-configuration
@@ -26,10 +27,8 @@
             home-dwl-guile-configuration-native-qt?
             home-dwl-guile-configuration-auto-start?
             home-dwl-guile-configuration-reload-config-on-change?
-            home-dwl-guile-configuration-startup-commands
+            home-dwl-guile-configuration-startup-command
             home-dwl-guile-configuration-environment-variables
-            home-dwl-guile-configuration-documentation
-            home-dwl-guile-extension
             %dwl-guile-base-env-variables)
 
   ;; re-export configurations so that they are
@@ -73,11 +72,12 @@
    (boolean #t)
    "If Qt applications should be rendered natively in Wayland.
 This will also install the qtwayland package.")
-  (startup-commands
-   (list-of-gexps '())
-   "A list of gexps to be executed on dwl-guile startup.")
+  (startup-command
+   (maybe-string #f)
+   "A command to execute on dwl-guile startup. The command will be passed
+to the '-s' parameter of dwl-guile.")
   (config
-   (list-of-gexps '())
+   (sexp-config '())
    "Custom dwl-guile configuration. Replaces config.h.")
   (no-serialization))
 
@@ -105,12 +105,14 @@ This will also install the qtwayland package.")
     (provision '(dwl-guile))
     (auto-start? (home-dwl-guile-configuration-auto-start? config))
     (start
-     (let ((config-dir (string-append (getenv "HOME") "/.config/dwl-guile")))
+     (let* ((config-dir (string-append (getenv "HOME") "/.config/dwl-guile"))
+            (startup-command (home-dwl-guile-configuration-startup-command config)))
        #~(make-forkexec-constructor
           (list
-           #$(file-append (home-dwl-guile-configuration-package config) "/bin/dwl-guile")
-           "-c" #$(string-append config-dir "/config.scm")
-           "-s" #$(string-append config-dir "/startup.scm"))
+           #$@(append
+               (list (file-append (home-dwl-guile-configuration-package config) "/bin/dwl-guile")
+                     "-c" (string-append config-dir "/config.scm"))
+               (if startup-command (list "-s" startup-command) '())))
           #:pid-file #$(string-append (or (getenv "XDG_RUNTIME_DIR")
                                           (format #f "/run/user/~a" (getuid)))
                                       "/dwl-guile.pid")
@@ -122,32 +124,25 @@ This will also install the qtwayland package.")
 (define (home-dwl-guile-on-change-service config)
   (if (home-dwl-guile-configuration-reload-config-on-change? config)
       `(("files/.config/dwl-guile/config.scm"
-         ,#~(system*
-             #$(file-append (home-dwl-guile-configuration-package config) "/bin/dwl-guile")
+         ,#~(system* #$(file-append (home-dwl-guile-configuration-package config)
+                                    "/bin/dwl-guile")
                      "-e" "(dwl:reload-config)")))
       '()))
 
-(define (home-dwl-guile-files-service config)
-  (let ((startup (home-dwl-guile-configuration-startup-commands config)))
-    `((".config/dwl-guile/config.scm"
-       ,(scheme-file
-         "dwl-config.scm"
-         #~(#$@(home-dwl-guile-configuration-config config))))
-       (".config/dwl-guile/startup.scm"
-        ,(program-file
-          "dwl-startup.scm"
-          (if (null? startup)
-              #~(exit 0)
-              #~(begin #$@startup)))))))
+(define (home-dwl-guile-xdg-configuration-files-service config)
+  `(("dwl-guile/config.scm"
+     ,(mixed-text-file
+       "dwl-guile.scm"
+       (serialize-sexp-config #f (home-dwl-guile-configuration-config config))))))
 
-(define (home-dwl-guile-extension original-config extensions)
+(define (home-dwl-guile-extensions original-config extensions)
   (let ((extensions (reverse extensions)))
     (home-dwl-guile-configuration
      (inherit original-config)
      (config
-      (append
-       (home-dwl-guile-configuration-config original-config)
-       extensions)))))
+      (fold append '()
+            (append (home-dwl-guile-configuration-config original-config)
+                    extensions))))))
 
 (define home-dwl-guile-service-type
   (service-type
@@ -161,28 +156,15 @@ This will also install the qtwayland package.")
       home-environment-variables-service-type
       home-dwl-guile-environment-variables-service)
      (service-extension
-      home-files-service-type
-      home-dwl-guile-files-service)
+      home-xdg-configuration-files-service-type
+      home-dwl-guile-xdg-configuration-files-service)
      (service-extension
       home-shepherd-service-type
       home-dwl-guile-shepherd-service)
      (service-extension
       home-run-on-change-service-type
       home-dwl-guile-on-change-service)))
-   ;; Each extension will override the previous config
-   ;; with its own, generally by inheriting the old config
-   ;; and then adding their own updated values.
-   ;;
-   ;; Composing the extensions is done by creating a new procedure
-   ;; that accepts the service configuration and then recursively
-   ;; call each extension procedure with the result of the previous extension.
    (compose identity)
-   (extend home-dwl-guile-extension)
+   (extend home-dwl-guile-extensions)
    (default-value (home-dwl-guile-configuration))
    (description "Configure and install dwl-guile")))
-
-(define (home-dwl-guile-configuration-documentation)
-  (generate-documentation
-   `((home-dwl-guile-configuration
-      ,home-dwl-guile-configuration-fields))
-   'home-dwl-guile-configuration))

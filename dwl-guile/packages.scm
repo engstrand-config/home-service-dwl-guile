@@ -141,28 +141,12 @@
      (inherit (package-source dwl))
      (uri (git-reference
            (url "https://github.com/engstrand-config/dwl-guile")
-           (commit (string-append "v" version))))
+           (commit "d12f48a0da0827d84437ceef7d83efea199fe7a2")))
+           ;; (commit (string-append "v" version))))
      (file-name (git-file-name name version))
      (sha256
       (base32
-       "01fmga2g2nfg044kn8wcm1rkhqcxcqa55n63j6cb8jvsc5fsw5p9"))))
-   (arguments
-    (substitute-keyword-arguments
-     (package-arguments dwl)
-     ((#:phases phases)
-      `(modify-phases
-        ,phases
-        ;; name the compiled executable "dwl-guile" so that
-        ;; we can differentiate between regular dwl and dwl-guile.
-        (replace
-         'install
-         (lambda*
-             (#:key inputs outputs #:allow-other-keys)
-           (let ((bin (string-append (assoc-ref outputs "out") "/bin")))
-             (install-file "dwl" bin)
-             (rename-file (string-append bin "/dwl")
-                          (string-append bin "/dwl-guile"))
-             #t)))))))))
+       "1xgyfrxnfxdpk4aalfk73gybiz86g6ygwgp9yh37z7xm2bxizjh4"))))))
 
 (define* (patch-dwl-guile-package pkg #:key (patches '()))
   "Create a new patched package of PKG with each patch in PATCHES
