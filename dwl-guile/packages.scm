@@ -131,7 +131,7 @@
   (package
    (inherit dwl)
    (name "dwl-guile")
-   (version "2.0.0-beta3")
+   (version "2.0.0")
    (inputs
     (modify-inputs (package-inputs dwl)
                    (prepend guile-3.0)
@@ -141,12 +141,11 @@
      (inherit (package-source dwl))
      (uri (git-reference
            (url "https://github.com/engstrand-config/dwl-guile")
-           (commit "d12f48a0da0827d84437ceef7d83efea199fe7a2")))
-           ;; (commit (string-append "v" version))))
+           (commit (string-append "v" version))))
      (file-name (git-file-name name version))
      (sha256
       (base32
-       "1xgyfrxnfxdpk4aalfk73gybiz86g6ygwgp9yh37z7xm2bxizjh4"))))))
+       "0xcm9mwzylph93rkmmghysa4vzi1xzy04nlv52qkyp13sg5gm9z8"))))))
 
 (define* (patch-dwl-guile-package pkg #:key (patches '()))
   "Create a new patched package of PKG with each patch in PATCHES

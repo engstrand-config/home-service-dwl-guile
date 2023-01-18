@@ -1,9 +1,86 @@
+diff --git a/doc/dwl-guile.1.man b/doc/dwl-guile.1.man
+index 72c5ca1..ae40205 100644
+--- a/doc/dwl-guile.1.man
++++ b/doc/dwl-guile.1.man
+@@ -164,6 +164,23 @@ Here, the chosen client \fBemacs\fP is identified by its \fBid\fP and is set to
+ .PP
+ A rule can additionally match a window title with the help of \fBtitle\fP.
+ 
++.PP
++\fBSwallowing\fP of clients need to explicitly enabled by setting \fBterminal?\fP to \fB#t\fP for your terminal of choice:
++
++.PP
++.B
++.RS
++.nf
++\fC(set-rules '((id . "foot")
++.B
++             (terminal? . #t)))
++\fP
++.fi
++.RE
++
++.PP
++It is also possible to disable swallowing for specific clients by setting \fBno-swallow?\fP to \fB#t\fP.
++
+ .SS "Colors"
+ .PP
+ Colors can be specified in RGBA format or hex format, i.e. \fB'(1.0 1.0 1.0 1.0)\fP or \fB"#001122FF"\fP (or just \fB"#FFFFFF"\fP if alpha is not needed).
+diff --git a/doc/dwl-guile.1.org b/doc/dwl-guile.1.org
+index ca7d1b7..fbb9fa4 100644
+--- a/doc/dwl-guile.1.org
++++ b/doc/dwl-guile.1.org
+@@ -123,6 +123,17 @@ Here, the chosen client *emacs* is identified by its *id* and is set to spawn on
+ 
+ A rule can additionally match a window title with the help of *title*.
+ 
++*Swallowing* of clients need to explicitly enabled by setting *terminal?* to *#t* for your terminal of choice:
++
++.B
++#+begin_src scheme
++(set-rules '((id . "foot")
++.B
++             (terminal? . #t)))
++#+end_src
++
++It is also possible to disable swallowing for specific clients by setting *no-swallow?* to *#t*.
++
+ ** Colors
+ Colors can be specified in RGBA format or hex format, i.e. *'(1.0 1.0 1.0 1.0)* or *"#001122FF"* (or just *"#FFFFFF"* if alpha is not needed).
+ 
+diff --git a/dscm/config.h b/dscm/config.h
+index b1f03dc..5e188be 100644
+--- a/dscm/config.h
++++ b/dscm/config.h
+@@ -296,6 +296,8 @@ setter_rule(void *cvar, SCM value)
+ 	SCM floating = dscm_assoc_ref(value, "floating?");
+ 	SCM monitor = dscm_assoc_ref(value, "monitor");
+ 	SCM alpha = dscm_assoc_ref(value, "alpha");
++	SCM terminal = dscm_assoc_ref(value, "terminal?");
++	SCM noswallow = dscm_assoc_ref(value, "no-swallow?");
+ 
+ 	wl_list_for_each(r, lst, link) {
+ 		if (((!r->id && !id) || (r->id && id && !strcmp(r->id, id))) &&
+@@ -322,7 +324,13 @@ setter_rule(void *cvar, SCM value)
+ 
+ 	DSCM_ASSERT_TYPE(scm_is_bool(floating),
+ 			 value, "set-rules", "floating?", "bool");
++	DSCM_ASSERT_TYPE(scm_is_bool(terminal),
++			 value, "set-rules", "terminal?", "bool");
++	DSCM_ASSERT_TYPE(scm_is_bool(noswallow),
++			 value, "set-rules", "no-swallow?", "bool");
+ 	r->isfloating = scm_to_bool(floating);
++	r->isterm = scm_to_bool(terminal);
++	r->noswallow = scm_to_bool(noswallow);
+ 
+ 	if (!scm_is_false(tags)) {
+ 		if (scm_is_true(scm_list_p(tags))) {
 diff --git a/dwl.c b/dwl.c
-index 98a4990..5c15265 100644
+index 271b003..17b3a45 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -96,7 +96,8 @@ typedef struct {
- } Button;
+@@ -91,7 +91,8 @@ typedef union {
+ } Arg;
  
  typedef struct Monitor Monitor;
 -typedef struct {
@@ -12,7 +89,7 @@ index 98a4990..5c15265 100644
  	/* Must keep these three elements in this order */
  	unsigned int type; /* XDGShell or X11* */
  	struct wlr_box geom;  /* layout-relative, includes border */
-@@ -125,7 +126,7 @@ typedef struct {
+@@ -120,7 +121,7 @@ typedef struct {
  #endif
  	unsigned int bw;
  	unsigned int tags;
@@ -21,7 +98,7 @@ index 98a4990..5c15265 100644
  	uint32_t resize; /* configure serial of a pending resize */
  	double alpha;
  	double prevalpha;
-@@ -133,7 +134,9 @@ typedef struct {
+@@ -128,7 +129,9 @@ typedef struct {
  	int prevy;
  	int prevwidth;
  	int prevheight;
@@ -31,16 +108,16 @@ index 98a4990..5c15265 100644
 +};
  
  typedef struct {
- 	uint32_t mod;
-@@ -227,6 +230,7 @@ typedef struct {
+ 	unsigned int mod;
+@@ -232,6 +235,7 @@ typedef struct {
  	int isfloating;
  	double alpha;
  	int monitor;
 +	int isterm, noswallow;
+ 	struct wl_list link;
  } Rule;
  
- typedef struct {
-@@ -369,6 +373,10 @@ static Monitor *xytomon(double x, double y);
+@@ -377,6 +381,10 @@ static Monitor *xytomon(double x, double y);
  static struct wlr_scene_node *xytonode(double x, double y, struct wlr_surface **psurface,
  				       Client **pc, LayerSurface **pl, double *nx, double *ny);
  static void zoom(const Arg *arg);
@@ -51,24 +128,16 @@ index 98a4990..5c15265 100644
  static void setgaps(int oh, int ov, int ih, int iv);
  static void incrgaps(const Arg *arg);
  static void incrigaps(const Arg *arg);
-@@ -492,6 +500,7 @@ static Atom netatom[NetLast];
- #include "dscm-utils.h"
- #include "dscm-config.h"
- #include "dscm-bindings.h"
-+#include "patch-swallow.h"
- 
- /* function implementations */
- void
-@@ -542,6 +551,8 @@ applyrules(Client *c)
- 		if ((!r.title || strstr(title, r.title))
- 		    && (!r.id || strstr(appid, r.id))) {
- 			c->isfloating = r.isfloating;
-+			c->isterm = r.isterm;
-+			c->noswallow = r.noswallow;
- 			c->alpha = r.alpha;
- 			newtags |= r.tags;
+@@ -565,6 +573,8 @@ applyrules(Client *c)
+ 		if ((!r->title || strstr(title, r->title))
+ 		    && (!r->id || strstr(appid, r->id))) {
+ 			c->isfloating = r->isfloating;
++			c->isterm = r->isterm;
++			c->noswallow = r->noswallow;
+ 			c->alpha = r->alpha;
+ 			newtags |= r->tags;
  			j = 0;
-@@ -1114,6 +1125,7 @@ createnotify(struct wl_listener *listener, void *data)
+@@ -1124,6 +1134,7 @@ createnotify(struct wl_listener *listener, void *data)
  	c->surface.xdg = xdg_surface;
  	c->bw = borderpx;
  	c->alpha = default_alpha;
@@ -76,7 +145,7 @@ index 98a4990..5c15265 100644
  
  	LISTEN(&xdg_surface->events.map, &c->map, mapnotify);
  	LISTEN(&xdg_surface->events.unmap, &c->unmap, unmapnotify);
-@@ -1463,6 +1475,62 @@ fullscreennotify(struct wl_listener *listener, void *data)
+@@ -1496,6 +1507,62 @@ fullscreennotify(struct wl_listener *listener, void *data)
  	setfullscreen(c, client_wants_fullscreen(c));
  }
  
@@ -139,7 +208,7 @@ index 98a4990..5c15265 100644
  void
  incnmaster(const Arg *arg)
  {
-@@ -1677,6 +1745,20 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1709,6 +1776,20 @@ mapnotify(struct wl_listener *listener, void *data)
  	}
  	printstatus();
  
@@ -160,15 +229,7 @@ index 98a4990..5c15265 100644
  unset_fullscreen:
  	m = c->mon ? c->mon : xytomon(c->geom.x, c->geom.y);
  	wl_list_for_each(w, &clients, link)
-@@ -1978,6 +2060,7 @@ reloadconfig() {
- 	Monitor *m;
- 	float *color;
- 	dscm_config_parse();
-+	patch_swallow_config_parse();
- 
- 	/* Redraw clients */
- 	wl_list_for_each(c, &clients, link) {
-@@ -2719,6 +2802,17 @@ unmapnotify(struct wl_listener *listener, void *data)
+@@ -2684,6 +2765,17 @@ unmapnotify(struct wl_listener *listener, void *data)
  		grabc = NULL;
  	}
  
@@ -186,30 +247,3 @@ index 98a4990..5c15265 100644
  	if (client_is_unmanaged(c)) {
  		if (c == exclusive_focus)
  			exclusive_focus = NULL;
-@@ -3316,6 +3410,7 @@ main(int argc, char *argv[])
- 	scm_init_guile();
- 	dscm_register();
- 	dscm_config_parse();
-+	patch_swallow_config_parse();
- 	setup();
- 	writepid(runtimedir);
- 	run(startup_cmd);
-diff --git a/patch-swallow.h b/patch-swallow.h
-new file mode 100644
-index 0000000..21cf350
---- /dev/null
-+++ b/patch-swallow.h
-@@ -0,0 +1,13 @@
-+static inline void
-+patch_swallow_modify_rule(unsigned int index, SCM rule, void *data)
-+{
-+	((Rule*)data)[index].isterm = dscm_alist_get_int(rule, "terminal");
-+	((Rule*)data)[index].noswallow = dscm_alist_get_int(rule, "no-swallow");
-+}
-+
-+static inline void
-+patch_swallow_config_parse()
-+{
-+	dscm_modify_list(dscm_alist_get(config, "rules"), rules,
-+		&patch_swallow_modify_rule);
-+}

@@ -16,10 +16,10 @@ index cee96fa..c860870 100644
 +XWAYLAND = -DXWAYLAND
 +XLIBS = xcb xcb-icccm
 diff --git a/guix.scm b/guix.scm
-index ad493f2..49cdd55 100644
+index 4738847..8b86d28 100644
 --- a/guix.scm
 +++ b/guix.scm
-@@ -132,7 +132,9 @@
+@@ -131,7 +131,9 @@
    (inputs
     (modify-inputs (package-inputs dwl)
                    (prepend guile-3.0
