@@ -14,8 +14,9 @@ This is a work in progress --- please report bugs to us and (if applicable) to u
 This Guix Home service can:
 - install =dwl-guile=
 - automatically start =dwl-guile= on the first TTY you log in to
+- set necessary environment variables for Wayland support in GTK, Java, etc
 - apply (some) other common =dwl= patches dynamically
-- configure WM keybindings (in an Emacs-esque way) and much more with Guile
+- configure all options in dwl (in an Emacs-esque way) with Guile
 
 ** Guix channel
 We provide =home-service-dwl-guile= in a Guix channel.
@@ -40,7 +41,7 @@ Afterwards, run =guix pull=.
 #+begin_src scheme
 ;; Import the service
 (use-modules (dwl-guile home-service)
-             (dwl-guile patches)) ; import if you to apply patches dynamically
+             (dwl-guile patches)) ; import if you want to apply patches dynamically
 
 ;; Create and add the dwl-guile home service to your home configuration.
 (service home-dwl-guile-service-type
@@ -70,12 +71,16 @@ Afterwards, run =guix pull=.
           ;; (environment-variables
           ;;  (append `(("var" . "value")) %dwl-guile-base-env-variables))
 
-          ;; A list of gexps to be executed after starting dwl-guile.
+          ;; A string containing a command to execute after starting dwl-guile.
           ;; This is the equivalent of specifying a script to the '-s' flag of dwl.
           ;; The gexp's will be executed in the same order as in the list.
-          (startup-commands
-           (list
-            #~(system* ...)))
+          ;;
+          ;; The preferred way of running commands/applications (that does not need
+          ;; to access the stdout of dwl) on startup is by using the
+          ;; dwl:startup-hook in your Guile config.
+          ;;
+          ;; By default, this option is not used.
+          (startup-command "foot --server <&-")
 
           ;; If QT-applications should be rendered natively. Enabled by default.
           ;; This will set QT_QPA_PLATFORM="wayland-egl" and install
@@ -91,8 +96,7 @@ Afterwards, run =guix pull=.
           (reload-config-on-change? #t)
 
           ;; Create a custom configuration for dwl.
-          (config
-           (dwl-config ...))))
+          (config '())
 #+end_src
 
 *** Shepherd service
@@ -118,214 +122,17 @@ dwl-guile -e "(dwl:reload-config)"
 The result of the evaluation will be shown in stdout, or in stderr if an error occured.
 These types of evaluations will be executed in their thread, which means that it will not block dwl-guile. In other words, you can safely run commands that run for a longer time. Note that the expression is not evaluated in a shell context, which means that procedures such as =system*= will not work, but you can always use =dwl:shcmd= or =dwl:spawn= instead.
 
+**** Using the Guile REPL for interacting with dwl-guile
+During runtime, it is possible to use the Guile REPL to interact with dwl-guile. In order to do this, you need to explicitly start the REPL server in your config by calling =(dwl:start-repl-server)=. You can then connect to the server in e.g. Emacs using Geiser.
+
+For more information, see the man pages (=man dwl-guile=).
+
 *** Configuring dwl-guile
-Using dwl-guile, all configuration is done in Guile by specifying a custom =dwl-config= record to the =config= field of the home service configuration.
+Using dwl-guile, all configuration is done in Guile by providing an alist of (Emacs-like) commands to the =config= field of the home service configuration.
 
-All options in standard dwl are supported. See the following files for definitions:
-- [[https://github.com/engstrand-config/home-service-dwl-guile/blob/dab5118324127c9d251d20007da14af2e3448973/dwl-guile/configuration.scm][ =dwl-config= ]]
-- [[https://github.com/engstrand-config/home-service-dwl-guile/blob/main/dwl-guile/configuration/records.scm][All other configuration records]]
+A minimal set of keybindings will automatically be loaded, unless inhibitied using =(setq inhibit-defaults? #t)=. You can see the defaults in =/share/defaults.scm= of this repo. There are also some utilities that can be used in your config defined in =/share/init.scm=.
 
-The default configuration supports most of the required keybindings, such as bindings for switching TTY's, etc. You can see default keys, layouts, and mouse buttons [[https://github.com/engstrand-config/home-service-dwl-guile/blob/main/dwl-guile/configuration/default-config.scm][here]].
-
-**** Colors
-Colors can be configured by providing a =dwl-colors= record to the =colors= field of the =dwl-config= record. Colors can be specified using RGBA or hex format.
-
-For example:
-#+BEGIN_SRC scheme
-;; Using hex-format
-(dwl-config
- (colors
-  (dwl-colors
-   ;; Alpha can be changed by extending the hex, i.e. #AABBCCDD, where DD is the alpha.
-   (root "#191919")
-   (border "#808080")
-   (focus "#FFCC00")
-   (fullscreen "#000000")
-   (lockscreen "#000000"))))
-
-;; Using RGBA-format
-(dwl-config
- (colors
-  (dwl-colors
-   (root '(0.1 0.1 0.1 1.0))
-   (border '(0.5 0.5 0.5 1.0))
-   (focus '(1.0 0.8 0.0 1.0))
-   (fullscreen '(0.0 0.0 0.0 1.0))
-   (lockscreen '(0.0 0.0 0.0 1.0)))))
-#+END_SRC
-
-**** Keybindings
-All default bindings use =SUPER= as base modkey for basic actions, such as changing focus.
-
-If you like the default bindings, you can extend them with your own bindings like this:
-#+BEGIN_SRC scheme
-(dwl-config
- (keys
-  (append
-   (list
-    (dwl-key ...)
-    (dwl-key ...)
-   %dwl-base-keys))))
-#+END_SRC
-
-Keybindings uses an Emacs-like syntax for defining the key. For example, defining a =dwl-key= record with =S-s-<enter>= as key will result in the binding being triggered when Shift+Super+Enter is pressed.
-
-Available modifiers:
-- =C= - Ctrl
-- =M= - Alt
-- =S= - Shift
-- =s= - Super (Mod4)
-
-If you want to use a modifier that is not in this list, feel free to create an issue or PR. Keysyms can be found [[https://github.com/engstrand-config/home-service-dwl-guile/blob/main/dwl-guile/configuration/keycodes.scm][here]].
-
-If a key that you want to use is not defined, you can specify its (XKB) keycode instead. This is done using brackets:
-#+BEGIN_SRC scheme
-(dwl-key
- ;; Bind to key with keycode 127
- (key "S-s-[127]")
- (action `(...)))
-#+END_SRC
-
-**** Keybinding actions
-The =action= field of the =dwl-key= record accepts a sexp or =#f= (for no action). The sexp will be evaluated when the keybinding is triggered. To define an action you should use the standard quote or quasiquote operators (depending on your use-case).
-
-**** Spawning applications in keybindings
-To spawn an application (or run commands), you should use the =dwl:shcmd= binding. This is a binding to the =shcmd= function available in dwl. Using Guiles =system*= procedure might cause dwl-guile to crash!
-
-Example usage might look like this:
-#+BEGIN_SRC scheme
-(dwl-key
- (key "C-s-d")
- (action `(dwl:shcmd ,(file-append mako "/bin/makoctl")
-                     "dismiss")))
-#+END_SRC
-
-**** Default applications
-- Default terminal is =foot= and can be launched using =s-<enter>=.
-- Default menu is =bemenu= and can be launched using =s-d=.
-
-These applications can easily be changed:
-#+BEGIN_SRC scheme
-(dwl-config
- (menu `(,(file-append package "/bin/...")))
- (terminal `(,(file-append package "/bin/..."))))
-#+END_SRC
-
-If the default bindings for launching these applications are suitable, updating these options is enough. The default bindings will automatically start the executable set by these fields.
-
-**** Keyboard layout
-dwl supports custom xkb rules. This can be done by supplying a =dwl-xkb-rule= record to the =xkb-rules= field of the =dwl-config= record. You can also provide the same keyboard layout configuration record that you use in your system configuration, for example:
-
-#+BEGIN_SRC scheme
-(dwl-config
- (xkb-rules (keyboard-layout "us,se"
-                             #:options
-                             '("grp:alt_shift_toggle" "grp_led:caps" "caps:escape")))
-#+END_SRC
-
-**** Layouts
-Layouts can be enabled and disabled using the =layouts= field of the =dwl-config= record. It accepts a list of layouts to use. By default, only =tile= and =monocle= is enabled.
-
-#+BEGIN_SRC scheme
-;; Required for access to layouts
-(use-modules (dwl-guile configuration default-config))
-
-(dwl-config
- (layouts
-  ;; All available layouts
-  (list %dwl-layout-tile
-        %dwl-layout-monocle
-        %dwl-layout-floating)))
-#+END_SRC
-
-**** Application rules
-Application rules is set by providing a list of =dwl-rule= records to the =rules= field of the =dwl-config= record.
-
-For example:
-#+BEGIN_SRC scheme
-(dwl-config
- (rules
-  (list
-   (dwl-rule
-    ;; Set id and/or title depending on application.
-    (id "firefox")
-    (title "firefox")
-    (floating? #f)
-    (tag 2)           ;; Assign to tag 2. -1 (default value) to skip.
-    (monitor -1)      ;; Assign to monitor. -1 (default value) to skip.
-    (alpha 0.9)       ;; Default application window transparency.
-
-    ;; Patch specific fields.
-    ;; Requires %patch-swallow:
-    (no-swallow #f)   ;; Disable swallowing for this application.
-    (terminal #f))))) ;; If this application can swallow clients.
-#+END_SRC
-
-**** Monitor rules
-Monitor rules is set by providing a list of =dwl-monitor-rule= records to the =monitor-rules= field of the =dwl-config= record. By default, one single monitor rule is active. This rule will assign every new client to the ="tile"= layout.
-
-Monitors may be transformed to account for rotation or orientation. In C, these are set using enum flags. These flags are exposed as global variables by dwl-guile and you can reference these flags using symbols in your configuration.
-
-For example:
-#+BEGIN_SRC scheme
-(dwl-config
- (monitor-rules
-  (append
-   (list
-    (dwl-monitor-rule
-     (name "DP-1")
-     (x 0)
-     (y 0)
-     (transform 'TRANSFORM-NORMAL)
-
-     ;; Patch specific fields.
-     ;; Requires %patch-monitor-config:
-     (width 2560)
-     (height 1440)
-     (refresh-rate 144)
-     (adaptive-sync? #t)))
-   %dwl-base-monitor-rules)))
-#+END_SRC
-
-Available monitor transforms are:
-- =TRANSFORM-NORMAL=
-- =TRANSFORM-ROTATE-90=
-- =TRANSFORM-ROTATE-180=
-- =TRANSFORM-ROTATE-270=
-- =TRANSFORM-FLIPPED=
-- =TRANSFORM-FLIPPED-90=
-- =TRANSFORM-FLIPPED-180=
-- =TRANSFORM-FLIPPED-270=
-
-**** Mouse buttons
-Mouse bindings are configured separately from keybindings using the =buttons= field of the =dwl-config= record. This is because dwl handles keybindings and mouse bindings separately. The =dwl-button= record works just like =dwl-key= and has the same fields.
-
-**** Tag keys and labels
-The number of tags and tag labels can be configured using the =tag-keys= field of the =dwl-config= record. It accepts a single =dwl-tag-keys= record. This field is completely optional and you can also add bindings for tags directly to the =keys= field. However, using =dwl-tag-keys=, you can quickly generate keybindings for showing, moving and toggling tags.
-
-For example:
-#+BEGIN_SRC scheme
-(dwl-config
- (tag-keys
-  (dwl-tag-keys
-   (view-modifiers "s")           ;; Key modifiers for viewing a single tag
-   (tag-modifiers "S-s")          ;; Key modifiers for moving a client to a tag
-   (toggle-view-modifiers "C-s")  ;; Key modifiers for toggle visibility of tag
-   (toggle-tag-modifiers "C-S-s") ;; Key modifiers for toggling client at tag
-   (keys
-    ;; List of key/tag pairs, i.e. (key . tag). key is the keysym that should be pressed
-    ;; together with one of the modifiers defined above. The tag is the position
-    ;; of the tag to target.
-    `(("1" . 1)
-      ("2" . 2)
-      ("3" . 3)
-      ("4" . 4)
-      ("5" . 5)
-      ("6" . 6)
-      ("7" . 7)
-      ("8" . 8)
-      ("9" . 9))))))
-#+END_SRC
+For more information, see the man pages (=man dwl-guile=).
 
 *** C-bindings for dwl
 All functions that allow you to interact with dwl are exposed using the =libguile= API in dwl-guile. Each binding is prefixed with =dwl:= and uses kebab-case as naming scheme, e.g. =dwl:toggle-fullscreen=. There are currently no documentation for these bindings, other than the definitions and implementations [[https://github.com/engstrand-config/dwl-guile/blob/b780d0cded7a1040064d9066f5f41e274e3ffc64/dscm-bindings.h#L305-L373][here]].
@@ -341,16 +148,7 @@ Move cursor with monitor focus. This will teleport your mouse to the center of f
 Allows configuration of monitor resolution, refresh rate and adaptive sync, directly in your dwl config.
 
 **** =%patch-movestack=
-Move clients up and down the stack. Exposes the =dwl:move-stack= binding that can be used to move clients up or down:
-#+BEGIN_SRC scheme
-(dwl-key
- (key "S-s-j")
- (action `(dwl:move-stack -1))) ;; Move client down in stack
-
-(dwl-key
- (key "S-s-j")
- (action `(dwl:move-stack +1))) ;; Move client up in stack
-#+END_SRC
+Move clients up and down the stack. Exposes the =dwl:move-stack= binding that can be used to move clients up or down.
 
 **** =%patch-swallow=
 Allows applications such as terminals to render launched applications in the same window. For example, opening a PDF using zathura will (if enabled) render zathura on top of the terminal, in the same client. Adds additional options to the =dwl-rule= record.
@@ -361,14 +159,7 @@ Allows applications such as terminals to render launched applications in the sam
 Enable xwayland support.
 
 *** Extending the home service
-You can extend the home service in order to alter the configuration.
-This is especially useful if you use something like [[https://github.com/abcdw/rde][ =rde= ]].
-
-There are two convenient syntax macros that you can use:
-1. =(modify-dwl-guile config)= --- modifies the home service configuration
-  - =config= refers to the =home-dwl-guile-configuration= record
-2. =(modify-dwl-guile-config config)= --- modifies the =dwl= configuration
-   - =config= refers to the =config= field of the =home-dwl-guile-configuration= record
+You can extend the home service in order to extend the configuration. This is especially useful if you use something like [[https://github.com/abcdw/rde][ =rde= ]].
 
 Consider the following example that adds two new keybindings that dismiss notifications from [[https://github.com/emersion/mako)][ =mako= ]]:
 
@@ -376,25 +167,11 @@ Consider the following example that adds two new keybindings that dismiss notifi
 (simple-service
  'add-mako-dwl-keybindings
  home-dwl-guile-service-type
- (modify-dwl-guile-config
-  (config =>
-          (dwl-config
-           (inherit config)
-           (keys
-            (append
-             (list
-              (dwl-key
-               (key "C-s-d")
-               (action `(dwl:shcmd ,(file-append mako "/bin/makoctl")
-                                   "dismiss")))
-              (dwl-key
-               (key "C-S-s-d")
-               (action `(dwl:shcmd ,(file-append mako "/bin/makoctl")
-                                   "dismiss" "--all"))))
-             (dwl-config-keys config)))))))
+ `((set-keys ,dismiss-key
+             (lambda () (dwl:shcmd ,(file-append mako "/bin/makoctl") "dismiss"))
+             ,dismiss-all-key
+             (lambda () (dwl:shcmd ,(file-append mako "/bin/makoctl")
+                                   "dismiss" "--all")))))
 #+end_src
-
-You should always /inherit/ the received =config= in order to not override your previous configuration options.
-We recursively compose each service extension into a single configuration.
 
 You can find more examples of this in [[https://github.com/engstrand-config/guix-dotfiles][our GNU Guix configuration]], mainly in the =engstrand/features/wayland.scm= file.
