@@ -141,8 +141,8 @@ to the '-s' parameter of dwl-guile.")
      (inherit original-config)
      (config
       (fold append '()
-            (append (home-dwl-guile-configuration-config original-config)
-                    extensions))))))
+            (append extensions
+                    (home-dwl-guile-configuration-config original-config)))))))
 
 (define home-dwl-guile-service-type
   (service-type
