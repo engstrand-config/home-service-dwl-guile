@@ -1,22 +1,20 @@
 diff --git a/config.mk b/config.mk
-index cee96fa..c860870 100644
+index 7669208..f57df46 100644
 --- a/config.mk
 +++ b/config.mk
-@@ -7,8 +7,8 @@ MANDIR = $(PREFIX)/share/man
- # Default compile flags (overridable by environment)
+@@ -8,8 +8,5 @@ MANDIR = $(PREFIX)/share/man
  CFLAGS ?= -g -Wall -Wextra -Werror -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function -Wno-unused-variable -Wno-unused-result -Wdeclaration-after-statement
  
+ DEBUGFLAGS =
 -XWAYLAND =
 -XLIBS =
-+# XWAYLAND =
-+# XLIBS =
- # Uncomment to build XWayland support
+-# Uncomment to build XWayland support
 -#XWAYLAND = -DXWAYLAND
 -#XLIBS = xcb xcb-icccm
 +XWAYLAND = -DXWAYLAND
 +XLIBS = xcb xcb-icccm
 diff --git a/guix.scm b/guix.scm
-index 4738847..8b86d28 100644
+index aea3569..daf449f 100644
 --- a/guix.scm
 +++ b/guix.scm
 @@ -131,7 +131,9 @@

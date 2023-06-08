@@ -1,5 +1,5 @@
 diff --git a/doc/dwl-guile.1.man b/doc/dwl-guile.1.man
-index 72c5ca1..ae40205 100644
+index 38947fc..62dbfcc 100644
 --- a/doc/dwl-guile.1.man
 +++ b/doc/dwl-guile.1.man
 @@ -164,6 +164,23 @@ Here, the chosen client \fBemacs\fP is identified by its \fBid\fP and is set to
@@ -27,7 +27,7 @@ index 72c5ca1..ae40205 100644
  .PP
  Colors can be specified in RGBA format or hex format, i.e. \fB'(1.0 1.0 1.0 1.0)\fP or \fB"#001122FF"\fP (or just \fB"#FFFFFF"\fP if alpha is not needed).
 diff --git a/doc/dwl-guile.1.org b/doc/dwl-guile.1.org
-index ca7d1b7..fbb9fa4 100644
+index 781f2db..c8563da 100644
 --- a/doc/dwl-guile.1.org
 +++ b/doc/dwl-guile.1.org
 @@ -123,6 +123,17 @@ Here, the chosen client *emacs* is identified by its *id* and is set to spawn on
@@ -49,10 +49,10 @@ index ca7d1b7..fbb9fa4 100644
  Colors can be specified in RGBA format or hex format, i.e. *'(1.0 1.0 1.0 1.0)* or *"#001122FF"* (or just *"#FFFFFF"* if alpha is not needed).
  
 diff --git a/dscm/config.h b/dscm/config.h
-index b1f03dc..5e188be 100644
+index fedc40c..8e66020 100644
 --- a/dscm/config.h
 +++ b/dscm/config.h
-@@ -296,6 +296,8 @@ setter_rule(void *cvar, SCM value)
+@@ -313,6 +313,8 @@ setter_rule(void *cvar, SCM value)
  	SCM floating = dscm_assoc_ref(value, "floating?");
  	SCM monitor = dscm_assoc_ref(value, "monitor");
  	SCM alpha = dscm_assoc_ref(value, "alpha");
@@ -61,7 +61,7 @@ index b1f03dc..5e188be 100644
  
  	wl_list_for_each(r, lst, link) {
  		if (((!r->id && !id) || (r->id && id && !strcmp(r->id, id))) &&
-@@ -322,7 +324,13 @@ setter_rule(void *cvar, SCM value)
+@@ -339,7 +341,13 @@ setter_rule(void *cvar, SCM value)
  
  	DSCM_ASSERT_TYPE(scm_is_bool(floating),
  			 value, "set-rules", "floating?", "bool");
@@ -76,10 +76,10 @@ index b1f03dc..5e188be 100644
  	if (!scm_is_false(tags)) {
  		if (scm_is_true(scm_list_p(tags))) {
 diff --git a/dwl.c b/dwl.c
-index 271b003..17b3a45 100644
+index 8c624d4..d80a491 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -91,7 +91,8 @@ typedef union {
+@@ -92,7 +92,8 @@ typedef union {
  } Arg;
  
  typedef struct Monitor Monitor;
@@ -89,7 +89,7 @@ index 271b003..17b3a45 100644
  	/* Must keep these three elements in this order */
  	unsigned int type; /* XDGShell or X11* */
  	struct wlr_box geom;  /* layout-relative, includes border */
-@@ -120,7 +121,7 @@ typedef struct {
+@@ -121,7 +122,7 @@ typedef struct {
  #endif
  	unsigned int bw;
  	unsigned int tags;
@@ -98,7 +98,7 @@ index 271b003..17b3a45 100644
  	uint32_t resize; /* configure serial of a pending resize */
  	double alpha;
  	double prevalpha;
-@@ -128,7 +129,9 @@ typedef struct {
+@@ -129,7 +130,9 @@ typedef struct {
  	int prevy;
  	int prevwidth;
  	int prevheight;
@@ -109,7 +109,7 @@ index 271b003..17b3a45 100644
  
  typedef struct {
  	unsigned int mod;
-@@ -232,6 +235,7 @@ typedef struct {
+@@ -238,6 +241,7 @@ typedef struct {
  	int isfloating;
  	double alpha;
  	int monitor;
@@ -117,7 +117,7 @@ index 271b003..17b3a45 100644
  	struct wl_list link;
  } Rule;
  
-@@ -377,6 +381,10 @@ static Monitor *xytomon(double x, double y);
+@@ -383,6 +387,10 @@ static Monitor *xytomon(double x, double y);
  static struct wlr_scene_node *xytonode(double x, double y, struct wlr_surface **psurface,
  				       Client **pc, LayerSurface **pl, double *nx, double *ny);
  static void zoom(const Arg *arg);
@@ -128,7 +128,7 @@ index 271b003..17b3a45 100644
  static void setgaps(int oh, int ov, int ih, int iv);
  static void incrgaps(const Arg *arg);
  static void incrigaps(const Arg *arg);
-@@ -565,6 +573,8 @@ applyrules(Client *c)
+@@ -574,6 +582,8 @@ applyrules(Client *c)
  		if ((!r->title || strstr(title, r->title))
  		    && (!r->id || strstr(appid, r->id))) {
  			c->isfloating = r->isfloating;
@@ -137,7 +137,7 @@ index 271b003..17b3a45 100644
  			c->alpha = r->alpha;
  			newtags |= r->tags;
  			j = 0;
-@@ -1124,6 +1134,7 @@ createnotify(struct wl_listener *listener, void *data)
+@@ -1134,6 +1144,7 @@ createnotify(struct wl_listener *listener, void *data)
  	c->surface.xdg = xdg_surface;
  	c->bw = borderpx;
  	c->alpha = default_alpha;
@@ -145,7 +145,7 @@ index 271b003..17b3a45 100644
  
  	LISTEN(&xdg_surface->events.map, &c->map, mapnotify);
  	LISTEN(&xdg_surface->events.unmap, &c->unmap, unmapnotify);
-@@ -1496,6 +1507,62 @@ fullscreennotify(struct wl_listener *listener, void *data)
+@@ -1506,6 +1517,62 @@ fullscreennotify(struct wl_listener *listener, void *data)
  	setfullscreen(c, client_wants_fullscreen(c));
  }
  
@@ -208,7 +208,7 @@ index 271b003..17b3a45 100644
  void
  incnmaster(const Arg *arg)
  {
-@@ -1709,6 +1776,20 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1726,6 +1793,20 @@ mapnotify(struct wl_listener *listener, void *data)
  	}
  	printstatus();
  
@@ -229,7 +229,7 @@ index 271b003..17b3a45 100644
  unset_fullscreen:
  	m = c->mon ? c->mon : xytomon(c->geom.x, c->geom.y);
  	wl_list_for_each(w, &clients, link)
-@@ -2684,6 +2765,17 @@ unmapnotify(struct wl_listener *listener, void *data)
+@@ -2708,6 +2789,17 @@ unmapnotify(struct wl_listener *listener, void *data)
  		grabc = NULL;
  	}
  

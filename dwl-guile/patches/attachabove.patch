@@ -1,8 +1,8 @@
 diff --git a/dwl.c b/dwl.c
-index 271b003..648f60a 100644
+index 8c624d4..80ef6c0 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -1646,7 +1646,7 @@ void
+@@ -1663,7 +1663,7 @@ void
  mapnotify(struct wl_listener *listener, void *data)
  {
  	/* Called when the surface is mapped, or ready to display on-screen. */
@@ -11,7 +11,7 @@ index 271b003..648f60a 100644
  	Monitor *m;
  	int i;
  
-@@ -1692,8 +1692,13 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1709,8 +1709,13 @@ mapnotify(struct wl_listener *listener, void *data)
  	c->geom.height += 2 * c->bw;
  
  	/* Insert this client into client lists. */
