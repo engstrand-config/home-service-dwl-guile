@@ -57,7 +57,7 @@ Afterwards, run =guix pull=.
           ;;
           ;; (package
           ;;  (patch-dwl-guile-package dwl-guile
-          ;;                           #:patches '(%patch-xwayland)))
+          ;;                           #:patches (list %patch-xwayland)))
 
           ;; Environment variables to set for Wayland compatibility with applications.
           ;; By default, native Wayland rendering will be enabled for most applications.
