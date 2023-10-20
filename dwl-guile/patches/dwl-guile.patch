@@ -1710,10 +1710,10 @@ index 0000000..d3567c6
 +}
 diff --git a/dscm/config.h b/dscm/config.h
 new file mode 100644
-index 0000000..fedc40c
+index 0000000..5cc7623
 --- /dev/null
 +++ b/dscm/config.h
-@@ -0,0 +1,755 @@
+@@ -0,0 +1,756 @@
 +#pragma once
 +
 +#define DSCM_DEFINE_P(CVAR, KEY, SETTER, RELOADER)			\
@@ -1923,6 +1923,7 @@ index 0000000..fedc40c
 +		if (xkb->options) free((char*)xkb->options);
 +	} else {
 +		xkb = calloc(1, sizeof(struct xkb_rule_names));
++		(*((struct xkb_rule_names**)cvar)) = xkb;
 +	}
 +
 +	xkb->rules = dscm_assoc_ref_string(value, "rules");
@@ -3287,7 +3288,7 @@ index cae1036..0000000
 -.Sh BUGS
 -All of them.
 diff --git a/dwl.c b/dwl.c
-index 19bb6ce..8c624d4 100644
+index 19bb6ce..2b75de9 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -11,6 +11,7 @@
@@ -5141,7 +5142,7 @@ index 19bb6ce..8c624d4 100644
 +			return dscm_ipc_evaluate(optarg);
  		else if (c == 'v')
 -			die("dwl " VERSION);
-+			die("dwl v2.0.0");
++			die("dwl v2.0.2");
  		else
  			goto usage;
  	}
@@ -5175,7 +5176,7 @@ index 19bb6ce..8c624d4 100644
  }
 diff --git a/guix.scm b/guix.scm
 new file mode 100644
-index 0000000..aea3569
+index 0000000..6835cb6
 --- /dev/null
 +++ b/guix.scm
 @@ -0,0 +1,150 @@
@@ -5308,7 +5309,7 @@ index 0000000..aea3569
 +  (inherit dwl)
 +  (source source)
 +  (name "dwl-guile-devel")
-+  (version "2.0.0")
++  (version "2.0.2")
 +  (inputs
 +   (modify-inputs (package-inputs dwl)
 +                  (prepend guile-3.0

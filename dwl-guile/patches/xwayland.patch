@@ -14,7 +14,7 @@ index 7669208..f57df46 100644
 +XWAYLAND = -DXWAYLAND
 +XLIBS = xcb xcb-icccm
 diff --git a/guix.scm b/guix.scm
-index aea3569..daf449f 100644
+index 6835cb6..7966def 100644
 --- a/guix.scm
 +++ b/guix.scm
 @@ -131,7 +131,9 @@

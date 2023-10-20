@@ -131,7 +131,7 @@
   (package
    (inherit dwl)
    (name "dwl-guile")
-   (version "2.0.1")
+   (version "2.0.2")
    (inputs
     (modify-inputs (package-inputs dwl)
                    (prepend guile-3.0)
@@ -145,7 +145,7 @@
      (file-name (git-file-name name version))
      (sha256
       (base32
-       "0mp5iszvvc7a57s25k6gfvlnrxr4j4d61inqfpmd7jly7ljmqr82"))))))
+       "0z8ls92cgkry0fvybqzvg8jplwh3zjakdmq79kfxbczabvyijxk8"))))))
 
 (define* (patch-dwl-guile-package pkg #:key (patches '()))
   "Create a new patched package of PKG with each patch in PATCHES

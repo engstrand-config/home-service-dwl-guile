@@ -49,10 +49,10 @@ index 781f2db..c8563da 100644
  Colors can be specified in RGBA format or hex format, i.e. *'(1.0 1.0 1.0 1.0)* or *"#001122FF"* (or just *"#FFFFFF"* if alpha is not needed).
  
 diff --git a/dscm/config.h b/dscm/config.h
-index fedc40c..8e66020 100644
+index 5cc7623..8a4f1a1 100644
 --- a/dscm/config.h
 +++ b/dscm/config.h
-@@ -313,6 +313,8 @@ setter_rule(void *cvar, SCM value)
+@@ -314,6 +314,8 @@ setter_rule(void *cvar, SCM value)
  	SCM floating = dscm_assoc_ref(value, "floating?");
  	SCM monitor = dscm_assoc_ref(value, "monitor");
  	SCM alpha = dscm_assoc_ref(value, "alpha");
@@ -61,7 +61,7 @@ index fedc40c..8e66020 100644
  
  	wl_list_for_each(r, lst, link) {
  		if (((!r->id && !id) || (r->id && id && !strcmp(r->id, id))) &&
-@@ -339,7 +341,13 @@ setter_rule(void *cvar, SCM value)
+@@ -340,7 +342,13 @@ setter_rule(void *cvar, SCM value)
  
  	DSCM_ASSERT_TYPE(scm_is_bool(floating),
  			 value, "set-rules", "floating?", "bool");
@@ -76,7 +76,7 @@ index fedc40c..8e66020 100644
  	if (!scm_is_false(tags)) {
  		if (scm_is_true(scm_list_p(tags))) {
 diff --git a/dwl.c b/dwl.c
-index 8c624d4..d80a491 100644
+index 2b75de9..de001c8 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -92,7 +92,8 @@ typedef union {

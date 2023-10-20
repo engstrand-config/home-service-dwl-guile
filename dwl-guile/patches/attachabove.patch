@@ -1,5 +1,5 @@
 diff --git a/dwl.c b/dwl.c
-index 8c624d4..80ef6c0 100644
+index 2b75de9..c1b163b 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -1663,7 +1663,7 @@ void

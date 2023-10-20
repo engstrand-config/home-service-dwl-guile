@@ -90,10 +90,10 @@ index 781f2db..e142e31 100644
  Windows containing certain clients can be set to spawn in floating mode, be assigned to specific tags and/or monitors.
  
 diff --git a/dscm/config.h b/dscm/config.h
-index fedc40c..fb57a5f 100644
+index 5cc7623..dd21f60 100644
 --- a/dscm/config.h
 +++ b/dscm/config.h
-@@ -390,6 +390,12 @@ setter_monrule(void *cvar, SCM value)
+@@ -391,6 +391,12 @@ setter_monrule(void *cvar, SCM value)
  	SCM scale = dscm_assoc_ref(value, "scale");
  	SCM rr = dscm_assoc_ref(value, "transform");
  	SCM lt = dscm_assoc_ref(value, "layout");
@@ -106,7 +106,7 @@ index fedc40c..fb57a5f 100644
  
  	wl_list_for_each(r, lst, link) {
  		if ((!r->name && !name) || (r->name && name && !strcmp(r->name, name))) {
-@@ -410,6 +416,8 @@ setter_monrule(void *cvar, SCM value)
+@@ -411,6 +417,8 @@ setter_monrule(void *cvar, SCM value)
  		r->rr = WL_OUTPUT_TRANSFORM_NORMAL;
  		r->nmaster = 1;
  		r->mfact = 0.55;
@@ -115,7 +115,7 @@ index fedc40c..fb57a5f 100644
  		/* init.scm will always define a layout, so this will always work */
  		r->lt = wl_container_of(layouts.next, r->lt, link);
  
-@@ -417,6 +425,10 @@ setter_monrule(void *cvar, SCM value)
+@@ -418,6 +426,10 @@ setter_monrule(void *cvar, SCM value)
  		if (name) scm_dynwind_unwind_handler(free, name, 0);
  	}
  
@@ -126,7 +126,7 @@ index fedc40c..fb57a5f 100644
  	if (!scm_is_false(mfact)) {
  		DSCM_ASSERT_TYPE(scm_is_number(mfact),
  				 value, "set-monitor-rules", "master-factor", "float");
-@@ -432,6 +444,31 @@ setter_monrule(void *cvar, SCM value)
+@@ -433,6 +445,31 @@ setter_monrule(void *cvar, SCM value)
  				 value, "set-monitor-rules", "masters", "int");
  		r->nmaster = scm_to_int(nmaster);
  	}
@@ -158,7 +158,7 @@ index fedc40c..fb57a5f 100644
  	if (!scm_is_false(rr)) {
  		DSCM_ASSERT_TYPE(scm_is_symbol(rr),
  				 value, "set-monitor-rules", "transform", "symbol");
-@@ -582,7 +619,7 @@ reload_monrules()
+@@ -583,7 +620,7 @@ reload_monrules()
  {
  	Monitor *m;
  	wl_list_for_each(m, &mons, link)
@@ -168,7 +168,7 @@ index fedc40c..fb57a5f 100644
  
  static inline void
 diff --git a/dwl.c b/dwl.c
-index 8c624d4..b7c688b 100644
+index 2b75de9..f29e204 100644
 --- a/dwl.c
 +++ b/dwl.c
 @@ -228,6 +228,11 @@ typedef struct {
