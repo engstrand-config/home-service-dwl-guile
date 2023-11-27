@@ -78,6 +78,8 @@ Afterwards, run =guix pull=.
           ;; The preferred way of running commands/applications (that does not need
           ;; to access the stdout of dwl) on startup is by using the
           ;; dwl:startup-hook in your Guile config.
+          ;; Note that if you don't need stdout, you should close it with <&-,
+          ;; otherwise dwl-guile will hang when the stdout buffer fills up.
           ;;
           ;; By default, this option is not used.
           (startup-command "foot --server <&-")
